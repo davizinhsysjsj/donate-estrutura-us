@@ -2,6 +2,8 @@
 
 PawsCo Rescue — donation funnel + supporter area built with SvelteKit + Tailwind.
 
+Repo: https://github.com/davizinhsysjsj/donate-estrutura
+
 ## Routes
 
 - `/` — Emotional donation funnel (7 sections)
