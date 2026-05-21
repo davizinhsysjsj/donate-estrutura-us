@@ -4,11 +4,12 @@
 </script>
 
 <svelte:head>
-  <title>PawsCo Rescue — Help feed dogs in Irish shelters tonight</title>
-  <meta name="description" content="Help feed rescue dogs in Irish partner shelters. From EUR 10. One-time. No subscription." />
+  <title>Help feed Irish rescue dogs tonight | PawsCo Rescue</title>
+  <meta
+    name="description"
+    content="Help us feed rescue dogs in our Irish partner shelters tonight. From EUR 10. One-time. No subscription."
+  />
   <meta name="referrer" content="no-referrer" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 </svelte:head>
 
 {@render children()}
