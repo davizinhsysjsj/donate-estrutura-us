@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Heart, Download, CheckCircle2, Share2, Instagram, ChevronRight, ArrowLeft, Facebook, Youtube, Twitter, Shield } from 'lucide-svelte';
+  import { Heart, CheckCircle2, Instagram, ChevronRight, ArrowLeft, Facebook, Youtube, Twitter, Shield, Mail } from 'lucide-svelte';
 
   let { data } = $props();
   const { amount, dogs, dateStr, orderId } = data;
@@ -16,10 +16,8 @@
   };
 
   const bundleItems = [
-    { label: 'Personalized PDF Certificate of Appreciation', action: 'Download' },
-    { label: 'Rescue Stories Vol. 1 — Digital Ebook', action: 'Download' },
-    { label: 'Access to PawsCo Supporter Community', action: 'Open' },
-    { label: 'Quarterly Impact Reports', action: 'Sent monthly to your inbox', static: true }
+    'Rescue Stories Vol. 1 — eBook (PDF)',
+    'Personalized Supporter Certificate'
   ];
 </script>
 
@@ -83,26 +81,25 @@
       </div>
     </section>
 
-    <!-- Bundle -->
+    <!-- Email delivery -->
     <section class="section">
-      <div class="section-eyebrow">Your bundle</div>
-      <h2 class="section-title">Your supporter bundle is ready.</h2>
-      {#each bundleItems as item}
+      <div class="section-eyebrow">Delivery</div>
+      <h2 class="section-title" style="display:flex;align-items:center;gap:10px">
+        <span style="display:inline-flex;width:32px;height:32px;border-radius:50%;background:var(--primary-light);color:var(--primary-dark);align-items:center;justify-content:center"><Mail size={18} /></span>
+        Check your email
+      </h2>
+      <p style="font-size:0.9375rem;color:var(--muted-fg);line-height:1.55;margin-bottom:14px">
+        We've just sent your supporter pack to your inbox. Look for an email from PawsCo within the next 2 minutes.
+      </p>
+      {#each bundleItems as label}
         <div class="bundle-item">
           <div class="bundle-check"><CheckCircle2 size={18} /></div>
-          <span class="bundle-label">{item.label}</span>
-          {#if item.static}
-            <span class="bundle-static">{item.action}</span>
-          {:else}
-            <button class="bundle-action">
-              {#if item.action === 'Download'}
-                <Download size={12} style="display:inline;margin-right:4px;vertical-align:-2px" />
-              {/if}
-              {item.action}
-            </button>
-          {/if}
+          <span class="bundle-label">{label}</span>
         </div>
       {/each}
+      <p style="font-size:0.75rem;color:var(--muted-fg);margin-top:10px;line-height:1.5">
+        Didn't receive it? Check your spam folder or email <a href="mailto:hello@pawsco.com" style="color:var(--primary);text-decoration:none">hello@pawsco.com</a>
+      </p>
     </section>
 
     <!-- Share -->

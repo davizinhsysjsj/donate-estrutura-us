@@ -1,31 +1,25 @@
 <script lang="ts">
-  import { Search, Menu, Share2, ChevronRight, Star, Calendar, Shield, Heart, Truck, Mail, Facebook, Youtube, Twitter, Instagram, ChevronDown } from 'lucide-svelte';
+  import { Search, Menu, Share2, ChevronRight, Star, Calendar, Shield, Heart, Truck, Mail, Facebook, Youtube, Twitter, Instagram, ChevronDown, ArrowRight } from 'lucide-svelte';
   import { DONORS, RAISED_EUR, GOAL_EUR } from '$lib/data/donors';
+  import { TIERS, DEFAULT_TIER, dogsForAmount } from '$lib/data/tiers';
 
   const HERO_IMG = 'https://images.unsplash.com/photo-1601758124510-52d02ddb7cbd?w=800&q=80';
   const STORY_IMG = 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&q=80';
+
+  const SHOPIFY_CHECKOUT_URL = 'https://pawsco.myshopify.com/pages/supporter-bundle';
 
   const progressPct = Math.min(100, Math.round((RAISED_EUR / GOAL_EUR) * 100));
   const progressDash = 2 * Math.PI * 22;
   const progressOffset = progressDash * (1 - progressPct / 100);
 
-  const PRESET_AMOUNTS = [10, 25, 50, 100, 250];
   const lastDonor = DONORS[0];
 
   let descExpanded = $state(false);
   let donationOpen = $state(false);
   let shareOpen = $state(false);
-  let currentStep = $state<1 | 2 | 3 | 4>(1);
-  let selectedAmount = $state<number | null>(25);
-  let customAmount = $state<string>('');
-  let useCustom = $state(false);
-  let selectedMethod = $state<'card' | 'express'>('card');
-  let payerName = $state('');
-  let payerEmail = $state('');
-  let payerPhone = $state('');
-  let submitting = $state(false);
-  let amountError = $state(false);
-  let payerError = $state('');
+  let currentStep = $state<1 | 2>(1);
+  let selectedAmount = $state<number>(DEFAULT_TIER);
+  let donating = $state(false);
   let toastMessage = $state('');
   let toastVisible = $state(false);
   let openFaq = $state<number | null>(null);
@@ -63,76 +57,27 @@
 
   function openDonation() {
     currentStep = 1;
-    selectedAmount = 25;
-    useCustom = false;
-    customAmount = '';
-    selectedMethod = 'card';
-    payerName = '';
-    payerEmail = '';
-    payerPhone = '';
-    payerError = '';
-    amountError = false;
+    selectedAmount = DEFAULT_TIER;
+    donating = false;
     donationOpen = true;
   }
 
-  function selectAmount(amount: number | 'custom') {
-    if (amount === 'custom') {
-      useCustom = true;
-      selectedAmount = null;
-    } else {
-      useCustom = false;
-      selectedAmount = amount;
-      customAmount = '';
-    }
-  }
-
-  function getEffectiveAmount(): number | null {
-    if (useCustom) {
-      const n = parseFloat(customAmount);
-      return Number.isFinite(n) && n >= 1 ? n : null;
-    }
-    return selectedAmount;
-  }
-
-  function nextStep1() {
-    amountError = false;
-    const amt = getEffectiveAmount();
-    if (!amt) {
-      amountError = true;
-      return;
-    }
-    selectedAmount = amt;
-    currentStep = 2;
-  }
-
-  function nextStep2() {
-    currentStep = 3;
-  }
-
-  function submitDonation() {
-    payerError = '';
-    if (!payerName.trim()) {
-      payerError = 'Please enter your full name.';
-      return;
-    }
-    if (!payerEmail.trim() || !payerEmail.includes('@')) {
-      payerError = 'Please enter a valid email.';
-      return;
-    }
-    if (selectedMethod === 'express' && !payerPhone.trim()) {
-      payerError = 'Please enter a phone number for express checkout.';
-      return;
-    }
-
-    submitting = true;
+  function selectAmount(amount: number) {
+    selectedAmount = amount;
     setTimeout(() => {
-      submitting = false;
-      currentStep = 4;
-      setTimeout(() => {
-        const amt = getEffectiveAmount() ?? 25;
-        window.location.href = `/supporter?tier=${amt}`;
-      }, 2200);
-    }, 1500);
+      currentStep = 2;
+    }, 200);
+  }
+
+  function handleDonate() {
+    donating = true;
+    setTimeout(() => {
+      if (SHOPIFY_CHECKOUT_URL.includes('pawsco.myshopify.com')) {
+        window.location.href = `/supporter?tier=${selectedAmount}`;
+      } else {
+        window.location.href = `${SHOPIFY_CHECKOUT_URL}?tier=${selectedAmount}`;
+      }
+    }, 800);
   }
 
   const PAGE_URL = 'https://donate-estrutura.vercel.app';
@@ -445,116 +390,63 @@
   <div class="sheet" role="document">
     <div class="sheet-handle"></div>
     <div class="sheet-title">
-      {#if currentStep === 1}Make a donation{:else if currentStep === 2}Payment method{:else if currentStep === 3}Your details{:else}Thank you{/if}
+      {currentStep === 1 ? 'Make a donation' : 'Confirm your donation'}
     </div>
     {#if currentStep === 1}
-      <p class="sheet-subtitle">From €10. One-time. No subscription.</p>
+      <p class="sheet-subtitle">Every donation feeds rescue dogs in our Irish partner shelters.</p>
     {/if}
 
     {#if currentStep === 1}
       <div class="step-form active">
-        <div class="step-label">Choose an amount (€)</div>
-        <div class="amount-grid">
-          {#each PRESET_AMOUNTS as a}
+        <div class="step-label">Choose an amount</div>
+        <div class="amount-grid amount-grid-2x2">
+          {#each TIERS as tier}
             <button
               type="button"
-              class="amount-btn"
-              class:selected={!useCustom && selectedAmount === a}
-              onclick={() => selectAmount(a)}
-            >€{a}</button>
+              class="amount-btn amount-btn-tier"
+              class:selected={selectedAmount === tier.amount}
+              onclick={() => selectAmount(tier.amount)}
+            >
+              <span class="amount-btn-value">€{tier.amount}</span>
+              <span class="amount-btn-sub">feeds {tier.dogs} {tier.dogs === 1 ? 'dog' : 'dogs'}</span>
+            </button>
           {/each}
-          <button
-            type="button"
-            class="amount-btn"
-            class:selected={useCustom}
-            onclick={() => selectAmount('custom')}
-          >Custom</button>
-        </div>
-        {#if useCustom}
-          <input
-            type="number"
-            class="input-field"
-            placeholder="Custom amount (€)"
-            min="1"
-            step="0.01"
-            bind:value={customAmount}
-          />
-        {/if}
-        <div class="error-msg" class:visible={amountError}>Please select or enter a valid amount.</div>
-        <button class="btn-next" onclick={nextStep1}>Continue →</button>
-      </div>
-    {:else if currentStep === 2}
-      <div class="step-form active">
-        <button class="btn-back" onclick={() => (currentStep = 1)}>← Back</button>
-        <div class="step-label">Payment method</div>
-        <div class="method-grid">
-          <button
-            type="button"
-            class="method-btn"
-            class:selected={selectedMethod === 'card'}
-            onclick={() => (selectedMethod = 'card')}
-          >
-            <span style="font-size:24px">💳</span>
-            <span class="method-btn-name">Card</span>
-            <span class="method-btn-sub">Visa · Mastercard</span>
-          </button>
-          <button
-            type="button"
-            class="method-btn"
-            class:selected={selectedMethod === 'express'}
-            onclick={() => (selectedMethod = 'express')}
-          >
-            <span style="font-size:24px">📱</span>
-            <span class="method-btn-name">Apple / Google Pay</span>
-            <span class="method-btn-sub">Express checkout</span>
-          </button>
-        </div>
-        <button class="btn-next" onclick={nextStep2}>Continue →</button>
-      </div>
-    {:else if currentStep === 3}
-      <div class="step-form active">
-        <button class="btn-back" onclick={() => (currentStep = 2)}>← Back</button>
-        <div class="step-label">Your details</div>
-
-        <div class="field-group">
-          <label class="input-label" for="payerName">Full name</label>
-          <input id="payerName" type="text" class="input-field" placeholder="Sean O'Brien" autocomplete="name" bind:value={payerName} />
-        </div>
-        <div class="field-group">
-          <label class="input-label" for="payerEmail">Email</label>
-          <input id="payerEmail" type="email" class="input-field" placeholder="you@email.com" autocomplete="email" bind:value={payerEmail} />
-        </div>
-        {#if selectedMethod === 'express'}
-          <div class="field-group">
-            <label class="input-label" for="payerPhone">Phone (for express checkout)</label>
-            <input id="payerPhone" type="tel" class="input-field" placeholder="+353 87 000 0000" autocomplete="tel" bind:value={payerPhone} />
-          </div>
-        {/if}
-
-        <div class="error-msg" class:visible={!!payerError}>{payerError}</div>
-
-        <button class="btn-next" onclick={submitDonation} disabled={submitting}>
-          {#if submitting}
-            <div class="spinner"></div>
-            Processing…
-          {:else}
-            Confirm donation of €{getEffectiveAmount() ?? selectedAmount ?? 25}
-          {/if}
-        </button>
-        <div class="security-note">
-          <Shield size={14} />
-          Secure payment · 30-day refund
         </div>
       </div>
     {:else}
       <div class="step-form active">
-        <div class="result-screen">
-          <div class="result-icon"><Heart size={28} fill="currentColor" /></div>
-          <div class="result-title">Thank you, friend.</div>
-          <div class="result-text">
-            Your donation is being processed. Redirecting you to your supporter area…
+        <button class="btn-back" onclick={() => (currentStep = 1)}>← Back</button>
+        <div class="confirm-screen">
+          <div class="step-label">Your donation</div>
+          <div class="confirm-amount">€{selectedAmount}</div>
+          <p class="confirm-sub">You're saving {dogsForAmount(selectedAmount)} {dogsForAmount(selectedAmount) === 1 ? 'dog' : 'dogs'} today.</p>
+
+          <div class="confirm-card">
+            <div class="confirm-card-title">
+              <Mail size={16} />
+              What happens next?
+            </div>
+            <p class="confirm-card-intro">We'll send you:</p>
+            <ul class="confirm-card-list">
+              <li><span class="confirm-card-check">✓</span> Rescue Stories Vol. 1 (PDF eBook)</li>
+              <li><span class="confirm-card-check">✓</span> Your personalized Supporter Certificate</li>
+            </ul>
+            <p class="confirm-card-foot">Both arrive in your inbox right after payment.</p>
           </div>
-          <div class="spinner" style="margin: 0 auto; border-color: rgba(59,130,246,0.25); border-top-color: var(--primary)"></div>
+
+          <button class="btn-next" onclick={handleDonate} disabled={donating}>
+            {#if donating}
+              <div class="spinner"></div>
+              Redirecting…
+            {:else}
+              Donate €{selectedAmount} now
+              <ArrowRight size={18} />
+            {/if}
+          </button>
+          <div class="security-note">
+            <Shield size={14} />
+            Secure payment via card or Apple/Google Pay
+          </div>
         </div>
       </div>
     {/if}
