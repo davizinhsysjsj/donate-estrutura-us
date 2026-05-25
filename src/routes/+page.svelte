@@ -1,7 +1,8 @@
 <script lang="ts">
   import {
     ChevronRight, Calendar, Shield, Heart, Mail,
-    Facebook, Youtube, Twitter, Instagram, ArrowRight
+    Facebook, Youtube, Twitter, Instagram, ArrowRight,
+    Menu, X
   } from 'lucide-svelte';
   import { onMount, onDestroy } from 'svelte';
   import { CAMPAIGN } from '$lib/data/campaign';
@@ -39,6 +40,23 @@
   let donating = $state(false);
   let toastMessage = $state('');
   let toastVisible = $state(false);
+  let menuOpen = $state(false);
+  let donorsModalOpen = $state(false);
+
+  const MENU_ITEMS = [
+    { id: 'story-section', label: 'Story' },
+    { id: 'stats-section', label: 'The numbers' },
+    { id: 'how-section', label: 'How it works' },
+    { id: 'testimonials-section', label: 'Supporters' },
+    { id: 'donations', label: 'Donations' },
+    { id: 'organizer-section', label: 'Organizer' }
+  ];
+
+  function scrollToSection(id: string) {
+    menuOpen = false;
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   const STEPS = [
     { icon: Heart, title: 'You choose a donation amount', desc: 'Pick what feels right — every euro feeds an animal in need.' },
@@ -102,7 +120,34 @@
     </svg>
     <span class="logo-text">pawsco</span>
   </a>
-  <button class="header-link">Sign in</button>
+  <button
+    class="header-menu-btn"
+    aria-label="Open menu"
+    aria-expanded={menuOpen}
+    onclick={() => (menuOpen = !menuOpen)}
+  >
+    {#if menuOpen}
+      <X size={22} strokeWidth={2} />
+    {:else}
+      <Menu size={22} strokeWidth={2} />
+    {/if}
+  </button>
+
+  {#if menuOpen}
+    <button
+      class="header-menu-backdrop"
+      aria-label="Close menu"
+      onclick={() => (menuOpen = false)}
+    ></button>
+    <nav class="header-menu-dropdown" aria-label="Site navigation">
+      {#each MENU_ITEMS as item}
+        <button class="header-menu-item" onclick={() => scrollToSection(item.id)}>
+          {item.label}
+          <ChevronRight size={16} strokeWidth={2} />
+        </button>
+      {/each}
+    </nav>
+  {/if}
 </header>
 
 <div class="page">
@@ -147,7 +192,7 @@
         <span>{CAMPAIGN.daysLeft} days left</span>
       </div>
 
-      <div class="story-text" class:story-text-collapsed={!descExpanded}>
+      <div id="story-section" class="story-text" class:story-text-collapsed={!descExpanded}>
         {#each CAMPAIGN.story as paragraph}
           <p>{paragraph}</p>
         {/each}
@@ -182,7 +227,7 @@
     {/if}
 
     <!-- Stats grid -->
-    <section class="stats-section">
+    <section class="stats-section" id="stats-section">
       <div class="section-eyebrow">The reality</div>
       <h2 class="section-title">The situation, in numbers.</h2>
       <div class="stats-grid">
@@ -196,7 +241,7 @@
     </section>
 
     <!-- How it works -->
-    <section class="section">
+    <section class="section" id="how-section">
       <div class="section-eyebrow">How it works</div>
       <h2 class="section-title">How your support reaches them.</h2>
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
@@ -216,7 +261,7 @@
     </section>
 
     <!-- Words of support / testimonials -->
-    <section class="section">
+    <section class="section" id="testimonials-section">
       <div class="section-eyebrow">Words of support</div>
       <h2 class="section-title">From supporters across Belgium.</h2>
       <div class="testimonial-row">
@@ -247,17 +292,17 @@
       </button>
     </section>
 
-    <!-- Donors list -->
+    <!-- Donors list (preview com 5; botao abre modal com lista completa) -->
     <div class="donations" id="donations">
       <div class="donations-header">
         <div class="donations-title">
           Donations
           <span class="donations-badge">{CAMPAIGN.donationsCount}</span>
         </div>
-        <a href="#" class="donations-link">See all</a>
+        <button class="donations-link" onclick={() => (donorsModalOpen = true)}>See all</button>
       </div>
       <ul class="donor-list">
-        {#each CAMPAIGN.donors as d}
+        {#each CAMPAIGN.donors.slice(0, 5) as d}
           <li class="donor-item">
             <div class="donor-avatar {d.color}">
               {#if d.anonymous}
@@ -274,11 +319,13 @@
           </li>
         {/each}
       </ul>
-      <button class="btn-see-all">See all donations</button>
+      <button class="btn-see-all" onclick={() => (donorsModalOpen = true)}>
+        See all {CAMPAIGN.donors.length}+ donations
+      </button>
     </div>
 
     <!-- Organizer -->
-    <div class="organizer">
+    <div class="organizer" id="organizer-section">
       <h3>Organizer</h3>
       <div class="organizer-row">
         <div class="organizer-avatar">
@@ -443,6 +490,41 @@
         <span class="share-label">Copy link</span>
       </button>
     </div>
+  </div>
+</div>
+
+<!-- All Donors Sheet -->
+<div
+  class="overlay"
+  class:open={donorsModalOpen}
+  role="dialog"
+  aria-modal="true"
+  aria-label="All donations"
+  onclick={(e) => e.target === e.currentTarget && (donorsModalOpen = false)}
+>
+  <div class="sheet sheet-donors" role="document">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">All donations ({CAMPAIGN.donationsCount})</div>
+    <p class="sheet-subtitle">Latest supporters helping Belgian rescues.</p>
+    <ul class="donor-list donor-list-full">
+      {#each CAMPAIGN.donors as d}
+        <li class="donor-item">
+          <div class="donor-avatar {d.color}">
+            {#if d.anonymous}
+              <Heart size={16} fill="currentColor" />
+            {:else}
+              {d.initials}
+            {/if}
+          </div>
+          <div class="donor-info">
+            <div class="donor-name">{d.name}</div>
+            <div class="donor-meta">{d.ago}</div>
+          </div>
+          <div class="donor-amount">€{d.amount}</div>
+        </li>
+      {/each}
+    </ul>
+    <button class="sheet-close-btn" onclick={() => (donorsModalOpen = false)}>Close</button>
   </div>
 </div>
 
