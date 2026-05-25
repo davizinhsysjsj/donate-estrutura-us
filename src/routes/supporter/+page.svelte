@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Heart, CheckCircle2, Instagram, ChevronRight, ArrowLeft, Facebook, Youtube, Twitter, Shield, Mail } from 'lucide-svelte';
+  import { CheckCircle2, Instagram, ChevronRight, ArrowLeft, Facebook, Youtube, Twitter, Shield } from 'lucide-svelte';
 
   let { data } = $props();
   const { amount, dogs, dateStr, orderId } = data;
@@ -14,13 +14,6 @@
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${PAGE_URL}&quote=${shareText}`,
     whatsapp: `https://wa.me/?text=${shareText}`
   };
-
-  const SHARE_BG = '#E6F7EE';
-
-  const bundleItems = [
-    'Rescue Stories Vol. 1 — eBook (PDF)',
-    'Personalized Supporter Certificate'
-  ];
 </script>
 
 <svelte:head>
@@ -47,13 +40,13 @@
     <!-- Thank you hero -->
     <section class="section" style="text-align:center; padding-top: 32px;">
       <div style="display:inline-flex;width:72px;height:72px;border-radius:50%;background:var(--primary-light);color:var(--primary-dark);align-items:center;justify-content:center;margin-bottom:16px">
-        <Heart size={36} fill="currentColor" />
+        <CheckCircle2 size={40} strokeWidth={2.25} />
       </div>
-      <h1 style="font-size:1.5rem;font-weight:700;line-height:1.2;margin-bottom:10px">Thank you, friend.</h1>
+      <h1 style="font-size:1.5rem;font-weight:700;line-height:1.2;margin-bottom:10px">Thank you for your donation.</h1>
       <p style="font-size:0.9375rem;color:var(--muted-fg);line-height:1.55;max-width:340px;margin:0 auto">
-        Your <strong style="color:var(--fg)">€{amount}</strong> contribution will feed
+        Your contribution of <strong style="color:var(--fg)">€{amount}</strong> will help us feed
         <strong style="color:var(--primary-dark)">{dogs}</strong>
-        rescue {dogs === 1 ? 'animal' : 'animals'} this week. We mean it: this changes lives.
+        rescue {dogs === 1 ? 'animal' : 'animals'} at our shelter this month.
       </p>
     </section>
 
@@ -76,31 +69,9 @@
           <span class="support-receipt-label">Amount</span>
           <span class="support-receipt-value">€{amount}.00</span>
         </div>
-        <div class="support-receipt-row">
-          <span class="support-receipt-label">Email</span>
-          <span class="support-receipt-value" style="font-weight:500">your-email@example.com</span>
-        </div>
       </div>
-    </section>
-
-    <!-- Email delivery -->
-    <section class="section">
-      <div class="section-eyebrow">Delivery</div>
-      <h2 class="section-title" style="display:flex;align-items:center;gap:10px">
-        <span style="display:inline-flex;width:32px;height:32px;border-radius:50%;background:var(--primary-light);color:var(--primary-dark);align-items:center;justify-content:center"><Mail size={18} /></span>
-        Check your email
-      </h2>
-      <p style="font-size:0.9375rem;color:var(--muted-fg);line-height:1.55;margin-bottom:14px">
-        We've just sent your supporter pack to your inbox. Look for an email from PawsCo within the next 2 minutes.
-      </p>
-      {#each bundleItems as label}
-        <div class="bundle-item">
-          <div class="bundle-check"><CheckCircle2 size={18} /></div>
-          <span class="bundle-label">{label}</span>
-        </div>
-      {/each}
-      <p style="font-size:0.75rem;color:var(--muted-fg);margin-top:10px;line-height:1.5">
-        Didn't receive it? Check your spam folder or email <a href="mailto:hello@pawsco.com" style="color:var(--primary);text-decoration:none">hello@pawsco.com</a>
+      <p style="font-size:0.8125rem;color:var(--muted-fg);line-height:1.5;margin-top:14px;text-align:center">
+        We'll send you occasional updates about the animals you helped.
       </p>
     </section>
 

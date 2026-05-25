@@ -28,9 +28,9 @@
   let openFaq = $state<number | null>(null);
 
   const STEPS = [
-    { icon: Heart, title: 'You choose a donation amount', desc: 'Pick what feels right — from a starter pack to a guardian role.' },
+    { icon: Heart, title: 'You choose a donation amount', desc: 'Pick what feels right — every euro feeds an animal in need.' },
     { icon: Shield, title: 'Funds reach partner shelters within 7 days', desc: 'No bureaucracy. Direct wires to verified rescues, prioritized by need.' },
-    { icon: Mail, title: 'You receive an impact report by email', desc: 'Photos, names, outcomes — and your digital supporter bundle.' }
+    { icon: Mail, title: 'You hear back from the shelter', desc: 'Occasional photos and stories from the animals you helped.' }
   ];
 
   function showToast(msg: string) {
@@ -386,18 +386,9 @@
           <div class="confirm-amount">€{selectedAmount}</div>
           <p class="confirm-sub">You're saving {dogsForAmount(selectedAmount)} {dogsForAmount(selectedAmount) === 1 ? 'animal' : 'animals'} today.</p>
 
-          <div class="confirm-card">
-            <div class="confirm-card-title">
-              <Mail size={16} />
-              What happens next?
-            </div>
-            <p class="confirm-card-intro">We'll send you:</p>
-            <ul class="confirm-card-list">
-              <li><span class="confirm-card-check">✓</span> Rescue Stories Vol. 1 (PDF eBook)</li>
-              <li><span class="confirm-card-check">✓</span> Your personalized Supporter Certificate</li>
-            </ul>
-            <p class="confirm-card-foot">Both arrive in your inbox right after payment.</p>
-          </div>
+          <p class="confirm-direct-note">
+            Your donation will go directly to feed and care for rescued animals at our partner shelters in Belgium.
+          </p>
 
           <button class="btn-next" onclick={handleDonate} disabled={donating}>
             {#if donating}
