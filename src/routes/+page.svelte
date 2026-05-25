@@ -3,6 +3,7 @@
     ChevronRight, Calendar, Shield, Heart, Mail,
     Facebook, Youtube, Twitter, Instagram, ArrowRight
   } from 'lucide-svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { CAMPAIGN } from '$lib/data/campaign';
   import { TIERS, DEFAULT_TIER, dogsForAmount } from '$lib/data/tiers';
   import ProgressCard from '$lib/components/ProgressCard.svelte';
@@ -10,7 +11,20 @@
 
   const SHOPIFY_CHECKOUT_URL = 'https://pawsco.myshopify.com/pages/supporter-bundle';
 
-  const lastDonor = CAMPAIGN.donors[0];
+  // Rotacao do "ultimo doador" no ProgressCard e StickyBottomBar — cycle a cada 4.2s
+  let donorIdx = $state(0);
+  let donorTimer: ReturnType<typeof setInterval> | null = null;
+  const lastDonor = $derived(CAMPAIGN.donors[donorIdx % CAMPAIGN.donors.length]);
+
+  onMount(() => {
+    donorTimer = setInterval(() => {
+      donorIdx = (donorIdx + 1) % CAMPAIGN.donors.length;
+    }, 4200);
+  });
+
+  onDestroy(() => {
+    if (donorTimer) clearInterval(donorTimer);
+  });
 
   function scrollToDonors() {
     const el = document.getElementById('donations');
