@@ -69,6 +69,74 @@ body {
 }
 .header-link:hover { color: var(--primary-dark); }
 
+/* ─── Header menu (hamburguer dropdown) ─── */
+.header-menu-btn {
+  background: none; border: none; cursor: pointer; color: var(--fg);
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 9999px;
+  transition: background 0.15s ease;
+}
+.header-menu-btn:hover { background: var(--muted); }
+.header-menu-btn:active { background: var(--border); }
+
+.header-menu-backdrop {
+  position: fixed; inset: 56px 0 0 0; z-index: 49;
+  background: rgba(0, 0, 0, 0.18);
+  border: none; padding: 0; cursor: default;
+  animation: menu-fade 0.18s ease-out;
+}
+@keyframes menu-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.header-menu-dropdown {
+  position: absolute; top: 56px; right: 8px; z-index: 51;
+  background: #ffffff; border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.06);
+  min-width: 220px; padding: 6px;
+  display: flex; flex-direction: column; gap: 2px;
+  animation: menu-slide 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-origin: top right;
+}
+@keyframes menu-slide {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.header-menu-item {
+  display: flex; align-items: center; justify-content: space-between;
+  background: none; border: none; cursor: pointer;
+  font-family: var(--font); font-size: 0.9375rem; font-weight: 500;
+  color: var(--fg); text-align: left;
+  padding: 11px 14px; border-radius: 10px;
+  transition: background 0.12s ease;
+}
+.header-menu-item:hover { background: var(--muted); }
+.header-menu-item:active { background: var(--border); }
+
+/* ─── Sheet expandido pra lista de doadores ─── */
+.sheet-donors {
+  max-height: 80vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.donor-list-full {
+  max-height: none;
+}
+.sheet-close-btn {
+  margin-top: 12px;
+  width: 100%;
+  padding: 13px 22px;
+  background: #0E4B2C;
+  color: #ffffff;
+  border: none; border-radius: 9999px;
+  font-family: var(--font); font-size: 0.9375rem; font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.sheet-close-btn:hover { background: #0A3A20; }
+
 /* ─── Layout ─── */
 .page { min-height: 100vh; background: #F9FAFB; padding-bottom: 96px; }
 .container-app { max-width: 520px; margin: 0 auto; background: var(--bg); }
