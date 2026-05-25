@@ -6,7 +6,7 @@
   import { CAMPAIGN } from '$lib/data/campaign';
   import { TIERS, DEFAULT_TIER, dogsForAmount } from '$lib/data/tiers';
   import ProgressCard from '$lib/components/ProgressCard.svelte';
-  import StickyTopBar from '$lib/components/StickyTopBar.svelte';
+  import StickyBottomBar from '$lib/components/StickyBottomBar.svelte';
 
   const SHOPIFY_CHECKOUT_URL = 'https://pawsco.myshopify.com/pages/supporter-bundle';
 
@@ -97,58 +97,45 @@
 
 <div class="page">
   <div class="container-app">
-    <!-- Hero: imagem + titulo + meta -->
-    <section class="campaign-hero">
-      <div class="campaign-image">
-        {#if CAMPAIGN.heroImage}
-          <img src={CAMPAIGN.heroImage} alt={CAMPAIGN.title} loading="eager" />
-        {:else}
-          <div class="img-placeholder">
-            <div class="img-placeholder-stack">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <rect x="3" y="5" width="18" height="14" rx="2" />
-                <circle cx="9" cy="11" r="2" />
-                <path d="m21 17-5-5-9 9" />
-              </svg>
-              <span class="img-placeholder-label">Photo coming soon</span>
-            </div>
+    <!-- Hero full-width com curva inferior -->
+    <div class="hero-image-wrap">
+      {#if CAMPAIGN.heroImage}
+        <img class="hero-image" src={CAMPAIGN.heroImage} alt={CAMPAIGN.title} loading="eager" />
+      {:else}
+        <div class="hero-image img-placeholder">
+          <div class="img-placeholder-stack">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <circle cx="9" cy="11" r="2" />
+              <path d="m21 17-5-5-9 9" />
+            </svg>
+            <span class="img-placeholder-label">Photo coming soon</span>
           </div>
-        {/if}
-      </div>
+        </div>
+      {/if}
+    </div>
 
+    <!-- Bloco principal: titulo + progress card + descricao curta -->
+    <section class="hero-block">
       <h1 class="campaign-title">{CAMPAIGN.title}</h1>
-      <div class="campaign-meta-line">
-        <span>Created by <strong>{CAMPAIGN.organizer}</strong></span>
-        <span>•</span>
-        <span>{CAMPAIGN.organizerCity}</span>
-      </div>
-      <div class="campaign-meta-line" style="margin-top:8px">
-        <span class="category-pill">{CAMPAIGN.category}</span>
-      </div>
-    </section>
 
-    <!-- Progress card (donut + texto + pill buttons) -->
-    <section class="progress-block">
-      <ProgressCard
-        raised={CAMPAIGN.raisedEur}
-        goal={CAMPAIGN.goalEur}
-        lastDonorName={lastDonor.anonymous ? 'Anonymous' : lastDonor.name}
-        lastDonorAmount={lastDonor.amount}
-        lastDonorAgo={lastDonor.ago}
-        onDonate={openDonation}
-        onShare={() => (shareOpen = true)}
-        onDonorsClick={scrollToDonors}
-      />
+      <div id="progress-anchor">
+        <ProgressCard
+          raised={CAMPAIGN.raisedEur}
+          goal={CAMPAIGN.goalEur}
+          lastDonorName={lastDonor.anonymous ? 'Anonymous' : lastDonor.name}
+          lastDonorAmount={lastDonor.amount}
+          lastDonorAgo={lastDonor.ago}
+          onDonate={openDonation}
+          onShare={() => (shareOpen = true)}
+          onDonorsClick={scrollToDonors}
+        />
+      </div>
+
       <div class="progress-stats-row">
         <span><span class="donations-count">{CAMPAIGN.donationsCount}</span> donations</span>
         <span>{CAMPAIGN.daysLeft} days left</span>
       </div>
-    </section>
-
-    <!-- Story -->
-    <section class="section">
-      <div class="section-eyebrow">The story</div>
-      <h2 class="section-title">{CAMPAIGN.subtitle}</h2>
 
       <div class="story-text" class:story-text-collapsed={!descExpanded}>
         {#each CAMPAIGN.story as paragraph}
@@ -158,26 +145,31 @@
       <button class="read-more" onclick={() => (descExpanded = !descExpanded)}>
         {descExpanded ? 'Read less' : 'Read more'}
       </button>
-
-      <div class="story-image" style="margin-top:18px">
-        {#if CAMPAIGN.storyImage}
-          <img src={CAMPAIGN.storyImage} alt="Story photo" loading="lazy" />
-        {:else}
-          <div class="img-placeholder">
-            <div class="img-placeholder-stack">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <rect x="3" y="5" width="18" height="14" rx="2" />
-                <circle cx="9" cy="11" r="2" />
-                <path d="m21 17-5-5-9 9" />
-              </svg>
-              <span class="img-placeholder-label">Photo coming soon</span>
-            </div>
-          </div>
-        {/if}
-      </div>
-
-      <span class="story-highlight">{CAMPAIGN.highlight}</span>
     </section>
+
+    <!-- Story image + highlight (revelado abaixo) -->
+    {#if descExpanded}
+      <section class="section">
+        <div class="story-image">
+          {#if CAMPAIGN.storyImage}
+            <img src={CAMPAIGN.storyImage} alt="Story photo" loading="lazy" />
+          {:else}
+            <div class="img-placeholder">
+              <div class="img-placeholder-stack">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <circle cx="9" cy="11" r="2" />
+                  <path d="m21 17-5-5-9 9" />
+                </svg>
+                <span class="img-placeholder-label">Photo coming soon</span>
+              </div>
+            </div>
+          {/if}
+        </div>
+
+        <span class="story-highlight">{CAMPAIGN.highlight}</span>
+      </section>
+    {/if}
 
     <!-- Stats grid -->
     <section class="stats-section">
@@ -339,8 +331,8 @@
   </div>
 </div>
 
-<!-- Sticky top bar (aparece ao rolar) -->
-<StickyTopBar
+<!-- Sticky bottom bar (aparece quando o card principal sai da viewport) -->
+<StickyBottomBar
   raised={CAMPAIGN.raisedEur}
   goal={CAMPAIGN.goalEur}
   lastDonorName={lastDonor.anonymous ? 'Anonymous' : lastDonor.name}
