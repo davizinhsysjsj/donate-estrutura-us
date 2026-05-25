@@ -67,10 +67,11 @@
     right: 0;
     z-index: 60;
     background: #ffffff;
-    border-top: 1px solid #E5E7EB;
-    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
-    transform: translateY(100%);
-    transition: transform 0.25s ease;
+    border-top-left-radius: 28px;
+    border-top-right-radius: 28px;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12), 0 -2px 8px rgba(0, 0, 0, 0.04);
+    transform: translateY(110%);
+    transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
     pointer-events: none;
     padding-bottom: env(safe-area-inset-bottom);
   }
@@ -81,10 +82,10 @@
   .sticky-bottom-inner {
     max-width: 520px;
     margin: 0 auto;
-    padding: 10px 16px;
+    padding: 16px 18px 14px;
   }
 
   @media (min-width: 640px) {
-    .sticky-bottom-inner { max-width: 720px; }
+    .sticky-bottom-inner { max-width: 720px; padding: 18px 24px 16px; }
   }
 </style>
