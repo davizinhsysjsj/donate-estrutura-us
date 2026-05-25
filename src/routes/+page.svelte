@@ -1,15 +1,21 @@
 <script lang="ts">
   import {
-    Share2, ChevronRight, Calendar, Shield, Heart, Mail,
+    ChevronRight, Calendar, Shield, Heart, Mail,
     Facebook, Youtube, Twitter, Instagram, ChevronDown, ArrowRight
   } from 'lucide-svelte';
   import { CAMPAIGN } from '$lib/data/campaign';
   import { TIERS, DEFAULT_TIER, dogsForAmount } from '$lib/data/tiers';
+  import ProgressCard from '$lib/components/ProgressCard.svelte';
+  import StickyTopBar from '$lib/components/StickyTopBar.svelte';
 
   const SHOPIFY_CHECKOUT_URL = 'https://pawsco.myshopify.com/pages/supporter-bundle';
 
-  const progressPct = Math.min(100, Math.round((CAMPAIGN.raisedEur / CAMPAIGN.goalEur) * 100));
   const lastDonor = CAMPAIGN.donors[0];
+
+  function scrollToDonors() {
+    const el = document.getElementById('donations');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   let descExpanded = $state(false);
   let donationOpen = $state(false);
@@ -121,32 +127,23 @@
       </div>
     </section>
 
-    <!-- Progress bar -->
+    <!-- Progress card (donut + texto + pill buttons) -->
     <section class="progress-block">
-      <div class="progress-amounts">
-        <span class="progress-raised">€{CAMPAIGN.raisedEur.toLocaleString('en-IE')}</span>
-        <span class="progress-goal">raised of €{CAMPAIGN.goalEur.toLocaleString('en-IE')} goal</span>
-      </div>
-      <div class="progress-bar-track">
-        <div class="progress-bar-fill" style="width: {progressPct}%"></div>
-      </div>
+      <ProgressCard
+        raised={CAMPAIGN.raisedEur}
+        goal={CAMPAIGN.goalEur}
+        lastDonorName={lastDonor.anonymous ? 'Anonymous' : lastDonor.name}
+        lastDonorAmount={lastDonor.amount}
+        lastDonorAgo={lastDonor.ago}
+        onDonate={openDonation}
+        onShare={() => (shareOpen = true)}
+        onDonorsClick={scrollToDonors}
+      />
       <div class="progress-stats-row">
         <span><span class="donations-count">{CAMPAIGN.donationsCount}</span> donations</span>
         <span>{CAMPAIGN.daysLeft} days left</span>
       </div>
     </section>
-
-    <!-- 2 CTAs lado a lado -->
-    <div class="cta-row">
-      <button class="btn btn-outline" onclick={() => (shareOpen = true)}>
-        <Share2 size={16} />
-        Share
-      </button>
-      <button class="btn btn-primary" onclick={openDonation}>
-        <Heart size={16} fill="currentColor" />
-        Donate
-      </button>
-    </div>
 
     <!-- Story -->
     <section class="section">
@@ -263,7 +260,7 @@
     </section>
 
     <!-- Donors list -->
-    <div class="donations">
+    <div class="donations" id="donations">
       <div class="donations-header">
         <div class="donations-title">
           Donations
@@ -342,16 +339,17 @@
   </div>
 </div>
 
-<!-- Sticky donate (mobile) -->
-<div class="sticky-bar">
-  <button class="btn btn-outline" style="flex:none;width:52px;padding:0" aria-label="Share" onclick={() => (shareOpen = true)}>
-    <Share2 size={18} />
-  </button>
-  <button class="btn btn-primary" style="flex:1" onclick={openDonation}>
-    <Heart size={16} fill="currentColor" />
-    Donate now
-  </button>
-</div>
+<!-- Sticky top bar (aparece ao rolar) -->
+<StickyTopBar
+  raised={CAMPAIGN.raisedEur}
+  goal={CAMPAIGN.goalEur}
+  lastDonorName={lastDonor.anonymous ? 'Anonymous' : lastDonor.name}
+  lastDonorAmount={lastDonor.amount}
+  lastDonorAgo={lastDonor.ago}
+  onDonate={openDonation}
+  onShare={() => (shareOpen = true)}
+  onDonorsClick={scrollToDonors}
+/>
 
 <!-- Donation Sheet -->
 <div
