@@ -29,7 +29,7 @@ export const CAMPAIGN = {
   title: 'Help Belgian Rescues feed 300 animals this winter',
   subtitle: "Aoife Murphy is organizing this fundraiser to support shelters in Antwerp.",
   // Deixe vazio ("") pra renderizar placeholder cinza. Quando tiver URL, template usa direto.
-  heroImage: '',
+  heroImage: '/hero-rescue.png',
   storyImage: '',
 
   // Progress
