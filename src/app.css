@@ -105,30 +105,35 @@ body {
   display: flex; flex-direction: column; align-items: center;
 }
 
-/* ─── Hero full-width com curva inferior ─── */
+/* ─── Hero full-width (sem border-radius — o hero-block branco sobe e cobre embaixo) ─── */
 .hero-image-wrap {
   width: 100%;
   background: #EEF1F4;
-  border-bottom-left-radius: 28px;
-  border-bottom-right-radius: 28px;
   overflow: hidden;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 4 / 3;
 }
 .hero-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 35%;
   display: block;
 }
-.hero-image.img-placeholder { aspect-ratio: 16 / 9; }
+.hero-image.img-placeholder { aspect-ratio: 4 / 3; }
 
-/* ─── Hero block (titulo + ProgressCard + descricao curta) ─── */
+/* ─── Hero block (titulo + ProgressCard + descricao curta)
+       Sobe -28px com cantos arredondados no topo pra sobrepor a imagem ─── */
 .hero-block {
-  padding: 18px 16px 22px;
+  padding: 22px 16px 22px;
   background: var(--bg);
   display: flex;
   flex-direction: column;
   gap: 14px;
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
+  margin-top: -28px;
+  position: relative;
+  z-index: 2;
 }
 
 .campaign-title {
