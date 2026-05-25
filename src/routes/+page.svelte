@@ -1,7 +1,7 @@
 <script lang="ts">
   import {
     ChevronRight, Calendar, Shield, Heart, Mail,
-    Facebook, Youtube, Twitter, Instagram, ChevronDown, ArrowRight
+    Facebook, Youtube, Twitter, Instagram, ArrowRight
   } from 'lucide-svelte';
   import { CAMPAIGN } from '$lib/data/campaign';
   import { TIERS, DEFAULT_TIER, dogsForAmount } from '$lib/data/tiers';
@@ -25,7 +25,6 @@
   let donating = $state(false);
   let toastMessage = $state('');
   let toastVisible = $state(false);
-  let openFaq = $state<number | null>(null);
 
   const STEPS = [
     { icon: Heart, title: 'You choose a donation amount', desc: 'Pick what feels right — every euro feeds an animal in need.' },
@@ -78,9 +77,6 @@
     }
   }
 
-  function toggleFaq(i: number) {
-    openFaq = openFaq === i ? null : i;
-  }
 </script>
 
 <header class="header">
@@ -147,26 +143,26 @@
       </button>
     </section>
 
-    <!-- Story image + highlight (revelado abaixo) -->
+    <!-- Story image (bloco proprio, full-width igual hero) -->
+    <div class="story-image-wrap">
+      {#if CAMPAIGN.storyImage}
+        <img class="story-image-img" src={CAMPAIGN.storyImage} alt="Story photo" loading="lazy" />
+      {:else}
+        <div class="story-image-img img-placeholder">
+          <div class="img-placeholder-stack">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <circle cx="9" cy="11" r="2" />
+              <path d="m21 17-5-5-9 9" />
+            </svg>
+            <span class="img-placeholder-label">Photo coming soon</span>
+          </div>
+        </div>
+      {/if}
+    </div>
+
     {#if descExpanded}
       <section class="section">
-        <div class="story-image">
-          {#if CAMPAIGN.storyImage}
-            <img src={CAMPAIGN.storyImage} alt="Story photo" loading="lazy" />
-          {:else}
-            <div class="img-placeholder">
-              <div class="img-placeholder-stack">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <rect x="3" y="5" width="18" height="14" rx="2" />
-                  <circle cx="9" cy="11" r="2" />
-                  <path d="m21 17-5-5-9 9" />
-                </svg>
-                <span class="img-placeholder-label">Photo coming soon</span>
-              </div>
-            </div>
-          {/if}
-        </div>
-
         <span class="story-highlight">{CAMPAIGN.highlight}</span>
       </section>
     {/if}
@@ -224,20 +220,6 @@
         {/each}
       </div>
 
-      <h3 class="faq-title">Common questions</h3>
-      <div class="faq-list">
-        {#each CAMPAIGN.faqs as faq, i}
-          <div class="faq-item">
-            <button class="faq-question" aria-expanded={openFaq === i} onclick={() => toggleFaq(i)}>
-              {faq.q}
-              <ChevronDown size={16} class="faq-chevron" />
-            </button>
-            {#if openFaq === i}
-              <p class="faq-answer">{faq.a}</p>
-            {/if}
-          </div>
-        {/each}
-      </div>
     </section>
 
     <!-- Urgency block -->

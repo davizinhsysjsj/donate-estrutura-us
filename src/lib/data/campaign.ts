@@ -11,8 +11,6 @@ export type CampaignDonor = {
   message?: string;
 };
 
-export type CampaignFAQ = { q: string; a: string };
-
 export type CampaignUpdate = {
   date: string;
   title: string;
@@ -76,12 +74,6 @@ export const CAMPAIGN = {
     { initials: 'NV', color: 'av-teal', name: 'Niels V.', city: 'Ghent', quote: 'No guilt-trip emails, just a simple receipt and an update. Trustworthy from start to finish.' },
     { initials: 'CL', color: 'av-amber', name: 'Camille L.', city: 'Brussels', quote: 'I met the shelter coordinators in person. This money is actually reaching the animals.' }
   ],
-
-  faqs: [
-    { q: 'Where does my money go?', a: '88 cents of every euro reaches food, vet care and shelter staff on the ground. The rest covers payment processing fees. We publish a quarterly transparency report.' },
-    { q: 'Are you a registered charity?', a: 'PawsCo Rescue is a grassroots fundraising initiative supporting verified rescue partners in Belgium. We operate as a transparent for-cause campaign.' },
-    { q: 'Can I get a refund?', a: 'Yes — full refund within 30 days, no questions asked. Email hello@pawsco.com and we will process it within 48 hours.' }
-  ] satisfies CampaignFAQ[],
 
   shareUrl: 'https://donate-estrutura.vercel.app',
   shareTitle: 'Help feed Belgian rescue animals this winter'
