@@ -50,14 +50,26 @@ export const CAMPAIGN = {
 
   // Donor list (placeholder — depois plugar feed real)
   donors: [
-    { name: "Lieve Janssens", amount: 50, ago: '1h ago', initials: 'LJ', color: 'av-green' },
-    { name: 'Pieter De Smet', amount: 25, ago: '2h ago', initials: 'PD', color: 'av-teal' },
-    { name: 'Anonymous', amount: 100, ago: '4h ago', initials: '', color: 'av-gray', anonymous: true },
-    { name: 'Marie Dubois', amount: 35, ago: '6h ago', initials: 'MD', color: 'av-amber' },
-    { name: 'Tom Verbeek', amount: 20, ago: '8h ago', initials: 'TV', color: 'av-rose' },
-    { name: 'Sofie Maes', amount: 35, ago: '12h ago', initials: 'SM', color: 'av-purple' },
-    { name: 'Jeroen Peeters', amount: 10, ago: '1d ago', initials: 'JP', color: 'av-coral' },
-    { name: 'Anke Vandenberg', amount: 25, ago: '1d ago', initials: 'AV', color: 'av-blue' }
+    { name: 'Lieve Janssens', amount: 50, ago: 'just now', initials: 'LJ', color: 'av-green' },
+    { name: 'Pieter De Smet', amount: 25, ago: '3m ago', initials: 'PD', color: 'av-teal' },
+    { name: 'Sandra Simões', amount: 25, ago: '12m ago', initials: 'SS', color: 'av-coral' },
+    { name: 'Anonymous', amount: 100, ago: '28m ago', initials: '', color: 'av-gray', anonymous: true },
+    { name: 'Marie Dubois', amount: 35, ago: '47m ago', initials: 'MD', color: 'av-amber' },
+    { name: 'Diogo Gamito', amount: 10, ago: '1h ago', initials: 'DG', color: 'av-skyblue' },
+    { name: 'Tom Verbeek', amount: 20, ago: '2h ago', initials: 'TV', color: 'av-rose' },
+    { name: 'Filipa Ferreira', amount: 50, ago: '2h ago', initials: 'FF', color: 'av-purple' },
+    { name: 'Sofie Maes', amount: 35, ago: '3h ago', initials: 'SM', color: 'av-teal' },
+    { name: 'Jeroen Peeters', amount: 10, ago: '4h ago', initials: 'JP', color: 'av-coral' },
+    { name: 'Camille Lefèvre', amount: 25, ago: '5h ago', initials: 'CL', color: 'av-amber' },
+    { name: 'Anonymous', amount: 75, ago: '6h ago', initials: '', color: 'av-gray', anonymous: true },
+    { name: 'Bram Vermeulen', amount: 35, ago: '8h ago', initials: 'BV', color: 'av-blue' },
+    { name: 'Anke Vandenberg', amount: 25, ago: '10h ago', initials: 'AV', color: 'av-rose' },
+    { name: 'Mathieu Renard', amount: 50, ago: '11h ago', initials: 'MR', color: 'av-green' },
+    { name: 'Eva Claes', amount: 15, ago: '13h ago', initials: 'EC', color: 'av-purple' },
+    { name: 'Niels Vandeput', amount: 20, ago: '15h ago', initials: 'NV', color: 'av-skyblue' },
+    { name: 'Anonymous', amount: 200, ago: '18h ago', initials: '', color: 'av-gray', anonymous: true },
+    { name: 'Charlotte Mertens', amount: 35, ago: '20h ago', initials: 'CM', color: 'av-coral' },
+    { name: 'Sven Janssens', amount: 25, ago: '22h ago', initials: 'SJ', color: 'av-amber' }
   ] satisfies CampaignDonor[],
 
   // Stats card
