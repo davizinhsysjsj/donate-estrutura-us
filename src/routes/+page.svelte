@@ -1,18 +1,15 @@
 <script lang="ts">
-  import { Search, Menu, Share2, ChevronRight, Star, Calendar, Shield, Heart, Truck, Mail, Facebook, Youtube, Twitter, Instagram, ChevronDown, ArrowRight } from 'lucide-svelte';
-  import { DONORS, RAISED_EUR, GOAL_EUR } from '$lib/data/donors';
+  import {
+    Share2, ChevronRight, Calendar, Shield, Heart, Mail,
+    Facebook, Youtube, Twitter, Instagram, ChevronDown, ArrowRight
+  } from 'lucide-svelte';
+  import { CAMPAIGN } from '$lib/data/campaign';
   import { TIERS, DEFAULT_TIER, dogsForAmount } from '$lib/data/tiers';
-
-  const HERO_IMG = 'https://images.unsplash.com/photo-1601758124510-52d02ddb7cbd?w=800&q=80';
-  const STORY_IMG = 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&q=80';
 
   const SHOPIFY_CHECKOUT_URL = 'https://pawsco.myshopify.com/pages/supporter-bundle';
 
-  const progressPct = Math.min(100, Math.round((RAISED_EUR / GOAL_EUR) * 100));
-  const progressDash = 2 * Math.PI * 22;
-  const progressOffset = progressDash * (1 - progressPct / 100);
-
-  const lastDonor = DONORS[0];
+  const progressPct = Math.min(100, Math.round((CAMPAIGN.raisedEur / CAMPAIGN.goalEur) * 100));
+  const lastDonor = CAMPAIGN.donors[0];
 
   let descExpanded = $state(false);
   let donationOpen = $state(false);
@@ -24,28 +21,9 @@
   let toastVisible = $state(false);
   let openFaq = $state<number | null>(null);
 
-  const TESTIMONIALS = [
-    { initial: 'S', color: 'av-skyblue', name: 'Sarah M.', city: 'Cork', quote: 'Knowing exactly where my donation goes makes all the difference.' },
-    { initial: 'D', color: 'av-teal', name: 'Declan O.', city: 'Dublin', quote: 'No guilt-trip emails. Just clear updates. Came back twice on my own.' },
-    { initial: 'A', color: 'av-coral', name: 'Aoife K.', city: 'Galway', quote: 'I met one of the shelter coordinators in person. The money is reaching the dogs.' }
-  ];
-
-  const FAQS = [
-    { q: 'Where does my money go?', a: '88 cents of every euro reaches feeding and medical care on the ground. The rest covers card processing fees. We publish a quarterly transparency report.' },
-    { q: 'Are you a registered charity?', a: 'PawsCo Rescue is a grassroots fundraising initiative supporting verified rescue partners. We are not a registered Irish charity — we operate as a transparent for-cause campaign.' },
-    { q: 'Can I get a refund?', a: 'Yes — full refund within 30 days, no questions asked. Email hello@pawsco.com and we will process it within 48 hours.' }
-  ];
-
-  const STATS = [
-    { value: '2,847', label: 'dogs waiting in our partner shelters' },
-    { value: '12', label: 'rescue partners across Ireland' },
-    { value: '€4.20', label: 'feeds one dog for a week' },
-    { value: '88%', label: 'of every euro goes directly to feeding' }
-  ];
-
   const STEPS = [
     { icon: Heart, title: 'You choose a donation amount', desc: 'Pick what feels right — from a starter pack to a guardian role.' },
-    { icon: Truck, title: 'Funds reach partner shelters within 7 days', desc: 'No bureaucracy. Direct wires to verified rescues, prioritized by need.' },
+    { icon: Shield, title: 'Funds reach partner shelters within 7 days', desc: 'No bureaucracy. Direct wires to verified rescues, prioritized by need.' },
     { icon: Mail, title: 'You receive an impact report by email', desc: 'Photos, names, outcomes — and your digital supporter bundle.' }
   ];
 
@@ -80,16 +58,14 @@
     }, 800);
   }
 
-  const PAGE_URL = 'https://donate-estrutura.vercel.app';
-  const PAGE_TITLE = 'Help feed Irish rescue dogs tonight';
-
   function shareTo(target: 'whatsapp' | 'facebook' | 'copy') {
+    const text = `${CAMPAIGN.shareTitle} ${CAMPAIGN.shareUrl}`;
     if (target === 'whatsapp') {
-      window.open(`https://wa.me/?text=${encodeURIComponent(`${PAGE_TITLE} ${PAGE_URL}`)}`, '_blank');
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     } else if (target === 'facebook') {
-      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(PAGE_URL)}`, '_blank');
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(CAMPAIGN.shareUrl)}`, '_blank');
     } else {
-      navigator.clipboard?.writeText(PAGE_URL).then(() => {
+      navigator.clipboard?.writeText(CAMPAIGN.shareUrl).then(() => {
         showToast('Link copied!');
         shareOpen = false;
       });
@@ -102,116 +78,116 @@
 </script>
 
 <header class="header">
-  <button class="header-btn" aria-label="Search">
-    <Search size={20} />
-  </button>
   <a href="/" class="header-logo">
     <svg class="logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M20 4C11.163 4 4 11.163 4 20s7.163 16 16 16 16-7.163 16-16S28.837 4 20 4z" fill="#3B82F6" />
-      <path d="M20 8c-1.5 3-5 6-8 7 1 4 4 8 8 9 4-1 7-5 8-9-3-1-6.5-4-8-7z" fill="#DBEAFE" />
-      <path d="M20 12c-1 2-3 4-5 5 .7 2.5 2.5 5 5 6 2.5-1 4.3-3.5 5-6-2-1-4-3-5-5z" fill="#3B82F6" />
+      <path d="M20 4C11.163 4 4 11.163 4 20s7.163 16 16 16 16-7.163 16-16S28.837 4 20 4z" fill="#02A95C" />
+      <path d="M20 8c-1.5 3-5 6-8 7 1 4 4 8 8 9 4-1 7-5 8-9-3-1-6.5-4-8-7z" fill="#C8F0DA" />
+      <path d="M20 12c-1 2-3 4-5 5 .7 2.5 2.5 5 5 6 2.5-1 4.3-3.5 5-6-2-1-4-3-5-5z" fill="#02A95C" />
     </svg>
     <span class="logo-text">pawsco</span>
   </a>
-  <button class="header-btn" aria-label="Menu">
-    <Menu size={20} />
-  </button>
+  <button class="header-link">Sign in</button>
 </header>
 
 <div class="page">
   <div class="container-app">
-    <!-- Hero -->
-    <div class="hero">
-      <img src={HERO_IMG} alt="Rescue dog waiting in shelter" loading="eager" />
-      <div class="hero-gradient"></div>
-      <div class="hero-avatar">
-        <img src="https://ui-avatars.com/api/?name=Aoife+Murphy&background=3B82F6&color=fff&size=56" alt="Aoife Murphy" />
-        <span class="hero-avatar-name">Aoife Murphy</span>
+    <!-- Hero: imagem + titulo + meta -->
+    <section class="campaign-hero">
+      <div class="campaign-image">
+        {#if CAMPAIGN.heroImage}
+          <img src={CAMPAIGN.heroImage} alt={CAMPAIGN.title} loading="eager" />
+        {:else}
+          <div class="img-placeholder">
+            <div class="img-placeholder-stack">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <circle cx="9" cy="11" r="2" />
+                <path d="m21 17-5-5-9 9" />
+              </svg>
+              <span class="img-placeholder-label">Photo coming soon</span>
+            </div>
+          </div>
+        {/if}
       </div>
-      <div class="hero-title">
-        <h1>Help feed Irish rescue dogs tonight</h1>
-      </div>
-    </div>
 
-    <!-- Progress -->
-    <div class="progress-section">
-      <div class="progress-row">
-        <div class="progress-circle">
-          <svg width="52" height="52" viewBox="0 0 52 52">
-            <circle cx="26" cy="26" r="22" fill="none" stroke="#e5e5e5" stroke-width="4" />
-            <circle
-              cx="26"
-              cy="26"
-              r="22"
-              fill="none"
-              stroke="#3B82F6"
-              stroke-width="4"
-              stroke-dasharray={progressDash}
-              stroke-dashoffset={progressOffset}
-              stroke-linecap="round"
-            />
-          </svg>
-          <div class="progress-circle-text">{progressPct}%</div>
-        </div>
-        <div class="progress-info">
-          <h2>
-            <strong>€{RAISED_EUR.toLocaleString('en-IE')}</strong> raised
-            <span>of €{GOAL_EUR.toLocaleString('en-IE')}</span>
-          </h2>
-        </div>
+      <h1 class="campaign-title">{CAMPAIGN.title}</h1>
+      <div class="campaign-meta-line">
+        <span>Created by <strong>{CAMPAIGN.organizer}</strong></span>
+        <span>•</span>
+        <span>{CAMPAIGN.organizerCity}</span>
       </div>
-      <div class="progress-last">
-        <span>{lastDonor.name} donated €{lastDonor.amount}</span>
-        <ChevronRight size={12} strokeWidth={2.5} />
+      <div class="campaign-meta-line" style="margin-top:8px">
+        <span class="category-pill">{CAMPAIGN.category}</span>
       </div>
-    </div>
+    </section>
 
-    <!-- Buttons -->
-    <div class="btn-row">
-      <button class="btn btn-primary" onclick={openDonation}>Donate</button>
+    <!-- Progress bar -->
+    <section class="progress-block">
+      <div class="progress-amounts">
+        <span class="progress-raised">€{CAMPAIGN.raisedEur.toLocaleString('en-IE')}</span>
+        <span class="progress-goal">raised of €{CAMPAIGN.goalEur.toLocaleString('en-IE')} goal</span>
+      </div>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" style="width: {progressPct}%"></div>
+      </div>
+      <div class="progress-stats-row">
+        <span><span class="donations-count">{CAMPAIGN.donationsCount}</span> donations</span>
+        <span>{CAMPAIGN.daysLeft} days left</span>
+      </div>
+    </section>
+
+    <!-- 2 CTAs lado a lado -->
+    <div class="cta-row">
       <button class="btn btn-outline" onclick={() => (shareOpen = true)}>
         <Share2 size={16} />
         Share
       </button>
-    </div>
-
-    <!-- Description -->
-    <div class="description">
-      <p class="description-text" class:expanded={descExpanded}>
-        Help us feed dogs who can't ask for help themselves 🐾
-        <br /><br />
-        Right now, our partner shelters across Ireland are running on empty. Dozens of rescued dogs — abandoned, surrendered, or pulled off the street — depend entirely on us for food, medical care, and a safe place to sleep.
-        <br /><br />
-        Every euro you donate goes directly to feeding and basic care on the ground. We don't run a charity office. We run a network of small shelters that put every cent into bowls and vet bills.
-        <br /><br />
-        One donation can change a dog's week. Five donations can change a shelter's month. You can be one of them tonight.
-      </p>
-      <button class="read-more" onclick={() => (descExpanded = !descExpanded)}>
-        {descExpanded ? 'Read less' : 'Read more'}
+      <button class="btn btn-primary" onclick={openDonation}>
+        <Heart size={16} fill="currentColor" />
+        Donate
       </button>
     </div>
 
-    <!-- Why this matters -->
+    <!-- Story -->
     <section class="section">
-      <div class="section-eyebrow">Why this matters</div>
-      <h2 class="section-title">Three weeks ago, a call came in from Galway.</h2>
-      <div class="why-image">
-        <img src={STORY_IMG} alt="Rescued dog at shelter" loading="lazy" />
+      <div class="section-eyebrow">The story</div>
+      <h2 class="section-title">{CAMPAIGN.subtitle}</h2>
+
+      <div class="story-text" class:story-text-collapsed={!descExpanded}>
+        {#each CAMPAIGN.story as paragraph}
+          <p>{paragraph}</p>
+        {/each}
       </div>
-      <div class="why-text">
-        <p>A retired farmer found her behind a shuttered restaurant — ribs visible through matted fur, leg torn from barbed wire, too scared to come close.</p>
-        <p>It took our partner shelter three days to coax her into a van. Another two weeks of vet care and patient hands before she would let anyone touch her ears.</p>
-        <p>Yesterday she fell asleep on a kid's lap in a forever home in Cork. The family named her Maeve.</p>
+      <button class="read-more" onclick={() => (descExpanded = !descExpanded)}>
+        {descExpanded ? 'Read less' : 'Read more'}
+      </button>
+
+      <div class="story-image" style="margin-top:18px">
+        {#if CAMPAIGN.storyImage}
+          <img src={CAMPAIGN.storyImage} alt="Story photo" loading="lazy" />
+        {:else}
+          <div class="img-placeholder">
+            <div class="img-placeholder-stack">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <circle cx="9" cy="11" r="2" />
+                <path d="m21 17-5-5-9 9" />
+              </svg>
+              <span class="img-placeholder-label">Photo coming soon</span>
+            </div>
+          </div>
+        {/if}
       </div>
-      <span class="why-highlight">Maeve was lucky. Hundreds aren't.</span>
+
+      <span class="story-highlight">{CAMPAIGN.highlight}</span>
     </section>
 
-    <!-- Stats -->
+    <!-- Stats grid -->
     <section class="stats-section">
       <div class="section-eyebrow">The reality</div>
       <h2 class="section-title">The situation, in numbers.</h2>
       <div class="stats-grid">
-        {#each STATS as stat}
+        {#each CAMPAIGN.stats as stat}
           <div class="stat-card">
             <div class="stat-value">{stat.value}</div>
             <div class="stat-label">{stat.label}</div>
@@ -224,29 +200,31 @@
     <section class="section">
       <div class="section-eyebrow">How it works</div>
       <h2 class="section-title">How your support reaches them.</h2>
-      <div class="steps-list">
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
         {#each STEPS as step, i}
-          <div class="step-card">
-            <div class="step-icon"><step.icon size={20} /></div>
-            <div class="step-body">
-              <div class="step-no">Step 0{i + 1}</div>
-              <div class="step-title">{step.title}</div>
-              <div class="step-desc">{step.desc}</div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;display:flex;gap:12px;align-items:flex-start">
+            <div style="width:40px;height:40px;border-radius:9999px;background:var(--primary-soft);color:var(--primary-darker);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <step.icon size={20} />
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:0.6875rem;color:var(--muted-fg);font-weight:700;letter-spacing:0.06em;text-transform:uppercase">Step 0{i + 1}</div>
+              <div style="font-size:0.9375rem;font-weight:600;color:var(--fg);margin-top:2px;line-height:1.3">{step.title}</div>
+              <div style="font-size:0.8125rem;color:var(--muted-fg);margin-top:4px;line-height:1.45">{step.desc}</div>
             </div>
           </div>
         {/each}
       </div>
     </section>
 
-    <!-- Trust -->
+    <!-- Words of support / testimonials -->
     <section class="section">
-      <div class="section-eyebrow">Trust</div>
-      <h2 class="section-title">From supporters across Ireland.</h2>
+      <div class="section-eyebrow">Words of support</div>
+      <h2 class="section-title">From supporters across Belgium.</h2>
       <div class="testimonial-row">
-        {#each TESTIMONIALS as t}
+        {#each CAMPAIGN.testimonials as t}
           <div class="testimonial-card">
             <div class="testimonial-head">
-              <div class="testimonial-avatar {t.color}">{t.initial}</div>
+              <div class="testimonial-avatar {t.color}">{t.initials}</div>
               <div>
                 <div class="testimonial-name">{t.name}</div>
                 <div class="testimonial-meta">{t.city}</div>
@@ -259,13 +237,9 @@
 
       <h3 class="faq-title">Common questions</h3>
       <div class="faq-list">
-        {#each FAQS as faq, i}
+        {#each CAMPAIGN.faqs as faq, i}
           <div class="faq-item">
-            <button
-              class="faq-question"
-              aria-expanded={openFaq === i}
-              onclick={() => toggleFaq(i)}
-            >
+            <button class="faq-question" aria-expanded={openFaq === i} onclick={() => toggleFaq(i)}>
               {faq.q}
               <ChevronDown size={16} class="faq-chevron" />
             </button>
@@ -277,47 +251,45 @@
       </div>
     </section>
 
-    <!-- Urgency -->
+    <!-- Urgency block -->
     <section class="urgency">
       <div class="urgency-eyebrow">Time matters</div>
-      <h2 class="urgency-title">47 dogs are waiting tonight.</h2>
-      <p class="urgency-sub">You can help one of them right now.</p>
+      <h2 class="urgency-title">Animals are waiting tonight.</h2>
+      <p class="urgency-sub">You can feed one of them right now.</p>
       <button class="urgency-cta" onclick={openDonation}>
         Help feed them
         <ChevronRight size={18} strokeWidth={2.5} />
       </button>
     </section>
 
-    <!-- Donations list -->
+    <!-- Donors list -->
     <div class="donations">
       <div class="donations-header">
         <div class="donations-title">
           Donations
-          <span class="donations-badge">{DONORS.length + 41}</span>
+          <span class="donations-badge">{CAMPAIGN.donationsCount}</span>
         </div>
-        <a href="#" class="donations-link">
-          <Star size={14} />
-          Top donors
-        </a>
+        <a href="#" class="donations-link">See all</a>
       </div>
       <ul class="donor-list">
-        {#each DONORS as d}
+        {#each CAMPAIGN.donors as d}
           <li class="donor-item">
             <div class="donor-avatar {d.color}">
               {#if d.anonymous}
-                <Heart size={16} />
+                <Heart size={16} fill="currentColor" />
               {:else}
-                {d.name.charAt(0)}
+                {d.initials}
               {/if}
             </div>
             <div class="donor-info">
               <div class="donor-name">{d.name}</div>
-              <div class="donor-meta">€{d.amount} · {d.ago}</div>
+              <div class="donor-meta">{d.ago}</div>
             </div>
+            <div class="donor-amount">€{d.amount}</div>
           </li>
         {/each}
       </ul>
-      <button class="btn-ver-todos">See all donations</button>
+      <button class="btn-see-all">See all donations</button>
     </div>
 
     <!-- Organizer -->
@@ -325,21 +297,21 @@
       <h3>Organizer</h3>
       <div class="organizer-row">
         <div class="organizer-avatar">
-          <img src="https://ui-avatars.com/api/?name=Aoife+Murphy&background=DBEAFE&color=1E40AF&size=96" alt="Aoife Murphy" />
+          {CAMPAIGN.organizer.split(' ').map((s) => s[0]).join('').slice(0, 2)}
         </div>
-        <div>
-          <div class="organizer-name">Aoife Murphy</div>
+        <div style="flex:1;min-width:0">
+          <div class="organizer-name">{CAMPAIGN.organizer}</div>
           <div class="organizer-sub">Organizer</div>
-          <div class="organizer-sub">Galway, Ireland</div>
+          <div class="organizer-sub">{CAMPAIGN.organizerCity}</div>
         </div>
       </div>
       <button class="btn-contact">Contact</button>
 
-      <div class="campaign-meta">
-        <div class="campaign-meta-row">
+      <div class="campaign-extras">
+        <div class="campaign-extras-row">
           <Calendar size={14} />
-          March 2026 ·
-          <a href="#">Animals</a>
+          {CAMPAIGN.createdMonth} ·
+          <a href="#">{CAMPAIGN.category}</a>
         </div>
         <div class="badge-protected">
           <Shield size={14} />
@@ -357,24 +329,27 @@
         <a href="#" aria-label="Instagram"><Instagram size={20} /></a>
       </div>
 
-      <div class="footer-copy">© 2026 PawsCo Rescue</div>
+      <div class="footer-copy">© 2026 {CAMPAIGN.brand} Rescue</div>
 
       <div class="footer-links">
         <a href="#">Terms</a>
-        <a href="#">Privacy Notice</a>
-        <a href="#">Refund Policy</a>
-        <a href="#">Cookie Policy</a>
-        <a href="mailto:hello@pawsco.com">Contact us</a>
+        <a href="#">Privacy</a>
+        <a href="#">Refunds</a>
+        <a href="#">Cookies</a>
+        <a href="mailto:hello@pawsco.com">Contact</a>
       </div>
     </footer>
   </div>
 </div>
 
-<!-- Sticky Bar -->
+<!-- Sticky donate (mobile) -->
 <div class="sticky-bar">
-  <button class="btn btn-primary" style="flex:1" onclick={openDonation}>Donate</button>
-  <button class="btn btn-outline" style="width:52px;flex:none;padding:0" aria-label="Share" onclick={() => (shareOpen = true)}>
+  <button class="btn btn-outline" style="flex:none;width:52px;padding:0" aria-label="Share" onclick={() => (shareOpen = true)}>
     <Share2 size={18} />
+  </button>
+  <button class="btn btn-primary" style="flex:1" onclick={openDonation}>
+    <Heart size={16} fill="currentColor" />
+    Donate now
   </button>
 </div>
 
@@ -393,7 +368,7 @@
       {currentStep === 1 ? 'Make a donation' : 'Confirm your donation'}
     </div>
     {#if currentStep === 1}
-      <p class="sheet-subtitle">Every donation feeds rescue dogs in our Irish partner shelters.</p>
+      <p class="sheet-subtitle">Every donation feeds rescue animals in our Belgian partner shelters.</p>
     {/if}
 
     {#if currentStep === 1}
@@ -408,7 +383,7 @@
               onclick={() => selectAmount(tier.amount)}
             >
               <span class="amount-btn-value">€{tier.amount}</span>
-              <span class="amount-btn-sub">feeds {tier.dogs} {tier.dogs === 1 ? 'dog' : 'dogs'}</span>
+              <span class="amount-btn-sub">feeds {tier.dogs} {tier.dogs === 1 ? 'animal' : 'animals'}</span>
             </button>
           {/each}
         </div>
@@ -419,7 +394,7 @@
         <div class="confirm-screen">
           <div class="step-label">Your donation</div>
           <div class="confirm-amount">€{selectedAmount}</div>
-          <p class="confirm-sub">You're saving {dogsForAmount(selectedAmount)} {dogsForAmount(selectedAmount) === 1 ? 'dog' : 'dogs'} today.</p>
+          <p class="confirm-sub">You're saving {dogsForAmount(selectedAmount)} {dogsForAmount(selectedAmount) === 1 ? 'animal' : 'animals'} today.</p>
 
           <div class="confirm-card">
             <div class="confirm-card-title">
@@ -467,7 +442,7 @@
     <div class="sheet-title">Share this campaign</div>
     <div class="share-grid">
       <button class="share-btn" onclick={() => shareTo('whatsapp')}>
-        <div class="share-icon" style="background:#DBEAFE">
+        <div class="share-icon" style="background:var(--primary-soft)">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="#25D366">
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
             <path d="M11.997 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.878-1.417A9.944 9.944 0 0 0 11.997 22C17.52 22 22 17.523 22 12c0-5.522-4.48-10-10.003-10zm0 18.18a8.154 8.154 0 0 1-4.158-1.138l-.297-.178-3.087.897.923-3.01-.196-.309A8.145 8.145 0 0 1 3.817 12c0-4.516 3.664-8.18 8.18-8.18s8.18 3.664 8.18 8.18c0 4.517-3.664 8.18-8.18 8.18z" />
@@ -476,13 +451,13 @@
         <span class="share-label">WhatsApp</span>
       </button>
       <button class="share-btn" onclick={() => shareTo('facebook')}>
-        <div class="share-icon" style="background:#DBEAFE">
+        <div class="share-icon" style="background:var(--primary-soft)">
           <Facebook size={22} color="#1877F2" />
         </div>
         <span class="share-label">Facebook</span>
       </button>
       <button class="share-btn" onclick={() => shareTo('copy')}>
-        <div class="share-icon" style="background:#f3f4f6">
+        <div class="share-icon" style="background:#F3F4F6">
           <svg width="22" height="22" fill="none" stroke="#374151" stroke-width="2" viewBox="0 0 24 24">
             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />

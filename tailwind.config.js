@@ -4,17 +4,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#3B82F6',
-        'primary-dark': '#2563EB',
-        'primary-light': '#DBEAFE',
-        'primary-soft': '#EFF6FF',
-        ink: '#0a0a0a',
-        muted: '#f5f5f5',
-        'muted-fg': '#737373',
-        border: '#e5e5e5'
+        primary: '#02A95C',
+        'primary-dark': '#008F4C',
+        'primary-light': '#C8F0DA',
+        'primary-soft': '#E6F7EE',
+        ink: '#1F1F1F',
+        muted: '#F5F5F5',
+        'muted-fg': '#6B7280',
+        border: '#E5E7EB'
       },
       fontFamily: {
-        sans: ['Geist', 'system-ui', 'sans-serif']
+        sans: ['Inter', 'system-ui', 'sans-serif']
       }
     }
   },
