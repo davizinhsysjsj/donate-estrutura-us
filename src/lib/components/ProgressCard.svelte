@@ -141,7 +141,7 @@
     gap: 10px;
     width: 100%;
   }
-  .progress-card-compact .progress-card-actions { gap: 8px; }
+  .progress-card-compact .progress-card-actions { gap: 10px; }
 
   .pill {
     display: inline-flex;
@@ -159,8 +159,8 @@
     white-space: nowrap;
   }
   .progress-card-compact .pill {
-    padding: 8px 14px;
-    font-size: 0.8125rem;
+    padding: 13px 22px;
+    font-size: 0.9375rem;
     font-weight: 600;
   }
 
