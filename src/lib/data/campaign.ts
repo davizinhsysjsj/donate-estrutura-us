@@ -33,8 +33,8 @@ export const CAMPAIGN = {
   storyImage: '',
 
   // Progress
-  raisedEur: 18450,
-  goalEur: 30000,
+  raisedEur: 1053,
+  goalEur: 5000,
   donationsCount: 412,
   daysLeft: 21,
 
