@@ -70,9 +70,54 @@ export const CAMPAIGN = {
 
   // Testimonials / words of support
   testimonials: [
-    { initials: 'EB', color: 'av-green', name: 'Emma B.', city: 'Antwerp', quote: "I know exactly where my donation went — and I got a photo a week later. That's why I came back." },
-    { initials: 'NV', color: 'av-teal', name: 'Niels V.', city: 'Ghent', quote: 'No guilt-trip emails, just a simple receipt and an update. Trustworthy from start to finish.' },
-    { initials: 'CL', color: 'av-amber', name: 'Camille L.', city: 'Brussels', quote: 'I met the shelter coordinators in person. This money is actually reaching the animals.' }
+    {
+      avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
+      name: 'Emma B.',
+      city: 'Antwerp',
+      quote: "I know exactly where my donation went — and I got a photo a week later. That's why I came back."
+    },
+    {
+      avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+      name: 'Niels V.',
+      city: 'Ghent',
+      quote: 'No guilt-trip emails, just a simple receipt and an update. Trustworthy from start to finish.'
+    },
+    {
+      avatar: 'https://randomuser.me/api/portraits/women/68.jpg',
+      name: 'Camille L.',
+      city: 'Brussels',
+      quote: 'I met the shelter coordinators in person. This money is actually reaching the animals.'
+    },
+    {
+      avatar: 'https://randomuser.me/api/portraits/women/12.jpg',
+      name: 'Lieve D.',
+      city: 'Bruges',
+      quote: "I've donated to bigger charities and never knew where it went. Here I got a real update with names of the dogs."
+    },
+    {
+      avatar: 'https://randomuser.me/api/portraits/men/76.jpg',
+      name: 'Mathieu R.',
+      city: 'Liège',
+      quote: 'Donated for my late dog Bruno. Felt like the right way to honour him. Thank you for what you do.'
+    },
+    {
+      avatar: 'https://randomuser.me/api/portraits/men/52.jpg',
+      name: 'Sven J.',
+      city: 'Leuven',
+      quote: "Small donation but they made me feel like it mattered. Will set up a monthly contribution next month."
+    },
+    {
+      avatar: 'https://randomuser.me/api/portraits/women/29.jpg',
+      name: 'Charlotte M.',
+      city: 'Namur',
+      quote: 'Easy, fast, no pressure. The photo of Loki sleeping after the meal made my week.'
+    },
+    {
+      avatar: 'https://randomuser.me/api/portraits/men/15.jpg',
+      name: 'Bram V.',
+      city: 'Mechelen',
+      quote: "Transparent and human. Belgian rescues need way more support like this."
+    }
   ],
 
   shareUrl: 'https://donate-estrutura.vercel.app',
