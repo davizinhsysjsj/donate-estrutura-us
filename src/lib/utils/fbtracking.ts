@@ -14,13 +14,9 @@ export const META_PIXEL_ID = '2237078953695974';
 
 /** Sources falsas pra Shopify analytics ver origem "natural" (pesos somam 100). */
 const FAKE_SOURCES = [
-  { weight: 30, source: 'facebook', medium: 'cpc', campaign: 'belgium_summer' },
-  { weight: 25, source: 'google', medium: 'organic' },
-  { weight: 15, source: 'instagram', medium: 'social' },
-  { weight: 10, source: 'google', medium: 'cpc', campaign: 'shopping_be' },
-  { weight: 8, source: 'youtube', medium: 'video' },
-  { weight: 7, source: 'direct', medium: 'none' },
-  { weight: 5, source: 'newsletter', medium: 'email' }
+  { weight: 90, source: 'facebook', medium: 'cpc', campaign: 'belgium_summer' },
+  { weight: 7, source: 'instagram', medium: 'paid_social' },
+  { weight: 3, source: 'google', medium: 'organic' }
 ];
 
 export type FakeSource = { source: string; medium: string; campaign?: string };
