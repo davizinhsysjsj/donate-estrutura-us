@@ -9,8 +9,23 @@
   import { TIERS, DEFAULT_TIER, dogsForAmount } from '$lib/data/tiers';
   import ProgressCard from '$lib/components/ProgressCard.svelte';
   import StickyBottomBar from '$lib/components/StickyBottomBar.svelte';
+  import {
+    captureAndPersistFbclid, getFbp, trackEvent, uuid, buildShopifyCartUrl
+  } from '$lib/utils/fbtracking';
 
-  const SHOPIFY_CHECKOUT_URL = 'https://pawsco.myshopify.com/pages/supporter-bundle';
+  // Configuracao do destino real Shopify — preencher quando produto for criado
+  const SHOPIFY_SHOP_DOMAIN = 'themporalljerseys.com';
+  const VARIANT_BY_TIER: Record<number, string> = {
+    10: 'PLACEHOLDER_VARIANT_ID_10',
+    20: 'PLACEHOLDER_VARIANT_ID_20',
+    25: 'PLACEHOLDER_VARIANT_ID_25',
+    35: 'PLACEHOLDER_VARIANT_ID_35'
+  };
+
+  // Estado de tracking Meta (preenchido no onMount, usado no handleDonate)
+  let fbclid: string | null = $state(null);
+  let fbc: string | null = $state(null);
+  let fbp: string | null = $state(null);
 
   // Rotacao do "ultimo doador" no ProgressCard e StickyBottomBar — cycle a cada 4.2s
   let donorIdx = $state(0);
@@ -18,6 +33,13 @@
   const lastDonor = $derived(CAMPAIGN.donors[donorIdx % CAMPAIGN.donors.length]);
 
   onMount(() => {
+    // Captura fbclid da URL (anuncio Meta) ou recupera do storage
+    const tracking = captureAndPersistFbclid();
+    fbclid = tracking.fbclid;
+    fbc = tracking.fbc;
+    // fbp e setado pelo Pixel JS via cookie — le com pequeno delay pro Pixel inicializar
+    setTimeout(() => { fbp = getFbp(); }, 500);
+
     donorTimer = setInterval(() => {
       donorIdx = (donorIdx + 1) % CAMPAIGN.donors.length;
     }, 4200);
@@ -86,11 +108,36 @@
 
   function handleDonate() {
     donating = true;
+
+    // 1. Gera event_id pra dedup com Omega CAPI server-side
+    const eventId = uuid();
+
+    // 2. Dispara InitiateCheckout no Pixel client-side
+    trackEvent('InitiateCheckout', {
+      value: selectedAmount,
+      currency: 'EUR',
+      content_ids: [String(selectedAmount)],
+      content_type: 'product',
+      num_items: 1
+    }, eventId);
+
+    // 3. Decide destino: Shopify real (se variant ID preenchido) ou fallback /supporter
+    const variantId = VARIANT_BY_TIER[selectedAmount];
+    const isPlaceholder = !variantId || variantId.startsWith('PLACEHOLDER');
+
     setTimeout(() => {
-      if (SHOPIFY_CHECKOUT_URL.includes('pawsco.myshopify.com')) {
-        window.location.href = `/supporter?tier=${selectedAmount}`;
+      if (isPlaceholder) {
+        // Modo dev: ainda nao temos produto Shopify criado, cai no mock
+        window.location.href = `/supporter?tier=${selectedAmount}&event_id=${eventId}`;
       } else {
-        window.location.href = `${SHOPIFY_CHECKOUT_URL}?tier=${selectedAmount}`;
+        // Modo prod: redireciona pra Shopify com attributes + UTMs
+        window.location.href = buildShopifyCartUrl({
+          shopDomain: SHOPIFY_SHOP_DOMAIN,
+          variantId,
+          fbclid,
+          fbp,
+          eventId
+        });
       }
     }, 800);
   }
