@@ -13,13 +13,16 @@
     captureAndPersistFbclid, getFbp, trackEvent, uuid, buildShopifyCartUrl
   } from '$lib/utils/fbtracking';
 
-  // Configuracao do destino real Shopify — preencher quando produto for criado
-  const SHOPIFY_SHOP_DOMAIN = 'themporalljerseys.com';
+  // Configuracao do destino Shopify — modo TESTE Omega Pixel
+  // Loja de teste: inigualavelshop.myshopify.com (variant unica enquanto valida tracking)
+  // Trocar dominio + mapear 4 variants reais antes de rodar trafego pago
+  const SHOPIFY_SHOP_DOMAIN = 'inigualavelshop.myshopify.com';
+  const TEST_VARIANT_ID = '49458076778634';
   const VARIANT_BY_TIER: Record<number, string> = {
-    10: 'PLACEHOLDER_VARIANT_ID_10',
-    20: 'PLACEHOLDER_VARIANT_ID_20',
-    25: 'PLACEHOLDER_VARIANT_ID_25',
-    35: 'PLACEHOLDER_VARIANT_ID_35'
+    10: TEST_VARIANT_ID,
+    20: TEST_VARIANT_ID,
+    25: TEST_VARIANT_ID,
+    35: TEST_VARIANT_ID
   };
 
   // Estado de tracking Meta (preenchido no onMount, usado no handleDonate)
