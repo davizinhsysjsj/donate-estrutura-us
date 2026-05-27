@@ -2,10 +2,10 @@
  * Meta Pixel — helpers de tracking client-side + persistencia de atribuicao.
  *
  * O fluxo:
- *  1. Cliente clica anuncio Meta -> chega na LP com `?fbclid=...`
- *  2. Capturamos `fbclid` e geramos `_fbc` (formato fb.1.<ts>.<fbclid>) -> salvamos em cookie + localStorage
+ *  1. Cliente clica anuncio Meta -> chega na LP com `?fbclid=...&utm_source=...`
+ *  2. Capturamos `fbclid`, UTMs reais e geramos `_fbc` -> salvamos em cookie + localStorage
  *  3. `_fbp` (pixel browser id) e setado pelo proprio Pixel JS no fbq init
- *  4. No click do Donate, montamos URL Shopify com `attributes[fbclid|fbp|event_id]` + UTMs aleatorias
+ *  4. No click do Donate, montamos URL Shopify com `attributes[fbclid|fbp|event_id]` + UTMs reais
  *  5. Shopify persiste os attributes na ordem -> Omega Pixel le e injeta no CAPI Purchase
  */
 
@@ -15,29 +15,13 @@ export const META_PIXEL_ID = '2237078953695974';
 /** URL pra forcar redirect pos-pagamento do Shopify (override da thank-you nativa). */
 const RETURN_TO = 'https://api.belgianpaws.help/bedankt';
 
-/** Sources falsas pra Shopify analytics ver origem "natural" (pesos somam 100). */
-const FAKE_SOURCES = [
-  { weight: 30, source: 'facebook', medium: 'cpc', campaign: 'belgium_summer' },
-  { weight: 25, source: 'google', medium: 'organic' },
-  { weight: 15, source: 'instagram', medium: 'social' },
-  { weight: 10, source: 'google', medium: 'cpc', campaign: 'shopping_be' },
-  { weight: 8, source: 'youtube', medium: 'video' },
-  { weight: 7, source: 'direct', medium: 'none' },
-  { weight: 5, source: 'newsletter', medium: 'email' }
-];
-
-export type FakeSource = { source: string; medium: string; campaign?: string };
-
-/** Sorteia source ponderada. */
-export function pickRandomSource(): FakeSource {
-  const total = FAKE_SOURCES.reduce((s, x) => s + x.weight, 0);
-  let r = Math.random() * total;
-  for (const s of FAKE_SOURCES) {
-    r -= s.weight;
-    if (r <= 0) return { source: s.source, medium: s.medium, campaign: s.campaign };
-  }
-  return { source: FAKE_SOURCES[0].source, medium: FAKE_SOURCES[0].medium };
-}
+export type UtmData = {
+  source: string;
+  medium: string;
+  campaign?: string;
+  content?: string;
+  term?: string;
+};
 
 /** UUID v4 simples (sem dependencia). */
 export function uuid(): string {
@@ -66,27 +50,58 @@ function getCookie(name: string): string | null {
 }
 
 /**
- * Captura fbclid da URL atual ou recupera de localStorage/cookie.
+ * Captura fbclid e UTMs reais da URL atual ou recupera de localStorage/cookie.
  * Persiste em cookie `_fbc` no formato Meta esperado: `fb.1.<timestamp>.<fbclid>`.
  */
-export function captureAndPersistFbclid(): { fbclid: string | null; fbc: string | null } {
-  if (typeof window === 'undefined') return { fbclid: null, fbc: null };
+export function captureAndPersistFbclid(): { fbclid: string | null; fbc: string | null; utm: UtmData | null } {
+  if (typeof window === 'undefined') return { fbclid: null, fbc: null, utm: null };
 
   const params = new URLSearchParams(window.location.search);
   const urlFbclid = params.get('fbclid');
+
+  // Captura UTMs reais da URL do anuncio
+  const utmSource = params.get('utm_source');
+  const utmMedium = params.get('utm_medium');
+  const utmCampaign = params.get('utm_campaign');
+  const utmContent = params.get('utm_content');
+  const utmTerm = params.get('utm_term');
+
+  // Persiste UTMs reais no localStorage se vieram da URL
+  if (utmSource) {
+    const utmData: UtmData = {
+      source: utmSource,
+      medium: utmMedium || 'cpc',
+      campaign: utmCampaign || undefined,
+      content: utmContent || undefined,
+      term: utmTerm || undefined
+    };
+    localStorage.setItem('utm_data', JSON.stringify(utmData));
+  }
 
   if (urlFbclid) {
     const fbc = `fb.1.${Date.now()}.${urlFbclid}`;
     setCookie('_fbc', fbc);
     localStorage.setItem('fbclid', urlFbclid);
     localStorage.setItem('_fbc', fbc);
-    return { fbclid: urlFbclid, fbc };
+    const utm = utmSource ? { source: utmSource, medium: utmMedium || 'cpc', campaign: utmCampaign || undefined } : getStoredUtm();
+    return { fbclid: urlFbclid, fbc, utm };
   }
 
   // Recupera de storage existente
   const stored = localStorage.getItem('fbclid') || getCookie('_fbc')?.split('.').pop() || null;
   const storedFbc = getCookie('_fbc') || localStorage.getItem('_fbc');
-  return { fbclid: stored, fbc: storedFbc };
+  return { fbclid: stored, fbc: storedFbc, utm: getStoredUtm() };
+}
+
+/** Recupera UTMs persistidas no localStorage. */
+export function getStoredUtm(): UtmData | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('utm_data');
+    return raw ? (JSON.parse(raw) as UtmData) : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Le _fbp (Meta browser pixel id) — setado automaticamente pelo Pixel JS. */
@@ -111,30 +126,39 @@ export function trackEvent(
  * Constroi URL pro Shopify cart com:
  *  - variant_id:1 (1 unidade do tier escolhido)
  *  - attributes[fbclid|fbp|event_id] (persiste na ordem pra Omega CAPI ler)
- *  - utm_source/medium/campaign (pra Shopify analytics ver origem "natural")
+ *  - utm_source/medium/campaign reais do anuncio (para atribuicao correta no Shopify analytics)
  */
 export function buildShopifyCartUrl(opts: {
-  shopDomain: string; // ex: 'themporalljerseys.com'
+  shopDomain: string; // ex: 'inigualavelshop.myshopify.com'
   variantId: string;
   fbclid?: string | null;
   fbp?: string | null;
   eventId: string;
+  utm?: UtmData | null;
 }): string {
-  const fake = pickRandomSource();
   const params = new URLSearchParams();
 
-  // UTMs visiveis (Shopify analytics)
-  params.set('utm_source', fake.source);
-  params.set('utm_medium', fake.medium);
-  if (fake.campaign) params.set('utm_campaign', fake.campaign);
+  // UTMs reais do anuncio (ou fallback minimo se nao tiver)
+  const utmSource = opts.utm?.source || 'meta';
+  const utmMedium = opts.utm?.medium || 'cpc';
+  const utmCampaign = opts.utm?.campaign;
+  const utmContent = opts.utm?.content;
+  const utmTerm = opts.utm?.term;
 
-  // Atributos persistidos na ordem
+  // UTMs visiveis (Shopify analytics — atribuicao real da campanha)
+  params.set('utm_source', utmSource);
+  params.set('utm_medium', utmMedium);
+  if (utmCampaign) params.set('utm_campaign', utmCampaign);
+  if (utmContent) params.set('utm_content', utmContent);
+  if (utmTerm) params.set('utm_term', utmTerm);
+
+  // Atributos persistidos na ordem — Omega CAPI les e injeta no Purchase server-side
   if (opts.fbclid) params.set('attributes[fbclid]', opts.fbclid);
   if (opts.fbp) params.set('attributes[fbp]', opts.fbp);
   params.set('attributes[event_id]', opts.eventId);
-  params.set('attributes[utm_source]', fake.source);
-  params.set('attributes[utm_medium]', fake.medium);
-  if (fake.campaign) params.set('attributes[utm_campaign]', fake.campaign);
+  params.set('attributes[utm_source]', utmSource);
+  params.set('attributes[utm_medium]', utmMedium);
+  if (utmCampaign) params.set('attributes[utm_campaign]', utmCampaign);
 
   // Forca redirect pos-pagamento pro endpoint bedankt (ignorado em checkout extensibility novo)
   params.set('return_to', RETURN_TO);

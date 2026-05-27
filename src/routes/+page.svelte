@@ -10,7 +10,8 @@
   import ProgressCard from '$lib/components/ProgressCard.svelte';
   import StickyBottomBar from '$lib/components/StickyBottomBar.svelte';
   import {
-    captureAndPersistFbclid, getFbp, trackEvent, uuid, buildShopifyCartUrl
+    captureAndPersistFbclid, getFbp, trackEvent, uuid, buildShopifyCartUrl,
+    type UtmData
   } from '$lib/utils/fbtracking';
 
   // Configuracao do destino Shopify — produto real complete-care-package-for-belgian-dogs
@@ -33,6 +34,7 @@
   let fbclid: string | null = $state(null);
   let fbc: string | null = $state(null);
   let fbp: string | null = $state(null);
+  let utm: UtmData | null = $state(null);
 
   // Rotacao do "ultimo doador" no ProgressCard e StickyBottomBar — cycle a cada 4.2s
   let donorIdx = $state(0);
@@ -40,10 +42,11 @@
   const lastDonor = $derived(CAMPAIGN.donors[donorIdx % CAMPAIGN.donors.length]);
 
   onMount(() => {
-    // Captura fbclid da URL (anuncio Meta) ou recupera do storage
+    // Captura fbclid + UTMs reais da URL (anuncio Meta) ou recupera do storage
     const tracking = captureAndPersistFbclid();
     fbclid = tracking.fbclid;
     fbc = tracking.fbc;
+    utm = tracking.utm;
     // fbp e setado pelo Pixel JS via cookie — le com pequeno delay pro Pixel inicializar
     setTimeout(() => { fbp = getFbp(); }, 500);
 
@@ -177,13 +180,14 @@
         // Modo dev: ainda nao temos produto Shopify criado, cai no mock
         window.location.href = `/supporter?tier=${selectedAmount}&event_id=${eventId}`;
       } else {
-        // Modo prod: redireciona pra Shopify com attributes + UTMs
+        // Modo prod: redireciona pra Shopify com attributes + UTMs reais do anuncio
         window.location.href = buildShopifyCartUrl({
           shopDomain: SHOPIFY_SHOP_DOMAIN,
           variantId,
           fbclid,
           fbp,
-          eventId
+          eventId,
+          utm
         });
       }
     }, 800);
