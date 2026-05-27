@@ -83,49 +83,49 @@ export const CAMPAIGN = {
   // Testimonials / words of support
   testimonials: [
     {
-      avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
+      avatar: '/avatars/women-44.webp',
       name: 'Emma B.',
       city: 'Antwerpen',
       quote: "Ik weet precies waar mijn donatie naartoe ging — en een week later kreeg ik een foto. Daarom ben ik teruggekomen."
     },
     {
-      avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+      avatar: '/avatars/men-32.webp',
       name: 'Niels V.',
       city: 'Gent',
       quote: 'Geen schuldgevoel-mails, gewoon een eenvoudig betaalbewijs en een update. Betrouwbaar van begin tot eind.'
     },
     {
-      avatar: 'https://randomuser.me/api/portraits/women/68.jpg',
+      avatar: '/avatars/women-68.webp',
       name: 'Camille L.',
       city: 'Brussel',
       quote: 'Ik heb de coördinatoren van het opvangcentrum persoonlijk ontmoet. Dit geld bereikt echt de dieren.'
     },
     {
-      avatar: 'https://randomuser.me/api/portraits/women/12.jpg',
+      avatar: '/avatars/women-12.webp',
       name: 'Lieve D.',
       city: 'Brugge',
       quote: "Ik heb gedoneerd aan grotere goede doelen en wist nooit waar het naartoe ging. Hier kreeg ik een echte update met de namen van de honden."
     },
     {
-      avatar: 'https://randomuser.me/api/portraits/men/76.jpg',
+      avatar: '/avatars/men-76.webp',
       name: 'Mathieu R.',
       city: 'Luik',
       quote: 'Ik doneerde voor mijn overleden hond Bruno. Het voelde als de juiste manier om hem te eren. Bedankt voor wat jullie doen.'
     },
     {
-      avatar: 'https://randomuser.me/api/portraits/men/52.jpg',
+      avatar: '/avatars/men-52.webp',
       name: 'Sven J.',
       city: 'Leuven',
       quote: "Kleine donatie, maar ze gaven me het gevoel dat het ertoe deed. Volgende maand zet ik een maandelijkse bijdrage op."
     },
     {
-      avatar: 'https://randomuser.me/api/portraits/women/29.jpg',
+      avatar: '/avatars/women-29.webp',
       name: 'Charlotte M.',
       city: 'Namen',
       quote: 'Makkelijk, snel, geen druk. De foto van Loki die sliep na de maaltijd maakte mijn week goed.'
     },
     {
-      avatar: 'https://randomuser.me/api/portraits/men/15.jpg',
+      avatar: '/avatars/men-15.webp',
       name: 'Bram V.',
       city: 'Mechelen',
       quote: "Transparant en menselijk. Belgische opvangcentra hebben veel meer steun zoals dit nodig."

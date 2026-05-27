@@ -9,25 +9,21 @@
     <!-- Preload hero LCP image — carrega antes de tudo -->
     <link rel="preload" as="image" href="%sveltekit.assets%/hero-rescue.webp" type="image/webp" />
 
-    <!-- Google Fonts — async, nao bloqueia render -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'" />
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" /></noscript>
+    <!-- Sem Google Fonts: system font stack nativo (Inter ja vem no iOS/macOS/Windows 11) -->
 
-    <!-- Meta Pixel — inline, dispara imediatamente ao carregar o HTML (antes da hidratação JS) -->
+    <!-- Meta Pixel — inicializa stub imediatamente (nao bloqueia), carrega fbevents.js apos idle -->
     <script>
-      !function(f,b,e,v,n,t,s){
-        if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-        n.queue=[];t=b.createElement(e);t.async=!0;
-        t.src=v;s=b.getElementsByTagName(e)[0];
-        s.parentNode.insertBefore(t,s)}(window,document,'script',
-        'https://connect.facebook.net/en_US/fbevents.js');
-      fbq('init', '2237078953695974');
-      fbq('track', 'PageView');
+      // Stub do fbq: captura chamadas antes do SDK carregar
+      window.fbq=function(){(window.fbq.queue=window.fbq.queue||[]).push(arguments)};
+      window.fbq.loaded=true;window.fbq.version='2.0';window.fbq.queue=[];window._fbq=window.fbq;
+      fbq('init','2237078953695974');
+      fbq('track','PageView');
+      // Carrega o SDK real apos o browser ficar idle (nao bloqueia LCP nem TBT)
+      (window.requestIdleCallback||function(c){setTimeout(c,200)})(function(){
+        var s=document.createElement('script');s.async=true;
+        s.src='https://connect.facebook.net/en_US/fbevents.js';
+        document.head.appendChild(s);
+      });
     </script>
     <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=2237078953695974&ev=PageView&noscript=1"/></noscript>
 

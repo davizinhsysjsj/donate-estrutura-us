@@ -343,7 +343,7 @@
         {#each CAMPAIGN.testimonials as t}
           <div class="testimonial-card">
             <div class="testimonial-head">
-              <img src={t.avatar} alt={t.name} class="testimonial-avatar-img" loading="lazy" referrerpolicy="no-referrer" />
+              <img src={t.avatar} alt={t.name} class="testimonial-avatar-img" loading="lazy" width="80" height="80" decoding="async" />
               <div>
                 <div class="testimonial-name">{t.name}</div>
                 <div class="testimonial-meta">{t.city}</div>

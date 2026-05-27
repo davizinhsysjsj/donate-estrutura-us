@@ -15,7 +15,7 @@
   --border: #E5E7EB;
   --radius: 12px;
   --radius-sm: 8px;
-  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
 }
 
 *,
