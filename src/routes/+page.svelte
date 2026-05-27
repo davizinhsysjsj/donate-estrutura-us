@@ -291,24 +291,6 @@
       </button>
     </section>
 
-    <!-- Story image (bloco proprio, full-width igual hero) -->
-    <div class="story-image-wrap">
-      {#if CAMPAIGN.storyImage}
-        <img class="story-image-img" src={CAMPAIGN.storyImage} alt="Verhaalfoto" loading="lazy" />
-      {:else}
-        <div class="story-image-img img-placeholder">
-          <div class="img-placeholder-stack">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="3" y="5" width="18" height="14" rx="2" />
-              <circle cx="9" cy="11" r="2" />
-              <path d="m21 17-5-5-9 9" />
-            </svg>
-            <span class="img-placeholder-label">Foto komt binnenkort</span>
-          </div>
-        </div>
-      {/if}
-    </div>
-
     {#if descExpanded}
       <section class="section">
         <span class="story-highlight">{CAMPAIGN.highlight}</span>
@@ -533,7 +515,7 @@
           </button>
           <div class="security-note">
             <Shield size={14} />
-            Veilige betaling via kaart of Apple/Google Pay
+            Veilige betaling via Bancontact, kaart of Apple/Google Pay
           </div>
         </div>
       </div>
