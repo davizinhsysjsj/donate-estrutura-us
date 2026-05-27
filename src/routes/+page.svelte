@@ -161,12 +161,7 @@
 
 <header class="header">
   <a href="/" class="header-logo">
-    <svg class="logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M20 4C11.163 4 4 11.163 4 20s7.163 16 16 16 16-7.163 16-16S28.837 4 20 4z" fill="#02A95C" />
-      <path d="M20 8c-1.5 3-5 6-8 7 1 4 4 8 8 9 4-1 7-5 8-9-3-1-6.5-4-8-7z" fill="#C8F0DA" />
-      <path d="M20 12c-1 2-3 4-5 5 .7 2.5 2.5 5 5 6 2.5-1 4.3-3.5 5-6-2-1-4-3-5-5z" fill="#02A95C" />
-    </svg>
-    <span class="logo-text">pawsco</span>
+    <img src="/logo.png" alt="DogPaws" class="logo-img" />
   </a>
   <button
     class="header-menu-btn"
