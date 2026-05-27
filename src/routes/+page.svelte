@@ -13,16 +13,14 @@
     captureAndPersistFbclid, getFbp, trackEvent, uuid, buildShopifyCartUrl
   } from '$lib/utils/fbtracking';
 
-  // Configuracao do destino Shopify — modo TESTE Omega Pixel
-  // Loja de teste: inigualavelshop.myshopify.com (variant unica enquanto valida tracking)
-  // Trocar dominio + mapear 4 variants reais antes de rodar trafego pago
+  // Configuracao do destino Shopify — produto real complete-care-package-for-belgian-dogs
+  // 4 variants reais mapeadas por tier (Bronze/Silver/Gold/Platinum)
   const SHOPIFY_SHOP_DOMAIN = 'inigualavelshop.myshopify.com';
-  const TEST_VARIANT_ID = '49458076778634';
   const VARIANT_BY_TIER: Record<number, string> = {
-    10: TEST_VARIANT_ID,
-    20: TEST_VARIANT_ID,
-    25: TEST_VARIANT_ID,
-    35: TEST_VARIANT_ID
+    10: '49461830844554', // Bronze  — BPCB-BRONZE
+    20: '49461830877322', // Silver  — BPCB-SILVER
+    25: '49461830910090', // Gold    — BPCB-GOLD
+    35: '49461830942858'  // Platinum — BPCB-PLATINUM
   };
 
   // Estado de tracking Meta (preenchido no onMount, usado no handleDonate)
