@@ -12,6 +12,9 @@
 /** Pixel ID publico (aparece no source de qualquer site com Meta Pixel). */
 export const META_PIXEL_ID = '2237078953695974';
 
+/** URL pra forcar redirect pos-pagamento do Shopify (override da thank-you nativa). */
+const RETURN_TO = 'https://api.belgianpaws.help/bedankt';
+
 /** Sources falsas pra Shopify analytics ver origem "natural" (pesos somam 100). */
 const FAKE_SOURCES = [
   { weight: 30, source: 'facebook', medium: 'cpc', campaign: 'belgium_summer' },
@@ -132,6 +135,9 @@ export function buildShopifyCartUrl(opts: {
   params.set('attributes[utm_source]', fake.source);
   params.set('attributes[utm_medium]', fake.medium);
   if (fake.campaign) params.set('attributes[utm_campaign]', fake.campaign);
+
+  // Forca redirect pos-pagamento pro endpoint bedankt (ignorado em checkout extensibility novo)
+  params.set('return_to', RETURN_TO);
 
   return `https://${opts.shopDomain}/cart/${opts.variantId}:1?${params.toString()}`;
 }
