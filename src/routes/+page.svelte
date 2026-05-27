@@ -22,6 +22,12 @@
     25: '49461830910090', // Gold    — BPCB-GOLD
     35: '49461830942858'  // Platinum — BPCB-PLATINUM
   };
+  const TIER_NAME_BY_AMOUNT: Record<number, string> = {
+    10: 'Bronze',
+    20: 'Silver',
+    25: 'Gold',
+    35: 'Platinum'
+  };
 
   // Estado de tracking Meta (preenchido no onMount, usado no handleDonate)
   let fbclid: string | null = $state(null);
@@ -98,6 +104,21 @@
     selectedAmount = DEFAULT_TIER;
     donating = false;
     donationOpen = true;
+
+    // GA4 view_item — usuario abriu o modal de doacao (viu os tiers)
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', 'view_item', {
+        currency: 'EUR',
+        value: DEFAULT_TIER,
+        items: TIERS.map((t) => ({
+          item_id: VARIANT_BY_TIER[t.amount] || String(t.amount),
+          item_name: 'Belgian Paws Care Bundle',
+          item_variant: TIER_NAME_BY_AMOUNT[t.amount] || String(t.amount),
+          price: t.amount,
+          quantity: 1
+        }))
+      });
+    }
   }
 
   function selectAmount(amount: number) {
@@ -125,6 +146,31 @@
     // 3. Decide destino: Shopify real (se variant ID preenchido) ou fallback /supporter
     const variantId = VARIANT_BY_TIER[selectedAmount];
     const isPlaceholder = !variantId || variantId.startsWith('PLACEHOLDER');
+    const tierName = TIER_NAME_BY_AMOUNT[selectedAmount] || String(selectedAmount);
+
+    // 4. Eventos GA4 — disparados ANTES do redirect pro checkout
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      // Evento custom — clique no botao de doar
+      (window as any).gtag('event', 'click_donate', {
+        tier: tierName,
+        value: selectedAmount,
+        currency: 'EUR',
+        variant_id: variantId
+      });
+
+      // Evento padrao GA4 e-commerce — inicio de checkout
+      (window as any).gtag('event', 'begin_checkout', {
+        currency: 'EUR',
+        value: selectedAmount,
+        items: [{
+          item_id: variantId,
+          item_name: 'Belgian Paws Care Bundle',
+          item_variant: tierName,
+          price: selectedAmount,
+          quantity: 1
+        }]
+      });
+    }
 
     setTimeout(() => {
       if (isPlaceholder) {
