@@ -6,9 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="referrer" content="no-referrer" />
     <meta name="description" content="Help vanavond Belgische opvangdieren te voeden — PawsCo Opvang." />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <!-- Preload hero LCP image — carrega antes de tudo -->
+    <link rel="preload" as="image" href="%sveltekit.assets%/hero-rescue.webp" type="image/webp" />
+
+    <!-- Google Fonts — async, nao bloqueia render -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" /></noscript>
 
     <!-- Meta Pixel — inline, dispara imediatamente ao carregar o HTML (antes da hidratação JS) -->
     <script>

@@ -211,7 +211,7 @@
 
 <header class="header">
   <a href="/" class="header-logo">
-    <img src="/logo.png" alt="DogPaws" class="logo-img" />
+    <img src="/logo.webp" alt="DogPaws" class="logo-img" />
   </a>
   <button
     class="header-menu-btn"
@@ -248,7 +248,7 @@
     <!-- Hero full-width com curva inferior -->
     <div class="hero-image-wrap">
       {#if CAMPAIGN.heroImage}
-        <img class="hero-image" src={CAMPAIGN.heroImage} alt={CAMPAIGN.title} loading="eager" />
+        <img class="hero-image" src={CAMPAIGN.heroImage} alt={CAMPAIGN.title} loading="eager" fetchpriority="high" decoding="async" width="900" height="600" />
       {:else}
         <div class="hero-image img-placeholder">
           <div class="img-placeholder-stack">
@@ -513,7 +513,7 @@
               <div class="spinner spinner-dark"></div>
               <span class="btn-bancontact-text">Doorverwijzen…</span>
             {:else}
-              <img src="/bancontact.png" alt="Bancontact" class="btn-bancontact-logo" />
+              <img src="/bancontact.webp" alt="Bancontact" class="btn-bancontact-logo" />
               <span class="btn-bancontact-text">Doe €{selectedAmount} met Bancontact</span>
             {/if}
           </button>

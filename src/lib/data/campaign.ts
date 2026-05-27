@@ -29,7 +29,7 @@ export const CAMPAIGN = {
   title: 'Help Belgische opvangcentra om deze winter 300 dieren te voeden',
   subtitle: "Aoife Murphy organiseert deze inzamelactie om opvangcentra in Antwerpen te steunen.",
   // Deixe vazio ("") pra renderizar placeholder cinza. Quando tiver URL, template usa direto.
-  heroImage: '/hero-rescue.png',
+  heroImage: '/hero-rescue.webp',
   storyImage: '',
 
   // Progress
