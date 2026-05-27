@@ -73,12 +73,12 @@
   let donorsModalOpen = $state(false);
 
   const MENU_ITEMS = [
-    { id: 'story-section', label: 'Story' },
-    { id: 'stats-section', label: 'The numbers' },
-    { id: 'how-section', label: 'How it works' },
+    { id: 'story-section', label: 'Verhaal' },
+    { id: 'stats-section', label: 'De cijfers' },
+    { id: 'how-section', label: 'Hoe het werkt' },
     { id: 'testimonials-section', label: 'Supporters' },
-    { id: 'donations', label: 'Donations' },
-    { id: 'organizer-section', label: 'Organizer' }
+    { id: 'donations', label: 'Donaties' },
+    { id: 'organizer-section', label: 'Organisator' }
   ];
 
   function scrollToSection(id: string) {
@@ -88,9 +88,9 @@
   }
 
   const STEPS = [
-    { icon: Heart, title: 'You choose a donation amount', desc: 'Pick what feels right — every euro feeds an animal in need.' },
-    { icon: Shield, title: 'Funds reach partner shelters within 7 days', desc: 'No bureaucracy. Direct wires to verified rescues, prioritized by need.' },
-    { icon: Mail, title: 'You hear back from the shelter', desc: 'Occasional photos and stories from the animals you helped.' }
+    { icon: Heart, title: 'Jij kiest een donatiebedrag', desc: 'Kies wat goed voelt — elke euro voedt een dier in nood.' },
+    { icon: Shield, title: 'Het geld bereikt partneropvangen binnen 7 dagen', desc: 'Geen bureaucratie. Directe overschrijvingen naar geverifieerde opvangcentra, op basis van noodzaak.' },
+    { icon: Mail, title: 'Je hoort terug van het opvangcentrum', desc: 'Af en toe foto\'s en verhalen van de dieren die je hebt geholpen.' }
   ];
 
   function showToast(msg: string) {
@@ -197,7 +197,7 @@
       window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(CAMPAIGN.shareUrl)}`, '_blank');
     } else {
       navigator.clipboard?.writeText(CAMPAIGN.shareUrl).then(() => {
-        showToast('Link copied!');
+        showToast('Link gekopieerd!');
         shareOpen = false;
       });
     }
@@ -211,7 +211,7 @@
   </a>
   <button
     class="header-menu-btn"
-    aria-label="Open menu"
+    aria-label="Menu openen"
     aria-expanded={menuOpen}
     onclick={() => (menuOpen = !menuOpen)}
   >
@@ -225,10 +225,10 @@
   {#if menuOpen}
     <button
       class="header-menu-backdrop"
-      aria-label="Close menu"
+      aria-label="Menu sluiten"
       onclick={() => (menuOpen = false)}
     ></button>
-    <nav class="header-menu-dropdown" aria-label="Site navigation">
+    <nav class="header-menu-dropdown" aria-label="Sitenavigatie">
       {#each MENU_ITEMS as item}
         <button class="header-menu-item" onclick={() => scrollToSection(item.id)}>
           {item.label}
@@ -253,7 +253,7 @@
               <circle cx="9" cy="11" r="2" />
               <path d="m21 17-5-5-9 9" />
             </svg>
-            <span class="img-placeholder-label">Photo coming soon</span>
+            <span class="img-placeholder-label">Foto komt binnenkort</span>
           </div>
         </div>
       {/if}
@@ -267,7 +267,7 @@
         <ProgressCard
           raised={CAMPAIGN.raisedEur}
           goal={CAMPAIGN.goalEur}
-          lastDonorName={lastDonor.anonymous ? 'Anonymous' : lastDonor.name}
+          lastDonorName={lastDonor.anonymous ? 'Anoniem' : lastDonor.name}
           lastDonorAmount={lastDonor.amount}
           lastDonorAgo={lastDonor.ago}
           onDonate={openDonation}
@@ -277,8 +277,8 @@
       </div>
 
       <div class="progress-stats-row">
-        <span><span class="donations-count">{CAMPAIGN.donationsCount}</span> donations</span>
-        <span>{CAMPAIGN.daysLeft} days left</span>
+        <span><span class="donations-count">{CAMPAIGN.donationsCount}</span> donaties</span>
+        <span>{CAMPAIGN.daysLeft} dagen over</span>
       </div>
 
       <div id="story-section" class="story-text" class:story-text-collapsed={!descExpanded}>
@@ -287,14 +287,14 @@
         {/each}
       </div>
       <button class="read-more" onclick={() => (descExpanded = !descExpanded)}>
-        {descExpanded ? 'Read less' : 'Read more'}
+        {descExpanded ? 'Minder lezen' : 'Meer lezen'}
       </button>
     </section>
 
     <!-- Story image (bloco proprio, full-width igual hero) -->
     <div class="story-image-wrap">
       {#if CAMPAIGN.storyImage}
-        <img class="story-image-img" src={CAMPAIGN.storyImage} alt="Story photo" loading="lazy" />
+        <img class="story-image-img" src={CAMPAIGN.storyImage} alt="Verhaalfoto" loading="lazy" />
       {:else}
         <div class="story-image-img img-placeholder">
           <div class="img-placeholder-stack">
@@ -303,7 +303,7 @@
               <circle cx="9" cy="11" r="2" />
               <path d="m21 17-5-5-9 9" />
             </svg>
-            <span class="img-placeholder-label">Photo coming soon</span>
+            <span class="img-placeholder-label">Foto komt binnenkort</span>
           </div>
         </div>
       {/if}
@@ -317,8 +317,8 @@
 
     <!-- Stats grid -->
     <section class="stats-section" id="stats-section">
-      <div class="section-eyebrow">The reality</div>
-      <h2 class="section-title">The situation, in numbers.</h2>
+      <div class="section-eyebrow">De realiteit</div>
+      <h2 class="section-title">De situatie, in cijfers.</h2>
       <div class="stats-grid">
         {#each CAMPAIGN.stats as stat}
           <div class="stat-card">
@@ -331,8 +331,8 @@
 
     <!-- How it works -->
     <section class="section" id="how-section">
-      <div class="section-eyebrow">How it works</div>
-      <h2 class="section-title">How your support reaches them.</h2>
+      <div class="section-eyebrow">Hoe het werkt</div>
+      <h2 class="section-title">Hoe jouw steun bij hen aankomt.</h2>
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
         {#each STEPS as step, i}
           <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;display:flex;gap:12px;align-items:flex-start">
@@ -340,7 +340,7 @@
               <step.icon size={20} />
             </div>
             <div style="flex:1;min-width:0">
-              <div style="font-size:0.6875rem;color:var(--muted-fg);font-weight:700;letter-spacing:0.06em;text-transform:uppercase">Step 0{i + 1}</div>
+              <div style="font-size:0.6875rem;color:var(--muted-fg);font-weight:700;letter-spacing:0.06em;text-transform:uppercase">Stap 0{i + 1}</div>
               <div style="font-size:0.9375rem;font-weight:600;color:var(--fg);margin-top:2px;line-height:1.3">{step.title}</div>
               <div style="font-size:0.8125rem;color:var(--muted-fg);margin-top:4px;line-height:1.45">{step.desc}</div>
             </div>
@@ -351,8 +351,8 @@
 
     <!-- Words of support / testimonials -->
     <section class="section" id="testimonials-section">
-      <div class="section-eyebrow">Words of support</div>
-      <h2 class="section-title">From supporters across Belgium.</h2>
+      <div class="section-eyebrow">Steunbetuigingen</div>
+      <h2 class="section-title">Van supporters in heel België.</h2>
       <div class="testimonial-row">
         {#each CAMPAIGN.testimonials as t}
           <div class="testimonial-card">
@@ -372,11 +372,11 @@
 
     <!-- Urgency block -->
     <section class="urgency">
-      <div class="urgency-eyebrow">Time matters</div>
-      <h2 class="urgency-title">Animals are waiting tonight.</h2>
-      <p class="urgency-sub">You can feed one of them right now.</p>
+      <div class="urgency-eyebrow">Tijd telt</div>
+      <h2 class="urgency-title">Vanavond wachten er dieren.</h2>
+      <p class="urgency-sub">Jij kan er nu eentje voeden.</p>
       <button class="urgency-cta" onclick={openDonation}>
-        Help feed them
+        Help ze voeden
         <ChevronRight size={18} strokeWidth={2.5} />
       </button>
     </section>
@@ -385,10 +385,10 @@
     <div class="donations" id="donations">
       <div class="donations-header">
         <div class="donations-title">
-          Donations
+          Donaties
           <span class="donations-badge">{CAMPAIGN.donationsCount}</span>
         </div>
-        <button class="donations-link" onclick={() => (donorsModalOpen = true)}>See all</button>
+        <button class="donations-link" onclick={() => (donorsModalOpen = true)}>Alles bekijken</button>
       </div>
       <ul class="donor-list">
         {#each CAMPAIGN.donors.slice(0, 5) as d}
@@ -409,20 +409,20 @@
         {/each}
       </ul>
       <button class="btn-see-all" onclick={() => (donorsModalOpen = true)}>
-        See all {CAMPAIGN.donors.length}+ donations
+        Bekijk alle {CAMPAIGN.donors.length}+ donaties
       </button>
     </div>
 
     <!-- Organizer -->
     <div class="organizer" id="organizer-section">
-      <h3>Organizer</h3>
+      <h3>Organisator</h3>
       <div class="organizer-row">
         <div class="organizer-avatar">
           {CAMPAIGN.organizer.split(' ').map((s) => s[0]).join('').slice(0, 2)}
         </div>
         <div style="flex:1;min-width:0">
           <div class="organizer-name">{CAMPAIGN.organizer}</div>
-          <div class="organizer-sub">Organizer</div>
+          <div class="organizer-sub">Organisator</div>
           <div class="organizer-sub">{CAMPAIGN.organizerCity}</div>
         </div>
       </div>
@@ -436,7 +436,7 @@
         </div>
         <div class="badge-protected">
           <Shield size={14} />
-          Donation protected
+          Donatie beschermd
         </div>
       </div>
     </div>
@@ -450,12 +450,12 @@
         <a href="#" aria-label="Instagram"><Instagram size={20} /></a>
       </div>
 
-      <div class="footer-copy">© 2026 {CAMPAIGN.brand} Rescue</div>
+      <div class="footer-copy">© 2026 {CAMPAIGN.brand} Opvang</div>
 
       <div class="footer-links">
-        <a href="#">Terms</a>
+        <a href="#">Voorwaarden</a>
         <a href="#">Privacy</a>
-        <a href="#">Refunds</a>
+        <a href="#">Terugbetalingen</a>
         <a href="#">Cookies</a>
         <a href="mailto:hello@pawsco.com">Contact</a>
       </div>
@@ -467,7 +467,7 @@
 <StickyBottomBar
   raised={CAMPAIGN.raisedEur}
   goal={CAMPAIGN.goalEur}
-  lastDonorName={lastDonor.anonymous ? 'Anonymous' : lastDonor.name}
+  lastDonorName={lastDonor.anonymous ? 'Anoniem' : lastDonor.name}
   lastDonorAmount={lastDonor.amount}
   lastDonorAgo={lastDonor.ago}
   onDonate={openDonation}
@@ -481,21 +481,21 @@
   class:open={donationOpen}
   role="dialog"
   aria-modal="true"
-  aria-label="Donation"
+  aria-label="Donatie"
   onclick={(e) => e.target === e.currentTarget && (donationOpen = false)}
 >
   <div class="sheet" role="document">
     <div class="sheet-handle"></div>
     <div class="sheet-title">
-      {currentStep === 1 ? 'Make a donation' : 'Confirm your donation'}
+      {currentStep === 1 ? 'Doe een donatie' : 'Bevestig je donatie'}
     </div>
     {#if currentStep === 1}
-      <p class="sheet-subtitle">Every donation feeds rescue animals in our Belgian partner shelters.</p>
+      <p class="sheet-subtitle">Elke donatie voedt opvangdieren in onze Belgische partneropvangen.</p>
     {/if}
 
     {#if currentStep === 1}
       <div class="step-form active">
-        <div class="step-label">Choose an amount</div>
+        <div class="step-label">Kies een bedrag</div>
         <div class="amount-grid amount-grid-2x2">
           {#each TIERS as tier}
             <button
@@ -505,35 +505,35 @@
               onclick={() => selectAmount(tier.amount)}
             >
               <span class="amount-btn-value">€{tier.amount}</span>
-              <span class="amount-btn-sub">feeds {tier.dogs} {tier.dogs === 1 ? 'animal' : 'animals'}</span>
+              <span class="amount-btn-sub">voedt {tier.dogs} {tier.dogs === 1 ? 'dier' : 'dieren'}</span>
             </button>
           {/each}
         </div>
       </div>
     {:else}
       <div class="step-form active">
-        <button class="btn-back" onclick={() => (currentStep = 1)}>← Back</button>
+        <button class="btn-back" onclick={() => (currentStep = 1)}>← Terug</button>
         <div class="confirm-screen">
-          <div class="step-label">Your donation</div>
+          <div class="step-label">Jouw donatie</div>
           <div class="confirm-amount">€{selectedAmount}</div>
-          <p class="confirm-sub">You're saving {dogsForAmount(selectedAmount)} {dogsForAmount(selectedAmount) === 1 ? 'animal' : 'animals'} today.</p>
+          <p class="confirm-sub">Vandaag red je {dogsForAmount(selectedAmount)} {dogsForAmount(selectedAmount) === 1 ? 'dier' : 'dieren'}.</p>
 
           <p class="confirm-direct-note">
-            Your donation will go directly to feed and care for rescued animals at our partner shelters in Belgium.
+            Jouw donatie gaat rechtstreeks naar de voeding en verzorging van geredde dieren bij onze partneropvangen in België.
           </p>
 
           <button class="btn-next" onclick={handleDonate} disabled={donating}>
             {#if donating}
               <div class="spinner"></div>
-              Redirecting…
+              Doorverwijzen…
             {:else}
-              Donate €{selectedAmount} now
+              Doneer nu €{selectedAmount}
               <ArrowRight size={18} />
             {/if}
           </button>
           <div class="security-note">
             <Shield size={14} />
-            Secure payment via card or Apple/Google Pay
+            Veilige betaling via kaart of Apple/Google Pay
           </div>
         </div>
       </div>
@@ -547,12 +547,12 @@
   class:open={shareOpen}
   role="dialog"
   aria-modal="true"
-  aria-label="Share"
+  aria-label="Delen"
   onclick={(e) => e.target === e.currentTarget && (shareOpen = false)}
 >
   <div class="sheet" role="document">
     <div class="sheet-handle"></div>
-    <div class="sheet-title">Share this campaign</div>
+    <div class="sheet-title">Deel deze campagne</div>
     <div class="share-grid">
       <button class="share-btn" onclick={() => shareTo('whatsapp')}>
         <div class="share-icon" style="background:var(--primary-soft)">
@@ -576,7 +576,7 @@
             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
           </svg>
         </div>
-        <span class="share-label">Copy link</span>
+        <span class="share-label">Link kopiëren</span>
       </button>
     </div>
   </div>
@@ -588,13 +588,13 @@
   class:open={donorsModalOpen}
   role="dialog"
   aria-modal="true"
-  aria-label="All donations"
+  aria-label="Alle donaties"
   onclick={(e) => e.target === e.currentTarget && (donorsModalOpen = false)}
 >
   <div class="sheet sheet-donors" role="document">
     <div class="sheet-handle"></div>
-    <div class="sheet-title">All donations ({CAMPAIGN.donationsCount})</div>
-    <p class="sheet-subtitle">Latest supporters helping Belgian rescues.</p>
+    <div class="sheet-title">Alle donaties ({CAMPAIGN.donationsCount})</div>
+    <p class="sheet-subtitle">Laatste supporters die Belgische opvangcentra helpen.</p>
     <ul class="donor-list donor-list-full">
       {#each CAMPAIGN.donors as d}
         <li class="donor-item">
@@ -613,7 +613,7 @@
         </li>
       {/each}
     </ul>
-    <button class="sheet-close-btn" onclick={() => (donorsModalOpen = false)}>Close</button>
+    <button class="sheet-close-btn" onclick={() => (donorsModalOpen = false)}>Sluiten</button>
   </div>
 </div>
 

@@ -8,7 +8,7 @@ export const load: PageLoad = ({ url }) => {
   const dogs = dogsForAmount(amount);
 
   const today = new Date();
-  const dateStr = today.toLocaleDateString('en-IE', {
+  const dateStr = today.toLocaleDateString('nl-BE', {
     day: '2-digit',
     month: 'short',
     year: 'numeric'

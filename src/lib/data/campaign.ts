@@ -21,13 +21,13 @@ export const CAMPAIGN = {
   // Branding
   brand: 'PawsCo',
   organizer: 'Aoife Murphy',
-  organizerCity: 'Antwerp, Belgium',
-  category: 'Animals',
-  createdMonth: 'May 2026',
+  organizerCity: 'Antwerpen, België',
+  category: 'Dieren',
+  createdMonth: 'mei 2026',
 
   // Hero
-  title: 'Help Belgian Rescues feed 300 animals this winter',
-  subtitle: "Aoife Murphy is organizing this fundraiser to support shelters in Antwerp.",
+  title: 'Help Belgische opvangcentra om deze winter 300 dieren te voeden',
+  subtitle: "Aoife Murphy organiseert deze inzamelactie om opvangcentra in Antwerpen te steunen.",
   // Deixe vazio ("") pra renderizar placeholder cinza. Quando tiver URL, template usa direto.
   heroImage: '/hero-rescue.png',
   storyImage: '',
@@ -40,44 +40,44 @@ export const CAMPAIGN = {
 
   // Story
   story: [
-    "Three weeks ago, a phone call came in from a small rescue shelter in Antwerp. Their stockroom was almost empty, the freezer was off to save power, and 47 dogs and cats were waiting for the next meal.",
-    "We drove up the same night with whatever food we could load into the van. What we found there made the long drive home feel like nothing — kennels packed two to a space, volunteers paying for kibble out of their own pockets, and a 9-year-old shepherd named Loki who hadn't been adopted in three winters.",
-    "We made them a promise: we would not let them run out of food again this winter. We're keeping that promise — but only if you keep it with us."
+    "Drie weken geleden kregen we een telefoontje van een klein opvangcentrum in Antwerpen. Hun voorraadkamer was bijna leeg, de vriezer stond uit om stroom te besparen, en 47 honden en katten wachtten op hun volgende maaltijd.",
+    "We reden diezelfde nacht naar boven met al het voer dat we in de bestelwagen konden laden. Wat we daar aantroffen maakte de lange rit naar huis als niets — kennels met twee dieren per plek, vrijwilligers die brokken uit eigen zak betaalden, en een 9 jaar oude herder genaamd Loki die al drie winters niet geadopteerd was.",
+    "We deden hen een belofte: we zouden niet toelaten dat ze deze winter opnieuw zonder voer zouden komen te zitten. We houden ons aan die belofte — maar alleen als jij hem mee houdt."
   ],
 
   // CTA / story highlight
-  highlight: 'Loki was lucky. 300 more are waiting.',
+  highlight: 'Loki had geluk. Er wachten er nog 300.',
 
   // Donor list (placeholder — depois plugar feed real)
   donors: [
-    { name: 'Lieve Janssens', amount: 50, ago: 'just now', initials: 'LJ', color: 'av-green' },
-    { name: 'Pieter De Smet', amount: 25, ago: '3m ago', initials: 'PD', color: 'av-teal' },
-    { name: 'Sandra Simões', amount: 25, ago: '12m ago', initials: 'SS', color: 'av-coral' },
-    { name: 'Anonymous', amount: 100, ago: '28m ago', initials: '', color: 'av-gray', anonymous: true },
-    { name: 'Marie Dubois', amount: 35, ago: '47m ago', initials: 'MD', color: 'av-amber' },
-    { name: 'Diogo Gamito', amount: 10, ago: '1h ago', initials: 'DG', color: 'av-skyblue' },
-    { name: 'Tom Verbeek', amount: 20, ago: '2h ago', initials: 'TV', color: 'av-rose' },
-    { name: 'Filipa Ferreira', amount: 50, ago: '2h ago', initials: 'FF', color: 'av-purple' },
-    { name: 'Sofie Maes', amount: 35, ago: '3h ago', initials: 'SM', color: 'av-teal' },
-    { name: 'Jeroen Peeters', amount: 10, ago: '4h ago', initials: 'JP', color: 'av-coral' },
-    { name: 'Camille Lefèvre', amount: 25, ago: '5h ago', initials: 'CL', color: 'av-amber' },
-    { name: 'Anonymous', amount: 75, ago: '6h ago', initials: '', color: 'av-gray', anonymous: true },
-    { name: 'Bram Vermeulen', amount: 35, ago: '8h ago', initials: 'BV', color: 'av-blue' },
-    { name: 'Anke Vandenberg', amount: 25, ago: '10h ago', initials: 'AV', color: 'av-rose' },
-    { name: 'Mathieu Renard', amount: 50, ago: '11h ago', initials: 'MR', color: 'av-green' },
-    { name: 'Eva Claes', amount: 15, ago: '13h ago', initials: 'EC', color: 'av-purple' },
-    { name: 'Niels Vandeput', amount: 20, ago: '15h ago', initials: 'NV', color: 'av-skyblue' },
-    { name: 'Anonymous', amount: 200, ago: '18h ago', initials: '', color: 'av-gray', anonymous: true },
-    { name: 'Charlotte Mertens', amount: 35, ago: '20h ago', initials: 'CM', color: 'av-coral' },
-    { name: 'Sven Janssens', amount: 25, ago: '22h ago', initials: 'SJ', color: 'av-amber' }
+    { name: 'Lieve Janssens', amount: 50, ago: 'zojuist', initials: 'LJ', color: 'av-green' },
+    { name: 'Pieter De Smet', amount: 25, ago: '3 min geleden', initials: 'PD', color: 'av-teal' },
+    { name: 'Sandra Simões', amount: 25, ago: '12 min geleden', initials: 'SS', color: 'av-coral' },
+    { name: 'Anoniem', amount: 100, ago: '28 min geleden', initials: '', color: 'av-gray', anonymous: true },
+    { name: 'Marie Dubois', amount: 35, ago: '47 min geleden', initials: 'MD', color: 'av-amber' },
+    { name: 'Diogo Gamito', amount: 10, ago: '1 u geleden', initials: 'DG', color: 'av-skyblue' },
+    { name: 'Tom Verbeek', amount: 20, ago: '2 u geleden', initials: 'TV', color: 'av-rose' },
+    { name: 'Filipa Ferreira', amount: 50, ago: '2 u geleden', initials: 'FF', color: 'av-purple' },
+    { name: 'Sofie Maes', amount: 35, ago: '3 u geleden', initials: 'SM', color: 'av-teal' },
+    { name: 'Jeroen Peeters', amount: 10, ago: '4 u geleden', initials: 'JP', color: 'av-coral' },
+    { name: 'Camille Lefèvre', amount: 25, ago: '5 u geleden', initials: 'CL', color: 'av-amber' },
+    { name: 'Anoniem', amount: 75, ago: '6 u geleden', initials: '', color: 'av-gray', anonymous: true },
+    { name: 'Bram Vermeulen', amount: 35, ago: '8 u geleden', initials: 'BV', color: 'av-blue' },
+    { name: 'Anke Vandenberg', amount: 25, ago: '10 u geleden', initials: 'AV', color: 'av-rose' },
+    { name: 'Mathieu Renard', amount: 50, ago: '11 u geleden', initials: 'MR', color: 'av-green' },
+    { name: 'Eva Claes', amount: 15, ago: '13 u geleden', initials: 'EC', color: 'av-purple' },
+    { name: 'Niels Vandeput', amount: 20, ago: '15 u geleden', initials: 'NV', color: 'av-skyblue' },
+    { name: 'Anoniem', amount: 200, ago: '18 u geleden', initials: '', color: 'av-gray', anonymous: true },
+    { name: 'Charlotte Mertens', amount: 35, ago: '20 u geleden', initials: 'CM', color: 'av-coral' },
+    { name: 'Sven Janssens', amount: 25, ago: '22 u geleden', initials: 'SJ', color: 'av-amber' }
   ] satisfies CampaignDonor[],
 
   // Stats card
   stats: [
-    { value: '2,847', label: 'animals waiting in partner shelters' },
-    { value: '12', label: 'rescue partners across Belgium' },
-    { value: '€4.20', label: 'feeds one rescue for a week' },
-    { value: '88%', label: 'goes directly to feeding & care' }
+    { value: '2.847', label: 'dieren die wachten in partneropvangen' },
+    { value: '12', label: 'opvangpartners in heel België' },
+    { value: '€4,20', label: 'voedt één opvangdier een week lang' },
+    { value: '88%', label: 'gaat rechtstreeks naar voeding & verzorging' }
   ],
 
   // Testimonials / words of support
@@ -85,53 +85,53 @@ export const CAMPAIGN = {
     {
       avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
       name: 'Emma B.',
-      city: 'Antwerp',
-      quote: "I know exactly where my donation went — and I got a photo a week later. That's why I came back."
+      city: 'Antwerpen',
+      quote: "Ik weet precies waar mijn donatie naartoe ging — en een week later kreeg ik een foto. Daarom ben ik teruggekomen."
     },
     {
       avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
       name: 'Niels V.',
-      city: 'Ghent',
-      quote: 'No guilt-trip emails, just a simple receipt and an update. Trustworthy from start to finish.'
+      city: 'Gent',
+      quote: 'Geen schuldgevoel-mails, gewoon een eenvoudig betaalbewijs en een update. Betrouwbaar van begin tot eind.'
     },
     {
       avatar: 'https://randomuser.me/api/portraits/women/68.jpg',
       name: 'Camille L.',
-      city: 'Brussels',
-      quote: 'I met the shelter coordinators in person. This money is actually reaching the animals.'
+      city: 'Brussel',
+      quote: 'Ik heb de coördinatoren van het opvangcentrum persoonlijk ontmoet. Dit geld bereikt echt de dieren.'
     },
     {
       avatar: 'https://randomuser.me/api/portraits/women/12.jpg',
       name: 'Lieve D.',
-      city: 'Bruges',
-      quote: "I've donated to bigger charities and never knew where it went. Here I got a real update with names of the dogs."
+      city: 'Brugge',
+      quote: "Ik heb gedoneerd aan grotere goede doelen en wist nooit waar het naartoe ging. Hier kreeg ik een echte update met de namen van de honden."
     },
     {
       avatar: 'https://randomuser.me/api/portraits/men/76.jpg',
       name: 'Mathieu R.',
-      city: 'Liège',
-      quote: 'Donated for my late dog Bruno. Felt like the right way to honour him. Thank you for what you do.'
+      city: 'Luik',
+      quote: 'Ik doneerde voor mijn overleden hond Bruno. Het voelde als de juiste manier om hem te eren. Bedankt voor wat jullie doen.'
     },
     {
       avatar: 'https://randomuser.me/api/portraits/men/52.jpg',
       name: 'Sven J.',
       city: 'Leuven',
-      quote: "Small donation but they made me feel like it mattered. Will set up a monthly contribution next month."
+      quote: "Kleine donatie, maar ze gaven me het gevoel dat het ertoe deed. Volgende maand zet ik een maandelijkse bijdrage op."
     },
     {
       avatar: 'https://randomuser.me/api/portraits/women/29.jpg',
       name: 'Charlotte M.',
-      city: 'Namur',
-      quote: 'Easy, fast, no pressure. The photo of Loki sleeping after the meal made my week.'
+      city: 'Namen',
+      quote: 'Makkelijk, snel, geen druk. De foto van Loki die sliep na de maaltijd maakte mijn week goed.'
     },
     {
       avatar: 'https://randomuser.me/api/portraits/men/15.jpg',
       name: 'Bram V.',
       city: 'Mechelen',
-      quote: "Transparent and human. Belgian rescues need way more support like this."
+      quote: "Transparant en menselijk. Belgische opvangcentra hebben veel meer steun zoals dit nodig."
     }
   ],
 
   shareUrl: 'https://donate-estrutura.vercel.app',
-  shareTitle: 'Help feed Belgian rescue animals this winter'
+  shareTitle: 'Help deze winter Belgische opvangdieren te voeden'
 };

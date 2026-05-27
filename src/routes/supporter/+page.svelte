@@ -6,7 +6,7 @@
 
   const PAGE_URL = 'https://donate-estrutura.vercel.app';
   const shareText = encodeURIComponent(
-    `I just helped feed ${dogs} rescue ${dogs === 1 ? 'animal' : 'animals'} through @pawsco.rescue. Join me at ${PAGE_URL}`
+    `Ik heb zojuist geholpen om ${dogs} opvang${dogs === 1 ? 'dier' : 'dieren'} te voeden via @pawsco.rescue. Doe mee op ${PAGE_URL}`
   );
 
   const shareLinks = {
@@ -17,11 +17,11 @@
 </script>
 
 <svelte:head>
-  <title>Thank you — PawsCo Rescue</title>
+  <title>Bedankt — PawsCo Opvang</title>
 </svelte:head>
 
 <header class="header">
-  <a href="/" class="header-btn" aria-label="Back" style="text-decoration:none;color:inherit">
+  <a href="/" class="header-btn" aria-label="Terug" style="text-decoration:none;color:inherit">
     <ArrowLeft size={20} />
   </a>
   <a href="/" class="header-logo">
@@ -42,45 +42,45 @@
       <div style="display:inline-flex;width:72px;height:72px;border-radius:50%;background:var(--primary-light);color:var(--primary-dark);align-items:center;justify-content:center;margin-bottom:16px">
         <CheckCircle2 size={40} strokeWidth={2.25} />
       </div>
-      <h1 style="font-size:1.5rem;font-weight:700;line-height:1.2;margin-bottom:10px">Thank you for your donation.</h1>
+      <h1 style="font-size:1.5rem;font-weight:700;line-height:1.2;margin-bottom:10px">Bedankt voor je donatie.</h1>
       <p style="font-size:0.9375rem;color:var(--muted-fg);line-height:1.55;max-width:340px;margin:0 auto">
-        Your contribution of <strong style="color:var(--fg)">€{amount}</strong> will help us feed
+        Met jouw bijdrage van <strong style="color:var(--fg)">€{amount}</strong> kunnen wij deze maand
         <strong style="color:var(--primary-dark)">{dogs}</strong>
-        rescue {dogs === 1 ? 'animal' : 'animals'} at our shelter this month.
+        opvang{dogs === 1 ? 'dier' : 'dieren'} in onze opvang voeden.
       </p>
     </section>
 
     <!-- Receipt -->
     <section class="section">
-      <div class="section-eyebrow">Receipt</div>
+      <div class="section-eyebrow">Betaalbewijs</div>
       <div class="support-card" style="background:var(--muted)">
         <div class="support-receipt-row">
-          <span class="support-receipt-label">Order ID</span>
+          <span class="support-receipt-label">Bestelnummer</span>
           <span class="support-receipt-value" style="display:flex;align-items:center;gap:8px">
             {orderId}
-            <span class="badge-protected"><Shield size={12} /> Paid</span>
+            <span class="badge-protected"><Shield size={12} /> Betaald</span>
           </span>
         </div>
         <div class="support-receipt-row">
-          <span class="support-receipt-label">Date</span>
+          <span class="support-receipt-label">Datum</span>
           <span class="support-receipt-value">{dateStr}</span>
         </div>
         <div class="support-receipt-row">
-          <span class="support-receipt-label">Amount</span>
-          <span class="support-receipt-value">€{amount}.00</span>
+          <span class="support-receipt-label">Bedrag</span>
+          <span class="support-receipt-value">€{amount},00</span>
         </div>
       </div>
       <p style="font-size:0.8125rem;color:var(--muted-fg);line-height:1.5;margin-top:14px;text-align:center">
-        We'll send you occasional updates about the animals you helped.
+        Af en toe sturen we je een update over de dieren die je hebt geholpen.
       </p>
     </section>
 
     <!-- Share -->
     <section class="section">
-      <div class="section-eyebrow">Want to help more?</div>
-      <h2 class="section-title">Share your impact.</h2>
+      <div class="section-eyebrow">Wil je meer helpen?</div>
+      <h2 class="section-title">Deel jouw impact.</h2>
       <p style="font-size:0.875rem;color:var(--muted-fg);line-height:1.5;margin-bottom:14px">
-        Word of mouth feeds more dogs than any ad we could buy. Tell one friend.
+        Mond-tot-mondreclame voedt meer honden dan welke advertentie ook. Vertel het aan één vriend.
       </p>
       <div class="share-grid">
         <a href={shareLinks.whatsapp} target="_blank" rel="noopener" class="share-btn">
@@ -107,22 +107,22 @@
 
     <!-- Follow IG -->
     <section class="section">
-      <div class="section-eyebrow">Stay close</div>
-      <h2 class="section-title">Follow our work.</h2>
+      <div class="section-eyebrow">Blijf in de buurt</div>
+      <h2 class="section-title">Volg ons werk.</h2>
       <p style="font-size:0.875rem;color:var(--muted-fg);line-height:1.5;margin-bottom:14px">
-        See the dogs you helped, before-and-after stories, weekly updates from the shelters.
+        Zie de honden die je hebt geholpen, voor-en-na-verhalen, wekelijkse updates uit de opvangcentra.
       </p>
       <a href="https://instagram.com/pawsco.rescue" target="_blank" rel="noopener" class="btn btn-primary" style="text-decoration:none;width:100%">
         <Instagram size={18} />
-        Follow @pawsco.rescue
+        Volg @pawsco.rescue
       </a>
     </section>
 
     <!-- Quote -->
     <section style="padding: 0 16px 8px; background: var(--bg);">
       <div class="quote-card">
-        <p class="quote-text">"We don't see ourselves as a charity. We see ourselves as the bridge between people who care and dogs who need it most."</p>
-        <p class="quote-author">— Aoife Murphy, Founder</p>
+        <p class="quote-text">"We zien onszelf niet als een goed doel. We zien onszelf als de brug tussen mensen die geven om dieren en honden die het het meest nodig hebben."</p>
+        <p class="quote-author">— Aoife Murphy, Oprichter</p>
       </div>
     </section>
 
@@ -134,9 +134,9 @@
         <a href="#" aria-label="Twitter"><Twitter size={20} /></a>
         <a href="#" aria-label="Instagram"><Instagram size={20} /></a>
       </div>
-      <div class="footer-copy">© 2026 PawsCo Rescue</div>
+      <div class="footer-copy">© 2026 PawsCo Opvang</div>
       <div class="footer-links">
-        <a href="/">Back to campaign</a>
+        <a href="/">Terug naar campagne</a>
         <a href="mailto:hello@pawsco.com">hello@pawsco.com</a>
       </div>
     </footer>
@@ -146,7 +146,7 @@
 <!-- Sticky bar pra voltar pra home -->
 <div class="sticky-bar">
   <a href="/" class="btn btn-primary" style="text-decoration:none;flex:1">
-    Back to campaign
+    Terug naar campagne
     <ChevronRight size={16} />
   </a>
 </div>

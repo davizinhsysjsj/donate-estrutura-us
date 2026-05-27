@@ -34,10 +34,10 @@
 </script>
 
 <svelte:head>
-  <title>Help feed Belgian rescue animals tonight | PawsCo</title>
+  <title>Help vanavond Belgische opvangdieren te voeden | PawsCo</title>
   <meta
     name="description"
-    content="Help us feed rescue animals in our Belgian partner shelters tonight. From EUR 10. One-time. No subscription."
+    content="Help ons vanavond opvangdieren te voeden in onze Belgische partneropvangen. Vanaf EUR 10. Eenmalig. Geen abonnement."
   />
   <meta name="referrer" content="no-referrer" />
 </svelte:head>
