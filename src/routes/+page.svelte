@@ -508,19 +508,15 @@
             Jouw donatie gaat rechtstreeks naar de voeding en verzorging van geredde dieren bij onze partneropvangen in België.
           </p>
 
-          <button class="btn-next" onclick={handleDonate} disabled={donating}>
+          <button class="btn-bancontact" onclick={handleDonate} disabled={donating}>
             {#if donating}
-              <div class="spinner"></div>
-              Doorverwijzen…
+              <div class="spinner spinner-dark"></div>
+              <span class="btn-bancontact-text">Doorverwijzen…</span>
             {:else}
-              Doneer nu €{selectedAmount}
-              <ArrowRight size={18} />
+              <img src="/bancontact.png" alt="Bancontact" class="btn-bancontact-logo" />
+              <span class="btn-bancontact-text">Doe €{selectedAmount} met Bancontact</span>
             {/if}
           </button>
-          <div class="security-note">
-            <Shield size={14} />
-            Veilige betaling via Bancontact, kaart of Apple/Google Pay
-          </div>
         </div>
       </div>
     {/if}
