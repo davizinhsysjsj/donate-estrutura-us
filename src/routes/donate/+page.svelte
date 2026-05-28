@@ -60,6 +60,8 @@
   let popupOpen       = $state(false);
   let donating        = $state(false);
   let amountError     = $state(false);
+  // eventId gerado ao abrir popup — reutilizado no handleDonate para dedup Meta + UTMify
+  let pendingEventId  = $state<string>('');
 
   onMount(() => {
     const tracking = captureAndPersistFbclid();
@@ -99,6 +101,30 @@
   function openPopup() {
     popupOpen = true;
     donating  = false;
+
+    // ── IC dispara AQUI — no momento que o popup abre (usuário selecionou valor) ──
+    const eid = uuid();
+    pendingEventId = eid;
+
+    // Meta Pixel (fbq) — InitiateCheckout com eventID para dedup com server-side
+    trackEvent('InitiateCheckout', {
+      value: selectedAmount ?? 0,
+      currency: 'EUR',
+      content_ids: [String(selectedAmount ?? 0)],
+      content_type: 'product',
+      num_items: 1
+    }, eid);
+
+    // UTMify pixel — IC imediato (se script estiver carregado)
+    if (typeof window !== 'undefined' && typeof (window as any).uf === 'function') {
+      (window as any).uf('track', 'InitiateCheckout', {
+        value: selectedAmount ?? 0,
+        currency: 'EUR',
+        content_ids: [String(selectedAmount ?? 0)],
+        num_items: 1,
+        event_id: eid
+      });
+    }
   }
 
   function closePopup() {
@@ -110,14 +136,8 @@
     if (!selectedAmount) return;
     donating = true;
 
-    const eventId = uuid();
-    trackEvent('InitiateCheckout', {
-      value: selectedAmount,
-      currency: 'EUR',
-      content_ids: [String(selectedAmount)],
-      content_type: 'product',
-      num_items: 1
-    }, eventId);
+    // Reutiliza o eventId gerado ao abrir o popup (evita duplicatas no Meta CAPI)
+    const eventId = pendingEventId || uuid();
 
     const variantId = VARIANT_BY_AMOUNT[selectedAmount];
 

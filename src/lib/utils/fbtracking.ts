@@ -152,13 +152,15 @@ export function buildShopifyCartUrl(opts: {
   if (utmContent) params.set('utm_content', utmContent);
   if (utmTerm) params.set('utm_term', utmTerm);
 
-  // Atributos persistidos na ordem — Omega CAPI les e injeta no Purchase server-side
+  // Atributos persistidos na ordem — Omega CAPI + UTMify webhook lêem esses valores
   if (opts.fbclid) params.set('attributes[fbclid]', opts.fbclid);
   if (opts.fbp) params.set('attributes[fbp]', opts.fbp);
   params.set('attributes[event_id]', opts.eventId);
   params.set('attributes[utm_source]', utmSource);
   params.set('attributes[utm_medium]', utmMedium);
   if (utmCampaign) params.set('attributes[utm_campaign]', utmCampaign);
+  if (utmContent) params.set('attributes[utm_content]', utmContent);
+  if (utmTerm)    params.set('attributes[utm_term]',    utmTerm);
 
   // Forca redirect pos-pagamento pro endpoint bedankt (ignorado em checkout extensibility novo)
   params.set('return_to', RETURN_TO);

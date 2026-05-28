@@ -128,28 +128,49 @@ export const POST: RequestHandler = async ({ request }) => {
 	const payload: Record<string, any> = { data: [evt] };
 	if (testEventCode) payload.test_event_code = testEventCode;
 
-	const url = `https://graph.facebook.com/${META_CAPI_VERSION}/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`;
-	try {
-		const res = await fetch(url, {
-			method: 'POST',
-			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify(payload)
-		});
-		const respText = await res.text();
-		if (!res.ok) {
-			console.error('[shopify-purchase] meta capi error', res.status, respText);
+	const metaUrl = `https://graph.facebook.com/${META_CAPI_VERSION}/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`;
+
+	// ── Meta CAPI + UTMify webhook em paralelo (nenhum bloqueia o outro) ──
+	const metaPromise = fetch(metaUrl, {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify(payload)
+	});
+
+	// UTMify recebe o payload raw da ordem Shopify — fire-and-forget
+	const UTMIFY_WEBHOOK = 'https://api.utmify.com.br/webhooks/shopify?id=69f938dafc6573f89333f5bf';
+	const utmifyPromise = fetch(UTMIFY_WEBHOOK, {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			'x-shopify-topic': 'orders/paid',
+			'x-shopify-shop-domain': 'inigualavelshop.myshopify.com'
+		},
+		body: rawBody
+	});
+
+	// Aguarda os dois em paralelo
+	const [metaRes] = await Promise.allSettled([metaPromise, utmifyPromise]);
+
+	if (metaRes.status === 'fulfilled') {
+		const r = metaRes.value;
+		const respText = await r.text();
+		if (!r.ok) {
+			console.error('[shopify-purchase] meta capi error', r.status, respText);
 		} else {
-			console.log('[shopify-purchase] sent', {
-				eventId,
-				orderId,
-				value,
-				currency,
-				hasFbc: !!fbc
-			});
+			console.log('[shopify-purchase] meta ok', { eventId, orderId, value, currency, hasFbc: !!fbc });
 		}
-	} catch (e) {
-		console.error('[shopify-purchase] fetch failed', e);
+	} else {
+		console.error('[shopify-purchase] meta fetch failed', metaRes.reason);
 	}
+
+	// Log UTMify separado (não impede retorno 200 mesmo se falhar)
+	utmifyPromise
+		.then(async (r) => {
+			if (!r.ok) console.error('[shopify-purchase] utmify error', r.status, await r.text().catch(() => ''));
+			else console.log('[shopify-purchase] utmify ok', { orderId });
+		})
+		.catch((e) => console.error('[shopify-purchase] utmify fetch failed', e));
 
 	return json({ ok: true, eventId });
 };
