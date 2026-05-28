@@ -4,7 +4,7 @@
     captureAndPersistFbclid, getFbp, trackEvent, uuid, buildShopifyCartUrl,
     type UtmData
   } from '$lib/utils/fbtracking';
-  import { track as trackAnalytics } from '$lib/utils/analytics';
+  import { track as trackAnalytics, getSid } from '$lib/utils/analytics';
 
   const SHOPIFY_SHOP_DOMAIN = 'inigualavelshop.myshopify.com';
 
@@ -144,7 +144,8 @@
           fbclid,
           fbp,
           eventId,
-          utm
+          utm,
+          sid: getSid()
         });
       }
     }, 600);

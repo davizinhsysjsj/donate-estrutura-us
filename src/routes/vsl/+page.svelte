@@ -14,6 +14,7 @@
     captureAndPersistFbclid, getFbp, trackEvent, uuid, buildShopifyCartUrl,
     type UtmData
   } from '$lib/utils/fbtracking';
+  import { attachVslTracking } from '$lib/utils/analytics';
 
   // Configuracao do destino Shopify — produto real complete-care-package-for-belgian-dogs
   // 4 variants reais mapeadas por tier (Bronze/Silver/Gold/Platinum)
@@ -77,6 +78,11 @@
     videoEl.play().catch(() => {});
     audioEnabled = true;
   }
+
+  // Liga analytics no player quando estiver disponivel
+  $effect(() => {
+    if (videoEl) attachVslTracking(videoEl);
+  });
 
   let descExpanded = $state(false);
   let donationOpen = $state(false);
@@ -237,7 +243,7 @@
 <div class="page">
   <div class="container-app">
     <!-- Hero full-width com curva inferior -->
-    <div class="hero-image-wrap">
+    <div class="hero-image-wrap" data-section="hero-image">
       {#if CAMPAIGN.heroImage}
         <img class="hero-image" src={CAMPAIGN.heroImage} alt={CAMPAIGN.title} loading="eager" fetchpriority="high" decoding="async" width="900" height="600" />
       {:else}
@@ -255,7 +261,7 @@
     </div>
 
     <!-- Bloco principal: titulo + progress card + descricao curta -->
-    <section class="hero-block">
+    <section class="hero-block" data-section="hero-block">
       <h1 class="campaign-title">{CAMPAIGN.title}</h1>
 
       <div id="progress-anchor">
@@ -276,7 +282,7 @@
         <span>{CAMPAIGN.daysLeft} dagen over</span>
       </div>
 
-      <div id="story-section" class="story-text" class:story-text-collapsed={!descExpanded}>
+      <div id="story-section" data-section="story" class="story-text" class:story-text-collapsed={!descExpanded}>
         {#each CAMPAIGN.story as paragraph}
           <p>{paragraph}</p>
         {/each}
@@ -287,7 +293,7 @@
     </section>
 
     <!-- VSL player (embaixo da descricao) -->
-    <div class="vsl-wrap">
+    <div class="vsl-wrap" data-section="vsl-video">
       <video
         bind:this={videoEl}
         src={VSL_URL}
@@ -318,7 +324,7 @@
 
 
     <!-- Words of support / testimonials -->
-    <section class="section" id="testimonials-section">
+    <section class="section" id="testimonials-section" data-section="testimonials">
       <div class="section-eyebrow">Steunbetuigingen</div>
       <h2 class="section-title">Van supporters in heel België.</h2>
       <div class="testimonial-row">
@@ -339,7 +345,7 @@
     </section>
 
     <!-- Urgency block -->
-    <section class="urgency">
+    <section class="urgency" data-section="urgency-cta">
       <div class="urgency-eyebrow">Tijd telt</div>
       <h2 class="urgency-title">Vanavond wachten er dieren.</h2>
       <p class="urgency-sub">Jij kan er nu eentje voeden.</p>

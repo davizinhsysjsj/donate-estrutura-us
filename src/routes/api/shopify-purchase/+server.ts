@@ -2,6 +2,9 @@ import type { RequestHandler } from './$types';
 import { json, error } from '@sveltejs/kit';
 import crypto from 'node:crypto';
 import { env } from '$env/dynamic/private';
+import { ingest as ingestAnalytics, parseDevice, initStore as initAnalyticsStore } from '$lib/server/analytics';
+
+initAnalyticsStore();
 
 const META_CAPI_VERSION = 'v21.0';
 
@@ -64,6 +67,30 @@ export const POST: RequestHandler = async ({ request }) => {
 	const fbclid = readNoteAttr(noteAttrs, 'fbclid');
 	const fbp = readNoteAttr(noteAttrs, 'fbp');
 	const eventIdAttr = readNoteAttr(noteAttrs, 'event_id');
+	const bpSid = readNoteAttr(noteAttrs, 'bp_sid');
+
+	// Analytics interno: grava purchase atrelado a sessao
+	if (bpSid) {
+		try {
+			const orderValue = parseFloat(order.total_price || '0');
+			const ua = order.client_details?.user_agent || '';
+			ingestAnalytics({
+				ts: Date.now(),
+				sid: bpSid,
+				ev: 'purchase',
+				path: '/checkout/success',
+				ua,
+				device: parseDevice(ua),
+				data: {
+					amount: orderValue,
+					currency: order.currency || 'EUR',
+					order_id: order.id
+				}
+			});
+		} catch (e) {
+			console.warn('[shopify-purchase] analytics ingest failed', e);
+		}
+	}
 
 	const eventId = eventIdAttr || `shopify_${orderId}`;
 
