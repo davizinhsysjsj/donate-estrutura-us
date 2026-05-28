@@ -188,7 +188,7 @@
 
 <header class="header">
   <a href="/" class="header-logo">
-    <img src="/logo.webp" alt="DogPaws" class="logo-img" />
+    <img src="/logo.webp" alt="Officiële Donaties België" class="logo-img" />
   </a>
   <button
     class="header-menu-btn"
