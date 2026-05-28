@@ -2,13 +2,11 @@ import adapterVercel from '@sveltejs/adapter-vercel';
 import adapterNode from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
-const useNode = Boolean(
-  process.env.RAILWAY_ENVIRONMENT_NAME ||
-    process.env.RAILWAY_PROJECT_ID ||
-    process.env.RAILWAY_ENVIRONMENT
-);
+// Default: adapter-node (Railway, local, qualquer outro).
+// adapter-vercel so quando estamos buildando dentro do Vercel (VERCEL=1).
+const useVercel = Boolean(process.env.VERCEL);
 
-const adapter = useNode ? adapterNode() : adapterVercel();
+const adapter = useVercel ? adapterVercel() : adapterNode();
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
