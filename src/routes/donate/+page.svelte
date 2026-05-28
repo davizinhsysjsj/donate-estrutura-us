@@ -564,31 +564,34 @@
   /* ── Bancontact button ── */
   .dn-btn-bancontact {
     width: 100%;
-    height: 54px;
-    background: #005498;
-    color: #fff;
-    border: none;
-    border-radius: 999px;
-    font-size: 0.9375rem;
+    height: 56px;
+    background: #fff;
+    color: #003082;
+    border: 2px solid #E8EDF8;
+    border-radius: 14px;
+    font-size: 1rem;
     font-weight: 700;
     font-family: inherit;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    box-shadow: 0 2px 8px rgba(0,84,152,0.35);
-    transition: background 0.15s, transform 0.1s;
+    gap: 12px;
+    box-shadow: 0 2px 8px rgba(0,48,130,0.1);
+    transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
     margin-bottom: 12px;
   }
-  .dn-btn-bancontact:hover { background: #004075; }
+  .dn-btn-bancontact:hover {
+    background: #F0F4FF;
+    box-shadow: 0 4px 16px rgba(0,48,130,0.18);
+  }
   .dn-btn-bancontact:active { transform: scale(0.98); }
   .dn-btn-bancontact:disabled { opacity: 0.6; pointer-events: none; }
   .dn-bc-logo {
-    height: 22px;
+    height: 28px;
     width: auto;
-    object-fit: contain;
-    filter: brightness(0) invert(1);
+    display: block;
+    flex-shrink: 0;
   }
 
   /* ── Security note ── */
