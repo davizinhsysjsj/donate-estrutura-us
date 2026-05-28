@@ -30,17 +30,14 @@
     desc: string;
   };
 
+  // Apenas valores com variante Shopify ja criada.
+  // Os demais (15, 30, 50, 80, 100, 200, 300, 500) serao adicionados quando
+  // as variantes forem criadas no produto Shopify.
   const AMOUNTS: AmountOption[] = [
-    { amount: 30, recommended: true, desc: 'Zorgt voor voer voor een hond gedurende circa 1 week.' },
-    { amount: 50,  desc: 'Helpt 2 tot 3 dieren meerdere dagen te voeden.' },
-    { amount: 80,  desc: 'Draagt bij aan de voeding van meerdere dieren gedurende 1 à 2 weken.' },
-    { amount: 100, desc: 'Garandeert voeding voor meerdere honden en katten én basisverzorging.' },
-    { amount: 20,  desc: 'Helpt een gered dier bijna een week lang te voeden.' },
-    { amount: 25,  desc: 'Vult lege bakjes en geeft troost aan wie honger heeft.' },
-    { amount: 200, desc: 'Maakt het mogelijk om voer in grote hoeveelheden te kopen.' },
-    { amount: 300, desc: 'Continue voeding en verzorging voor meerdere geredde dieren.' },
-    { amount: 500, desc: 'Voeding voor 1 maand voor al onze kleine vriendjes.' },
-    { amount: 15,  desc: 'Zorgt voor maaltijden voor een dier gedurende meerdere dagen.' },
+    { amount: 10, desc: 'Geeft een maaltijd aan een gered dier.' },
+    { amount: 20, desc: 'Helpt een gered dier bijna een week lang te voeden.' },
+    { amount: 25, recommended: true, desc: 'Vult lege bakjes en geeft troost aan wie honger heeft.' },
+    { amount: 35, desc: 'Volledige verzorging voor meerdere dieren gedurende een week.' },
   ];
 
   function dogsForAmount(n: number): number {
