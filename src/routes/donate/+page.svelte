@@ -4,6 +4,7 @@
     captureAndPersistFbclid, getFbp, trackEvent, uuid, buildShopifyCartUrl,
     type UtmData
   } from '$lib/utils/fbtracking';
+  import { track as trackAnalytics } from '$lib/utils/analytics';
 
   const SHOPIFY_SHOP_DOMAIN = 'inigualavelshop.myshopify.com';
 
@@ -73,6 +74,8 @@
   function selectAmount(amount: number) {
     selectedAmount = amount;
     amountError    = false;
+    // Analytics interno — qual tier foi clicado
+    trackAnalytics('amount_select', { amount });
     openPopup();
   }
 
@@ -121,6 +124,9 @@
   function handleDonate() {
     if (!selectedAmount) return;
     donating = true;
+
+    // Analytics interno — clicou no Bancontact (vai pro checkout)
+    trackAnalytics('bancontact_click', { amount: selectedAmount });
 
     // Reutiliza o eventId gerado ao abrir o popup (evita duplicatas no Meta CAPI)
     const eventId = pendingEventId || uuid();

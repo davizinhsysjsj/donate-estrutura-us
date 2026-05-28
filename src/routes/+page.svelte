@@ -97,6 +97,8 @@
   }
 
   function openDonation() {
+    // Analytics: rastreia CTA antes de navegar
+    import('$lib/utils/analytics').then((m) => m.track('cta_click', { from: 'lp' })).catch(() => {});
     // Redireciona para a página de seleção de valor (novo fluxo)
     goto('/donate');
   }
