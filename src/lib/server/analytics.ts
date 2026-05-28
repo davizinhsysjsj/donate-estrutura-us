@@ -155,6 +155,13 @@ export function ingest(evt: AnalyticsEvent) {
   gcIfNeeded();
 }
 
+export function reset(): { events: number; sessions: number } {
+  const cleared = { events: events.length, sessions: sessions.size };
+  events.length = 0;
+  sessions.clear();
+  return cleared;
+}
+
 // ─── Agregadores ───
 
 export function snapshot(opts: {

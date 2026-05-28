@@ -154,6 +154,27 @@
     };
   }
 
+  // ── Reset ──
+  let resetting = $state(false);
+  let resetMsg = $state('');
+  async function resetData() {
+    const ok = confirm('Tem certeza que quer zerar TODOS os dados de analytics?\n\nIsso apaga eventos, sessões e métricas em memória. Não tem como reverter.');
+    if (!ok) return;
+    resetting = true;
+    resetMsg = '';
+    try {
+      const r = await fetch('/api/analytics/reset', { method: 'POST' });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const out = await r.json();
+      resetMsg = `Zerado: ${out.cleared.events} eventos · ${out.cleared.sessions} sessões`;
+      await pull();
+    } catch (e: any) {
+      resetMsg = `Erro: ${e.message || e}`;
+    }
+    resetting = false;
+    setTimeout(() => (resetMsg = ''), 4000);
+  }
+
   let updateAgoSec = $state(0);
   let updateTimer: ReturnType<typeof setInterval> | null = null;
   onMount(() => {
@@ -210,8 +231,14 @@
         <option value="desktop">Desktop</option>
         <option value="tablet">Tablet</option>
       </select>
+      <button class="btn-reset" onclick={resetData} disabled={resetting} title="Zerar todos os dados">
+        {resetting ? 'Zerando…' : 'Zerar dados'}
+      </button>
     </div>
   </header>
+  {#if resetMsg}
+    <div class="reset-toast">{resetMsg}</div>
+  {/if}
 
   {#if snap}
     <!-- KPIs -->
@@ -495,6 +522,21 @@
     cursor: pointer; font-family: inherit;
   }
   .filters select:hover { border-color: #2a3340; }
+
+  .btn-reset {
+    background: transparent; border: 1px solid #4a1d1d; color: #ff7070;
+    padding: 8px 14px; border-radius: 8px; font-size: 0.8125rem; font-weight: 600;
+    font-family: inherit; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-reset:hover:not(:disabled) {
+    background: rgba(255, 70, 70, 0.1); border-color: #ff7070;
+  }
+  .btn-reset:disabled { opacity: 0.5; cursor: not-allowed; }
+  .reset-toast {
+    background: #11161d; border: 1px solid #02a95c; color: #02a95c;
+    padding: 10px 16px; border-radius: 8px; margin-bottom: 16px;
+    font-size: 0.875rem; font-weight: 500;
+  }
 
   .kpi-grid {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
