@@ -106,6 +106,8 @@
     const eid = uuid();
     pendingEventId = eid;
 
+    console.log('[donate] IC disparando — amount:', selectedAmount, 'eid:', eid, 'fbq?', typeof (window as any).fbq);
+
     // Meta Pixel (fbq) — InitiateCheckout com eventID para dedup com server-side
     trackEvent('InitiateCheckout', {
       value: selectedAmount ?? 0,
@@ -114,6 +116,8 @@
       content_type: 'product',
       num_items: 1
     }, eid);
+
+    console.log('[donate] IC enviado para fbq');
 
     // UTMify pixel — IC imediato (se script estiver carregado)
     if (typeof window !== 'undefined' && typeof (window as any).uf === 'function') {
