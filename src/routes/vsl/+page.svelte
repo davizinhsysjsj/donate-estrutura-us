@@ -66,7 +66,7 @@
   }
 
   // VSL player
-  const VSL_URL = 'https://belgianpaws-vsl.vercel.app/vsl.mp4'; // substituir após upload
+  const VSL_URL = 'https://belgianpaws-vsl.vercel.app/vsl.mp4';
   let videoEl: HTMLVideoElement | null = $state(null);
   let audioEnabled = $state(false);
 
