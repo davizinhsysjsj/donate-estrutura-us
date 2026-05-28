@@ -26,7 +26,7 @@ export const CAMPAIGN = {
   createdMonth: 'mei 2026',
 
   // Hero
-  title: 'Help Belgische opvangcentra om deze winter 300 dieren te voeden',
+  title: 'Help de dieren de honger te overleven',
   subtitle: "Aoife Murphy organiseert deze inzamelactie om opvangcentra in Antwerpen te steunen.",
   // Deixe vazio ("") pra renderizar placeholder cinza. Quando tiver URL, template usa direto.
   heroImage: '/hero-rescue.webp',
