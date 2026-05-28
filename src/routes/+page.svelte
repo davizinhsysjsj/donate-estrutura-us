@@ -1,7 +1,7 @@
 <script lang="ts">
   import {
-    ChevronRight, Calendar, Shield, Heart, Mail,
-    Facebook, Youtube, Twitter, Instagram, ArrowRight,
+    ChevronRight, Calendar, Shield, Heart,
+    Facebook, Youtube, Twitter, Instagram,
     Menu, X
   } from 'lucide-svelte';
   import { onMount, onDestroy } from 'svelte';
@@ -77,8 +77,6 @@
 
   const MENU_ITEMS = [
     { id: 'story-section', label: 'Verhaal' },
-    { id: 'stats-section', label: 'De cijfers' },
-    { id: 'how-section', label: 'Hoe het werkt' },
     { id: 'testimonials-section', label: 'Supporters' },
     { id: 'donations', label: 'Donaties' },
     { id: 'organizer-section', label: 'Organisator' }
@@ -90,11 +88,6 @@
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  const STEPS = [
-    { icon: Heart, title: 'Jij kiest een donatiebedrag', desc: 'Kies wat goed voelt — elke euro voedt een dier in nood.' },
-    { icon: Shield, title: 'Het geld bereikt partneropvangen binnen 7 dagen', desc: 'Geen bureaucratie. Directe overschrijvingen naar geverifieerde opvangcentra, op basis van noodzaak.' },
-    { icon: Mail, title: 'Je hoort terug van het opvangcentrum', desc: 'Af en toe foto\'s en verhalen van de dieren die je hebt geholpen.' }
-  ];
 
   function showToast(msg: string) {
     toastMessage = msg;
@@ -301,39 +294,6 @@
       </section>
     {/if}
 
-    <!-- Stats grid -->
-    <section class="stats-section" id="stats-section">
-      <div class="section-eyebrow">De realiteit</div>
-      <h2 class="section-title">De situatie, in cijfers.</h2>
-      <div class="stats-grid">
-        {#each CAMPAIGN.stats as stat}
-          <div class="stat-card">
-            <div class="stat-value">{stat.value}</div>
-            <div class="stat-label">{stat.label}</div>
-          </div>
-        {/each}
-      </div>
-    </section>
-
-    <!-- How it works -->
-    <section class="section" id="how-section">
-      <div class="section-eyebrow">Hoe het werkt</div>
-      <h2 class="section-title">Hoe jouw steun bij hen aankomt.</h2>
-      <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
-        {#each STEPS as step, i}
-          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;display:flex;gap:12px;align-items:flex-start">
-            <div style="width:40px;height:40px;border-radius:9999px;background:var(--primary-soft);color:var(--primary-darker);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <step.icon size={20} />
-            </div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:0.6875rem;color:var(--muted-fg);font-weight:700;letter-spacing:0.06em;text-transform:uppercase">Stap 0{i + 1}</div>
-              <div style="font-size:0.9375rem;font-weight:600;color:var(--fg);margin-top:2px;line-height:1.3">{step.title}</div>
-              <div style="font-size:0.8125rem;color:var(--muted-fg);margin-top:4px;line-height:1.45">{step.desc}</div>
-            </div>
-          </div>
-        {/each}
-      </div>
-    </section>
 
     <!-- Words of support / testimonials -->
     <section class="section" id="testimonials-section">
