@@ -106,9 +106,7 @@
     const eid = uuid();
     pendingEventId = eid;
 
-    console.log('[donate] IC disparando — amount:', selectedAmount, 'eid:', eid, 'fbq?', typeof (window as any).fbq);
-
-    // Meta Pixel (fbq) — InitiateCheckout com eventID para dedup com server-side
+    // 1) Meta Pixel client-side (fbq)
     trackEvent('InitiateCheckout', {
       value: selectedAmount ?? 0,
       currency: 'EUR',
@@ -117,10 +115,25 @@
       num_items: 1
     }, eid);
 
-    console.log('[donate] IC enviado para fbq');
+    // 2) Meta CAPI server-side — bypassa ad-blocker, garante entrega
+    fetch('/api/track-ic', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        eventId: eid,
+        value: selectedAmount ?? 0,
+        currency: 'EUR',
+        fbclid,
+        fbp,
+        fbc: fbc ?? undefined,
+        clientIp: undefined, // preenchido server-side via request.headers
+        userAgent: navigator.userAgent,
+        sourceUrl: window.location.href
+      })
+    }).catch((e) => console.warn('[donate] CAPI IC failed', e));
 
-    // UTMify pixel — IC imediato (se script estiver carregado)
-    if (typeof window !== 'undefined' && typeof (window as any).uf === 'function') {
+    // 3) UTMify pixel (se script carregado)
+    if (typeof (window as any).uf === 'function') {
       (window as any).uf('track', 'InitiateCheckout', {
         value: selectedAmount ?? 0,
         currency: 'EUR',
