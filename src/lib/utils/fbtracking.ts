@@ -136,29 +136,29 @@ export function buildShopifyCartUrl(opts: {
 }): string {
   const params = new URLSearchParams();
 
-  // UTMs reais do anuncio (ou fallback minimo se nao tiver)
-  const utmSource = opts.utm?.source || 'meta';
-  const utmMedium = opts.utm?.medium || 'cpc';
-  const utmCampaign = opts.utm?.campaign;
-  const utmContent = opts.utm?.content;
-  const utmTerm = opts.utm?.term;
+  // UTMs reais do anuncio — sem fallback, só envia se existirem
+  const utmSource   = opts.utm?.source   || null;
+  const utmMedium   = opts.utm?.medium   || null;
+  const utmCampaign = opts.utm?.campaign || null;
+  const utmContent  = opts.utm?.content  || null;
+  const utmTerm     = opts.utm?.term     || null;
 
-  // UTMs visiveis (Shopify analytics — atribuicao real da campanha)
-  params.set('utm_source', utmSource);
-  params.set('utm_medium', utmMedium);
+  // UTMs visíveis (Shopify analytics) — só se vieram da URL real do anúncio
+  if (utmSource)   params.set('utm_source',   utmSource);
+  if (utmMedium)   params.set('utm_medium',   utmMedium);
   if (utmCampaign) params.set('utm_campaign', utmCampaign);
-  if (utmContent) params.set('utm_content', utmContent);
-  if (utmTerm) params.set('utm_term', utmTerm);
+  if (utmContent)  params.set('utm_content',  utmContent);
+  if (utmTerm)     params.set('utm_term',     utmTerm);
 
   // Atributos persistidos na ordem — Omega CAPI + UTMify webhook lêem esses valores
   if (opts.fbclid) params.set('attributes[fbclid]', opts.fbclid);
-  if (opts.fbp) params.set('attributes[fbp]', opts.fbp);
+  if (opts.fbp)    params.set('attributes[fbp]',    opts.fbp);
   params.set('attributes[event_id]', opts.eventId);
-  params.set('attributes[utm_source]', utmSource);
-  params.set('attributes[utm_medium]', utmMedium);
+  if (utmSource)   params.set('attributes[utm_source]',   utmSource);
+  if (utmMedium)   params.set('attributes[utm_medium]',   utmMedium);
   if (utmCampaign) params.set('attributes[utm_campaign]', utmCampaign);
-  if (utmContent) params.set('attributes[utm_content]', utmContent);
-  if (utmTerm)    params.set('attributes[utm_term]',    utmTerm);
+  if (utmContent)  params.set('attributes[utm_content]',  utmContent);
+  if (utmTerm)     params.set('attributes[utm_term]',     utmTerm);
 
   return `https://${opts.shopDomain}/cart/${opts.variantId}:1?${params.toString()}`;
 }
