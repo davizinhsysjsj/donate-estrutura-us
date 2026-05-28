@@ -106,7 +106,7 @@
     const eid = uuid();
     pendingEventId = eid;
 
-    // 1) Meta Pixel client-side (fbq)
+    // 1) Meta Pixel client-side (fbq) — com eventID para dedup com CAPI
     trackEvent('InitiateCheckout', {
       value: selectedAmount ?? 0,
       currency: 'EUR',
@@ -115,7 +115,7 @@
       num_items: 1
     }, eid);
 
-    // 2) Meta CAPI server-side — bypassa ad-blocker, garante entrega
+    // 2) Meta CAPI server-side — mesmo event_id = dedup automático com #1
     fetch('/api/track-ic', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -126,22 +126,13 @@
         fbclid,
         fbp,
         fbc: fbc ?? undefined,
-        clientIp: undefined, // preenchido server-side via request.headers
         userAgent: navigator.userAgent,
         sourceUrl: window.location.href
       })
     }).catch((e) => console.warn('[donate] CAPI IC failed', e));
 
-    // 3) UTMify pixel (se script carregado)
-    if (typeof (window as any).uf === 'function') {
-      (window as any).uf('track', 'InitiateCheckout', {
-        value: selectedAmount ?? 0,
-        currency: 'EUR',
-        content_ids: [String(selectedAmount ?? 0)],
-        num_items: 1,
-        event_id: eid
-      });
-    }
+    // REMOVIDO: uf('track', 'InitiateCheckout') — UTMify repassava para fbq com event_id diferente,
+    // gerando 3ª IC sem dedup. UTMify recebe IC via webhook de compra (shopify-purchase).
   }
 
   function closePopup() {
