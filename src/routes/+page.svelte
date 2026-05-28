@@ -5,6 +5,7 @@
     Menu, X
   } from 'lucide-svelte';
   import { onMount, onDestroy } from 'svelte';
+  import { goto } from '$app/navigation';
   import { CAMPAIGN } from '$lib/data/campaign';
   import { TIERS, DEFAULT_TIER, dogsForAmount } from '$lib/data/tiers';
   import ProgressCard from '$lib/components/ProgressCard.svelte';
@@ -96,25 +97,8 @@
   }
 
   function openDonation() {
-    currentStep = 1;
-    selectedAmount = DEFAULT_TIER;
-    donating = false;
-    donationOpen = true;
-
-    // GA4 view_item — usuario abriu o modal de doacao (viu os tiers)
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'view_item', {
-        currency: 'EUR',
-        value: DEFAULT_TIER,
-        items: TIERS.map((t) => ({
-          item_id: VARIANT_BY_TIER[t.amount] || String(t.amount),
-          item_name: 'Belgian Paws Care Bundle',
-          item_variant: TIER_NAME_BY_AMOUNT[t.amount] || String(t.amount),
-          price: t.amount,
-          quantity: 1
-        }))
-      });
-    }
+    // Redireciona para a página de seleção de valor (novo fluxo)
+    goto('/donate');
   }
 
   function selectAmount(amount: number) {
