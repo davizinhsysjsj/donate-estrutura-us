@@ -56,8 +56,6 @@
 
   // UI state
   let selectedAmount  = $state<number | null>(null);
-  let customValue     = $state('');
-  let showCustomOk    = $state(false);
   let popupOpen       = $state(false);
   let donating        = $state(false);
   let amountError     = $state(false);
@@ -74,27 +72,6 @@
 
   function selectAmount(amount: number) {
     selectedAmount = amount;
-    customValue    = '';
-    showCustomOk   = false;
-    amountError    = false;
-    openPopup();
-  }
-
-  function onCustomInput(e: Event) {
-    const v = parseFloat((e.target as HTMLInputElement).value);
-    customValue  = (e.target as HTMLInputElement).value;
-    showCustomOk = v >= 1;
-    if (v >= 1) selectedAmount = v;
-  }
-
-  function onCustomEnter(e: KeyboardEvent) {
-    if (e.key === 'Enter') openCustomPopup();
-  }
-
-  function openCustomPopup() {
-    const v = parseFloat(customValue);
-    if (!v || v < 1) { amountError = true; return; }
-    selectedAmount = v;
     amountError    = false;
     openPopup();
   }
@@ -229,26 +206,8 @@
       {/each}
     </div>
 
-    <!-- Custom amount -->
-    <div class="dn-custom-row">
-      <span class="dn-custom-icon">€</span>
-      <input
-        type="number"
-        class="dn-custom-input"
-        placeholder="Ander bedrag invullen"
-        min="1"
-        step="1"
-        value={customValue}
-        oninput={onCustomInput}
-        onkeydown={onCustomEnter}
-      />
-      {#if showCustomOk}
-        <button class="dn-custom-ok" onclick={openCustomPopup}>OK</button>
-      {/if}
-    </div>
-
     {#if amountError}
-      <div class="dn-err">Selecteer of voer een geldig bedrag in.</div>
+      <div class="dn-err">Selecteer een bedrag.</div>
     {/if}
 
   </div>
@@ -464,41 +423,6 @@
     line-height: 1.45;
   }
 
-  /* ── Custom input ── */
-  .dn-custom-row {
-    display: flex;
-    align-items: center;
-    padding: 0 16px;
-    height: 52px;
-    gap: 8px;
-    border-top: 1px solid #e8e8e8;
-  }
-  .dn-custom-icon {
-    color: #02a95c;
-    font-size: 1rem;
-    font-weight: 600;
-  }
-  .dn-custom-input {
-    flex: 1;
-    border: none;
-    outline: none;
-    font-size: 0.9375rem;
-    font-family: inherit;
-    color: #111;
-    background: transparent;
-  }
-  .dn-custom-input::placeholder { color: #c0c0c0; }
-  .dn-custom-ok {
-    background: #02a95c;
-    color: #fff;
-    border: none;
-    border-radius: 999px;
-    padding: 6px 16px;
-    font-size: 0.875rem;
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-  }
   .dn-err {
     font-size: 0.8125rem;
     color: #e40014;
