@@ -57,8 +57,10 @@ body {
 .logo-icon { width: 28px; height: 28px; }
 .logo-text { font-size: 1.25rem; font-weight: 700; color: var(--primary-dark); letter-spacing: -0.02em; }
 .logo-img { height: 36px; width: auto; display: block; }
+.header-flag { font-size: 1.4rem; line-height: 1; display: inline-block; }
 @media (min-width: 768px) {
   .logo-img { height: 40px; }
+  .header-flag { font-size: 1.6rem; }
 }
 .header-btn {
   background: none; border: none; cursor: pointer; padding: 8px; color: var(--fg);
