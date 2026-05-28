@@ -65,6 +65,19 @@
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  // VSL player
+  const VSL_URL = 'https://belgianpaws-vsl.vercel.app/vsl.mp4'; // substituir após upload
+  let videoEl: HTMLVideoElement | null = $state(null);
+  let audioEnabled = $state(false);
+
+  function enableAudio() {
+    if (!videoEl) return;
+    videoEl.muted = false;
+    videoEl.currentTime = 0;
+    videoEl.play().catch(() => {});
+    audioEnabled = true;
+  }
+
   let descExpanded = $state(false);
   let donationOpen = $state(false);
   let shareOpen = $state(false);
@@ -222,21 +235,27 @@
 
 <div class="page">
   <div class="container-app">
-    <!-- Hero full-width com curva inferior -->
-    <div class="hero-image-wrap">
-      {#if CAMPAIGN.heroImage}
-        <img class="hero-image" src={CAMPAIGN.heroImage} alt={CAMPAIGN.title} loading="eager" fetchpriority="high" decoding="async" width="900" height="600" />
-      {:else}
-        <div class="hero-image img-placeholder">
-          <div class="img-placeholder-stack">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="3" y="5" width="18" height="14" rx="2" />
-              <circle cx="9" cy="11" r="2" />
-              <path d="m21 17-5-5-9 9" />
+    <!-- VSL player -->
+    <div class="vsl-wrap">
+      <video
+        bind:this={videoEl}
+        src={VSL_URL}
+        autoplay
+        muted
+        playsinline
+        preload="auto"
+        class="vsl-video"
+      ></video>
+
+      {#if !audioEnabled}
+        <button class="vsl-overlay" onclick={enableAudio} aria-label="Klik om te horen">
+          <div class="vsl-play-circle">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
+              <polygon points="6,4 20,12 6,20" />
             </svg>
-            <span class="img-placeholder-label">Foto komt binnenkort</span>
           </div>
-        </div>
+          <span class="vsl-click-label">Klik om te horen</span>
+        </button>
       {/if}
     </div>
 

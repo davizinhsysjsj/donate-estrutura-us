@@ -191,6 +191,63 @@ body {
 }
 .hero-image.img-placeholder { aspect-ratio: 4 / 3; }
 
+/* ─── VSL player (substitui hero-image-wrap em /vsl) ─── */
+.vsl-wrap {
+  width: 100%;
+  position: relative;
+  background: #000;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+}
+.vsl-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.vsl-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: rgba(0, 0, 0, 0.35);
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s ease;
+}
+.vsl-overlay:hover { background: rgba(0, 0, 0, 0.45); }
+.vsl-overlay:active { background: rgba(0, 0, 0, 0.5); }
+.vsl-play-circle {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  animation: vsl-pulse 1.8s ease-in-out infinite;
+}
+.vsl-play-circle svg { fill: #111; margin-left: 4px; }
+.vsl-click-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+@keyframes vsl-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35); }
+  50% { transform: scale(1.06); box-shadow: 0 6px 24px rgba(255, 255, 255, 0.4); }
+}
+
 /* ─── Hero block (titulo + ProgressCard + descricao curta)
        Sobe -28px com cantos arredondados no topo pra sobrepor a imagem ─── */
 .hero-block {
