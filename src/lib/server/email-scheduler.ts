@@ -16,7 +16,7 @@ import { sendMail } from './mailer';
 import {
   thankYouSubject, thankYouHtml,
   upsellSubject, upsellHtml,
-  type ThankYouVars, type UpsellVars
+  type ThankYouVars, type UpsellVars, type Locale
 } from './email-templates';
 
 type TemplateName = 'thank-you' | 'upsell';
@@ -73,15 +73,16 @@ function genId(): string {
 }
 
 function renderTemplate(name: TemplateName, data: any): { subject: string; html: string } | null {
+  const locale: Locale | undefined = data?.locale;
   if (name === 'thank-you') {
     return {
-      subject: thankYouSubject(),
+      subject: thankYouSubject(locale),
       html: thankYouHtml(data as ThankYouVars)
     };
   }
   if (name === 'upsell') {
     return {
-      subject: upsellSubject(),
+      subject: upsellSubject(locale),
       html: upsellHtml(data as UpsellVars)
     };
   }

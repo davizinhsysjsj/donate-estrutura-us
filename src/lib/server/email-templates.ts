@@ -1,5 +1,7 @@
 /**
- * Templates HTML dos emails transacionais (NL).
+ * Templates HTML dos emails transacionais.
+ *
+ * Suporta locale 'nl' (producao, default) e 'pt' (testes/QA).
  *
  * Logo: header verde escuro (cor da camisa "Dog Paws Shelter" da foto)
  * com texto "BELGIAN PAWS" + patinha 🐾.
@@ -14,16 +16,20 @@ const SUPPORT_EMAIL = 'contact@belgianpaws.help';
 const BRAND_COLOR = '#16A34A'; // verde camisa
 const BRAND_DARK = '#15803D';
 
+export type Locale = 'nl' | 'pt';
+
 export interface ThankYouVars {
   firstName?: string;
   amount: number;
   currency: string;
+  locale?: Locale;
 }
 
 export interface UpsellVars {
   firstName?: string;
   previousAmount: number;
   currency: string;
+  locale?: Locale;
 }
 
 function escape(s: string | undefined | null): string {
@@ -35,8 +41,9 @@ function escape(s: string | undefined | null): string {
     .replace(/"/g, '&quot;');
 }
 
-function formatAmount(v: number, currency: string): string {
-  return new Intl.NumberFormat('nl-BE', {
+function formatAmount(v: number, currency: string, locale: Locale): string {
+  const intlLocale = locale === 'pt' ? 'pt-BR' : 'nl-BE';
+  return new Intl.NumberFormat(intlLocale, {
     style: 'currency',
     currency: currency || 'EUR',
     minimumFractionDigits: 0,
@@ -45,9 +52,75 @@ function formatAmount(v: number, currency: string): string {
 }
 
 /**
- * Header com logo (inline HTML — funciona em todos os clientes de email).
+ * Strings por idioma.
  */
-function header(): string {
+const STR = {
+  nl: {
+    htmlLang: 'nl',
+    fallbackName: 'vriend',
+    tagline: 'Helping rescued dogs in Belgium',
+    footerBrand: 'Belgian Paws Helper · Rescued dog care, Belgium',
+    footerSupport: (mail: string) => `Heb je een vraag? Antwoord direct op deze e-mail of mail naar <a href="mailto:${mail}" style="color:${BRAND_DARK};text-decoration:none;">${mail}</a>.`,
+    // Thank you
+    thankSubject: 'Jouw donatie voedt onze honden vandaag 🐾',
+    thankPreview: 'Vandaag krijgen drie viervoeters een volle bak — dankzij jou.',
+    thankH1: (name: string) => `Bedankt, ${name}. Jij hebt vandaag het verschil gemaakt.`,
+    thankP1: (amount: string) =>
+      `Jouw donatie van <strong style="color:${BRAND_DARK};">${amount}</strong> is al onderweg naar de bakjes van enkele van onze geredde honden. Vandaag eten ze warm en veilig, en dat is dankzij jou.`,
+    thankP2: 'Je bent geweldig. Bedankt dat je ons helpt — we rekenen blijvend op jouw steun om meer viervoeters een tweede kans te geven.',
+    thankCta: 'Bekijk hoe je nog meer kan helpen',
+    thankSignoff: 'Met warme groet,',
+    teamName: 'Het Belgian Paws team',
+    heroAlt: 'Onze vrijwilligers voeden geredde honden vandaag',
+    // Upsell
+    upsellSubject: 'Nog één hondje wacht op je hulp 🐾',
+    upsellPreview: 'Jouw vorige donatie maakte het verschil. Doe je opnieuw mee?',
+    upsellH1: (name: string) => `${name}, er wacht nog een vriend op je.`,
+    upsellP1: (amount: string) =>
+      `Twee dagen geleden hielp jouw donatie van <strong style="color:${BRAND_DARK};">${amount}</strong> honden in ons opvangcentrum aan voer en warmte. Bedankt — dat blijven we ons herinneren.`,
+    upsellP2: 'Maar elke dag komen er nieuwe verlaten viervoeters bij. Met nog een kleine bijdrage help je een extra hond aan een veilige maaltijd vandaag.',
+    upsellP3: 'Wil je het opnieuw doen? Elke euro telt.',
+    upsellCta: 'Help nog een hond',
+    upsellSignoff: 'Met dank,',
+    upsellHeroAlt: 'Geredde honden in ons opvangcentrum'
+  },
+  pt: {
+    htmlLang: 'pt-BR',
+    fallbackName: 'amigo',
+    tagline: 'Ajudando cães resgatados na Bélgica',
+    footerBrand: 'Belgian Paws Helper · Cuidado com cães resgatados, Bélgica',
+    footerSupport: (mail: string) => `Alguma dúvida? Responda direto este e-mail ou escreva para <a href="mailto:${mail}" style="color:${BRAND_DARK};text-decoration:none;">${mail}</a>.`,
+    // Thank you
+    thankSubject: 'Sua doação está alimentando nossos cães hoje 🐾',
+    thankPreview: 'Hoje três cães vão receber uma tigela cheia — graças a você.',
+    thankH1: (name: string) => `Obrigado, ${name}. Você fez a diferença hoje.`,
+    thankP1: (amount: string) =>
+      `Sua doação de <strong style="color:${BRAND_DARK};">${amount}</strong> já está alimentando alguns dos nossos cães resgatados. Hoje eles comem quentinho e seguro, e isso é graças a você.`,
+    thankP2: 'Você foi incrível. Obrigado por nos ajudar — contamos sempre com sua ajuda para dar uma segunda chance a mais cães.',
+    thankCta: 'Veja como você pode ajudar mais',
+    thankSignoff: 'Com carinho,',
+    teamName: 'Equipe Belgian Paws',
+    heroAlt: 'Nossos voluntários alimentando cães resgatados hoje',
+    // Upsell
+    upsellSubject: 'Mais um cãozinho está esperando por você 🐾',
+    upsellPreview: 'Sua doação anterior fez a diferença. Topa repetir?',
+    upsellH1: (name: string) => `${name}, mais um amigo está esperando por você.`,
+    upsellP1: (amount: string) =>
+      `Dois dias atrás, sua doação de <strong style="color:${BRAND_DARK};">${amount}</strong> ajudou cães do nosso abrigo a terem comida e abrigo. Obrigado — a gente não esquece.`,
+    upsellP2: 'Mas todo dia chegam novos cães abandonados. Com mais uma pequena contribuição, você ajuda mais um cão a ter uma refeição segura hoje.',
+    upsellP3: 'Quer ajudar de novo? Cada euro conta.',
+    upsellCta: 'Ajudar mais um cão',
+    upsellSignoff: 'Com gratidão,',
+    upsellHeroAlt: 'Cães resgatados em nosso abrigo'
+  }
+} as const;
+
+function resolveLocale(l?: Locale): Locale {
+  return l === 'pt' ? 'pt' : 'nl';
+}
+
+function header(locale: Locale): string {
+  const t = STR[locale];
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${BRAND_COLOR};">
       <tr>
@@ -60,7 +133,7 @@ function header(): string {
             </tr>
             <tr>
               <td style="font-family:Arial,Helvetica,sans-serif;color:#dcfce7;font-size:11px;font-weight:500;padding-top:4px;letter-spacing:2px;text-transform:uppercase;">
-                Helping rescued dogs in Belgium
+                ${t.tagline}
               </td>
             </tr>
           </table>
@@ -70,18 +143,14 @@ function header(): string {
   `;
 }
 
-function footer(): string {
+function footer(locale: Locale): string {
+  const t = STR[locale];
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;">
       <tr>
         <td align="center" style="padding:24px 24px 32px;font-family:Arial,Helvetica,sans-serif;color:#64748b;font-size:12px;line-height:1.6;">
-          <div style="margin-bottom:8px;">
-            Belgian Paws Helper &middot; Rescued dog care, Belgium
-          </div>
-          <div>
-            Heb je een vraag? Antwoord direct op deze e-mail of mail naar
-            <a href="mailto:${SUPPORT_EMAIL}" style="color:${BRAND_DARK};text-decoration:none;">${SUPPORT_EMAIL}</a>.
-          </div>
+          <div style="margin-bottom:8px;">${t.footerBrand}</div>
+          <div>${t.footerSupport(SUPPORT_EMAIL)}</div>
           <div style="margin-top:12px;color:#94a3b8;font-size:11px;">
             &copy; ${new Date().getFullYear()} Belgian Paws
           </div>
@@ -91,9 +160,10 @@ function footer(): string {
   `;
 }
 
-function shell(previewText: string, bodyHtml: string): string {
+function shell(locale: Locale, previewText: string, bodyHtml: string): string {
+  const t = STR[locale];
   return `<!doctype html>
-<html lang="nl">
+<html lang="${t.htmlLang}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -118,9 +188,9 @@ function shell(previewText: string, bodyHtml: string): string {
     <tr>
       <td align="center" style="padding:24px 0;">
         <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(15,23,42,0.06);">
-          <tr><td>${header()}</td></tr>
+          <tr><td>${header(locale)}</td></tr>
           <tr><td>${bodyHtml}</td></tr>
-          <tr><td>${footer()}</td></tr>
+          <tr><td>${footer(locale)}</td></tr>
         </table>
       </td>
     </tr>
@@ -133,38 +203,37 @@ function shell(previewText: string, bodyHtml: string): string {
 // Template 1 — Thank you (5 min apos compra)
 // ─────────────────────────────────────────────────────────────────────
 
-export function thankYouSubject(): string {
-  return 'Jouw donatie voedt onze honden vandaag 🐾';
+export function thankYouSubject(locale?: Locale): string {
+  return STR[resolveLocale(locale)].thankSubject;
 }
 
-export function thankYouPreview(): string {
-  return 'Vandaag krijgen drie viervoeters een volle bak — dankzij jou.';
+export function thankYouPreview(locale?: Locale): string {
+  return STR[resolveLocale(locale)].thankPreview;
 }
 
 export function thankYouHtml(vars: ThankYouVars): string {
-  const name = vars.firstName ? escape(vars.firstName) : 'vriend';
-  const amount = formatAmount(vars.amount, vars.currency);
+  const locale = resolveLocale(vars.locale);
+  const t = STR[locale];
+  const name = vars.firstName ? escape(vars.firstName) : t.fallbackName;
+  const amount = formatAmount(vars.amount, vars.currency, locale);
 
   const body = `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr>
         <td>
-          <img src="${HERO_IMAGE}" alt="Onze vrijwilligers voeden geredde honden vandaag" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
+          <img src="${HERO_IMAGE}" alt="${t.heroAlt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
         </td>
       </tr>
       <tr>
         <td class="px-mob" style="padding:32px 40px 8px;">
           <h1 class="h1-mob" style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;color:#0f172a;font-size:24px;font-weight:700;line-height:1.3;">
-            Bedankt, ${name}. Jij hebt vandaag het verschil gemaakt.
+            ${t.thankH1(name)}
           </h1>
           <p style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;color:#334155;font-size:16px;line-height:1.65;">
-            Jouw donatie van <strong style="color:${BRAND_DARK};">${amount}</strong> is al onderweg
-            naar de bakjes van enkele van onze geredde honden. Vandaag eten ze warm en veilig,
-            en dat is dankzij jou.
+            ${t.thankP1(amount)}
           </p>
           <p style="margin:0 0 24px;font-family:Arial,Helvetica,sans-serif;color:#334155;font-size:16px;line-height:1.65;">
-            Je bent geweldig. Bedankt dat je ons helpt — we rekenen blijvend op jouw steun
-            om meer viervoeters een tweede kans te geven.
+            ${t.thankP2}
           </p>
         </td>
       </tr>
@@ -174,7 +243,7 @@ export function thankYouHtml(vars: ThankYouVars): string {
             <tr>
               <td bgcolor="${BRAND_COLOR}" style="border-radius:8px;">
                 <a href="${DONATE_URL}" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:8px;">
-                  Bekijk hoe je nog meer kan helpen
+                  ${t.thankCta}
                 </a>
               </td>
             </tr>
@@ -184,55 +253,55 @@ export function thankYouHtml(vars: ThankYouVars): string {
       <tr>
         <td class="px-mob" style="padding:0 40px 32px;">
           <div style="border-top:1px solid #e2e8f0;padding-top:20px;font-family:Arial,Helvetica,sans-serif;color:#475569;font-size:14px;line-height:1.6;">
-            Met warme groet,<br>
-            <strong style="color:#0f172a;">Het Belgian Paws team</strong>
+            ${t.thankSignoff}<br>
+            <strong style="color:#0f172a;">${t.teamName}</strong>
           </div>
         </td>
       </tr>
     </table>
   `;
 
-  return shell(thankYouPreview(), body);
+  return shell(locale, t.thankPreview, body);
 }
 
 // ─────────────────────────────────────────────────────────────────────
 // Template 2 — Upsell (48h apos compra)
 // ─────────────────────────────────────────────────────────────────────
 
-export function upsellSubject(): string {
-  return 'Nog één hondje wacht op je hulp 🐾';
+export function upsellSubject(locale?: Locale): string {
+  return STR[resolveLocale(locale)].upsellSubject;
 }
 
-export function upsellPreview(): string {
-  return 'Jouw vorige donatie maakte het verschil. Doe je opnieuw mee?';
+export function upsellPreview(locale?: Locale): string {
+  return STR[resolveLocale(locale)].upsellPreview;
 }
 
 export function upsellHtml(vars: UpsellVars): string {
-  const name = vars.firstName ? escape(vars.firstName) : 'vriend';
-  const previous = formatAmount(vars.previousAmount, vars.currency);
+  const locale = resolveLocale(vars.locale);
+  const t = STR[locale];
+  const name = vars.firstName ? escape(vars.firstName) : t.fallbackName;
+  const previous = formatAmount(vars.previousAmount, vars.currency, locale);
 
   const body = `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr>
         <td>
-          <img src="${HERO_IMAGE}" alt="Geredde honden in ons opvangcentrum" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
+          <img src="${HERO_IMAGE}" alt="${t.upsellHeroAlt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
         </td>
       </tr>
       <tr>
         <td class="px-mob" style="padding:32px 40px 8px;">
           <h1 class="h1-mob" style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;color:#0f172a;font-size:24px;font-weight:700;line-height:1.3;">
-            ${name}, er wacht nog een vriend op je.
+            ${t.upsellH1(name)}
           </h1>
           <p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;color:#334155;font-size:16px;line-height:1.65;">
-            Twee dagen geleden hielp jouw donatie van <strong style="color:${BRAND_DARK};">${previous}</strong>
-            honden in ons opvangcentrum aan voer en warmte. Bedankt — dat blijven we ons herinneren.
+            ${t.upsellP1(previous)}
           </p>
           <p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;color:#334155;font-size:16px;line-height:1.65;">
-            Maar elke dag komen er nieuwe verlaten viervoeters bij. Met nog een kleine bijdrage
-            help je een extra hond aan een veilige maaltijd vandaag.
+            ${t.upsellP2}
           </p>
           <p style="margin:0 0 24px;font-family:Arial,Helvetica,sans-serif;color:#334155;font-size:16px;line-height:1.65;">
-            Wil je het opnieuw doen? Elke euro telt.
+            ${t.upsellP3}
           </p>
         </td>
       </tr>
@@ -242,7 +311,7 @@ export function upsellHtml(vars: UpsellVars): string {
             <tr>
               <td bgcolor="${BRAND_COLOR}" style="border-radius:8px;">
                 <a href="${DONATE_URL}" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:8px;">
-                  Help nog een hond
+                  ${t.upsellCta}
                 </a>
               </td>
             </tr>
@@ -252,13 +321,13 @@ export function upsellHtml(vars: UpsellVars): string {
       <tr>
         <td class="px-mob" style="padding:0 40px 32px;">
           <div style="border-top:1px solid #e2e8f0;padding-top:20px;font-family:Arial,Helvetica,sans-serif;color:#475569;font-size:14px;line-height:1.6;">
-            Met dank,<br>
-            <strong style="color:#0f172a;">Het Belgian Paws team</strong>
+            ${t.upsellSignoff}<br>
+            <strong style="color:#0f172a;">${t.teamName}</strong>
           </div>
         </td>
       </tr>
     </table>
   `;
 
-  return shell(upsellPreview(), body);
+  return shell(locale, t.upsellPreview, body);
 }

@@ -44,10 +44,12 @@ export const POST: RequestHandler = async ({ request }) => {
     const amount = Number(body.amount ?? 25);
     const firstName = body.firstName as string | undefined;
     const currency = (body.currency as string | undefined) ?? 'EUR';
+    const locale = (body.locale === 'pt' ? 'pt' : body.locale === 'nl' ? 'nl' : undefined) as
+      | 'pt' | 'nl' | undefined;
     const r = await sendNow({
       toEmail: to,
       templateName: 'thank-you',
-      templateData: { firstName, amount, currency }
+      templateData: { firstName, amount, currency, locale }
     });
     return json(r, { status: r.ok ? 200 : 502 });
   }
@@ -56,10 +58,12 @@ export const POST: RequestHandler = async ({ request }) => {
     const amount = Number(body.amount ?? 25);
     const firstName = body.firstName as string | undefined;
     const currency = (body.currency as string | undefined) ?? 'EUR';
+    const locale = (body.locale === 'pt' ? 'pt' : body.locale === 'nl' ? 'nl' : undefined) as
+      | 'pt' | 'nl' | undefined;
     const r = await sendNow({
       toEmail: to,
       templateName: 'upsell',
-      templateData: { firstName, previousAmount: amount, currency }
+      templateData: { firstName, previousAmount: amount, currency, locale }
     });
     return json(r, { status: r.ok ? 200 : 502 });
   }
