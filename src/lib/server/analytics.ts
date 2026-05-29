@@ -117,13 +117,19 @@ interface HeatPoint { path: string; x: number; y: number; ts: number; device: st
 const heat: HeatPoint[] = [];
 const MAX_HEAT = 20_000;
 
-// ─── Persistencia (snapshot JSON em /tmp) ───
+// ─── Persistencia (snapshot JSON em volume persistente) ───
+// PATH: usa ANALYTICS_DATA_DIR (env), default /data (volume Railway) com fallback /tmp.
+// CRITICO: /tmp e efemero no Railway — dados somem a cada redeploy/restart.
 
-const SNAPSHOT_PATH = '/tmp/analytics-snapshot.json';
+const ANALYTICS_DIR = process.env.ANALYTICS_DATA_DIR || '/data';
+const SNAPSHOT_PATH = `${ANALYTICS_DIR}/analytics-snapshot.json`;
 const SNAPSHOT_INTERVAL_MS = 60_000;
 
 function saveSnapshot() {
   try {
+    if (!fs.existsSync(ANALYTICS_DIR)) {
+      fs.mkdirSync(ANALYTICS_DIR, { recursive: true });
+    }
     const payload = {
       events,
       sessions: Array.from(sessions.entries()),
