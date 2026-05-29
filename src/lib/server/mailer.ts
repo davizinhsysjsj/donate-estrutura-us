@@ -33,10 +33,21 @@ function getTransporter(): Transporter {
     host,
     port,
     secure: port === 465, // 465 = SSL implicit, 587 = STARTTLS
-    auth: { user, pass }
+    auth: { user, pass },
+    // Timeouts curtos pra nao travar a request 60s+ quando porta esta bloqueada
+    connectionTimeout: 10_000, // 10s pra abrir socket
+    greetingTimeout: 10_000,   // 10s pro server mandar HELO
+    socketTimeout: 15_000      // 15s pra operacao individual
   });
 
   return cached;
+}
+
+/**
+ * Reseta o transporter cacheado. Util pra trocar config (porta, host) sem restart.
+ */
+export function resetTransporter() {
+  cached = null;
 }
 
 export interface SendMailInput {
