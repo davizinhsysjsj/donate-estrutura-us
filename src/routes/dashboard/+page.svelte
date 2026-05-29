@@ -15,6 +15,8 @@
   let lastUpdate = $state(0);
   let pollTimer: ReturnType<typeof setInterval> | null = null;
   let sidebarOpen = $state(true);
+  let mobileMenuOpen = $state(false);
+  let mobileFiltersOpen = $state(false);
   let detailSid = $state<string | null>(null);
   let detailData = $state<any>(null);
 
@@ -235,10 +237,14 @@
     </form>
   </div>
 {:else}
-<div class="app" class:sidebar-collapsed={!sidebarOpen}>
+<div class="app" class:sidebar-collapsed={!sidebarOpen} class:mobile-menu-open={mobileMenuOpen}>
+
+  {#if mobileMenuOpen}
+    <button class="mobile-backdrop" aria-label="fechar menu" onclick={() => (mobileMenuOpen = false)}></button>
+  {/if}
 
   <!-- Sidebar -->
-  <aside class="sidebar">
+  <aside class="sidebar" class:mobile-open={mobileMenuOpen}>
     <div class="sidebar-brand">
       <span class="brand-dot"></span>
       {#if sidebarOpen}<span class="brand-name">PawsCo</span>{/if}
@@ -254,9 +260,9 @@
         { id: 'revenue', label: 'Receita', icon: '€' },
         { id: 'tech', label: 'Performance', icon: '⏱' }
       ] as item}
-        <button class="nav-item" class:active={activeTab === item.id} onclick={() => (activeTab = item.id as Tab)}>
+        <button class="nav-item" class:active={activeTab === item.id} onclick={() => { activeTab = item.id as Tab; mobileMenuOpen = false; }}>
           <span class="nav-icon">{item.icon}</span>
-          {#if sidebarOpen}<span>{item.label}</span>{/if}
+          <span class="nav-label" class:hidden-collapsed={!sidebarOpen}>{item.label}</span>
         </button>
       {/each}
     </nav>
@@ -272,13 +278,21 @@
     <!-- Topbar -->
     <header class="topbar">
       <div class="topbar-left">
-        <h1 class="page-title">{activeTab[0].toUpperCase() + activeTab.slice(1)}</h1>
-        <span class="status">
-          <span class="status-dot" class:on={updateAgoSec < 6}></span>
-          {updateAgoSec < 6 ? `live · atualizado ${updateAgoSec}s atrás` : `${updateAgoSec}s atrás`}
-        </span>
+        <button class="hamburger" aria-label="abrir menu" onclick={() => (mobileMenuOpen = true)}>
+          <span></span><span></span><span></span>
+        </button>
+        <div class="topbar-title-block">
+          <h1 class="page-title">{activeTab[0].toUpperCase() + activeTab.slice(1)}</h1>
+          <span class="status">
+            <span class="status-dot" class:on={updateAgoSec < 6}></span>
+            <span class="status-text">{updateAgoSec < 6 ? `live · ${updateAgoSec}s` : `${updateAgoSec}s atrás`}</span>
+          </span>
+        </div>
+        <button class="filters-toggle" aria-label="filtros" onclick={() => (mobileFiltersOpen = !mobileFiltersOpen)}>
+          {mobileFiltersOpen ? '✕' : '⌥'}
+        </button>
       </div>
-      <div class="topbar-right">
+      <div class="topbar-right" class:mobile-open={mobileFiltersOpen}>
         <select bind:value={win} class="select">
           <option value="2m">Últimos 2 min</option>
           <option value="15m">15 min</option>
@@ -1277,4 +1291,249 @@
   .timeline-ev { font-weight: 500; }
   .timeline-path { color: #4dd0e1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .timeline-data { color: #8b94a4; font-family: 'JetBrains Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.6875rem; }
+
+  /* Hambúrguer + botões mobile — escondidos no desktop */
+  .hamburger, .filters-toggle, .mobile-backdrop { display: none; }
+  .topbar-title-block { display: flex; align-items: baseline; gap: 12px; }
+  .nav-label.hidden-collapsed { display: none; }
+
+  /* ─────────────── RESPONSIVE — TABLET ≤ 1024px ─────────────── */
+  @media (max-width: 1024px) {
+    .main { padding: 20px 22px; }
+    .lt-head, .lt-row {
+      grid-template-columns: 90px 1.2fr 1fr 90px 80px 70px 90px;
+      gap: 8px; padding: 8px 10px; font-size: 0.75rem;
+    }
+    .feed-row {
+      grid-template-columns: 22px 110px 60px 1fr 80px 70px;
+      padding: 7px 10px; font-size: 0.75rem;
+    }
+    .funnel-row { grid-template-columns: 160px 1fr 56px; }
+    .topbar-right .select { padding: 7px 10px; font-size: 0.75rem; }
+    .country-input { width: 90px; }
+  }
+
+  /* ─────────────── RESPONSIVE — MOBILE ≤ 768px ─────────────── */
+  @media (max-width: 768px) {
+    /* App layout: sidebar vira drawer */
+    .app, .app.sidebar-collapsed { grid-template-columns: 1fr; }
+
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: 240px; max-width: 80vw; height: 100vh; z-index: 90;
+      transform: translateX(-100%); transition: transform 0.25s ease-out;
+      box-shadow: 0 0 40px rgba(0,0,0,0.5);
+      padding-top: env(safe-area-inset-top);
+    }
+    .sidebar.mobile-open { transform: translateX(0); }
+    .nav-label.hidden-collapsed { display: inline; }
+    .sidebar-foot { display: none; }
+
+    .mobile-backdrop {
+      display: block; position: fixed; inset: 0; z-index: 80;
+      background: rgba(0,0,0,0.55); backdrop-filter: blur(2px);
+      border: none; cursor: pointer; padding: 0;
+    }
+
+    /* Main */
+    .main {
+      padding: 16px 14px;
+      padding-top: calc(16px + env(safe-area-inset-top));
+      padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    }
+
+    /* Topbar */
+    .topbar {
+      flex-direction: column; align-items: stretch; gap: 12px;
+      margin-bottom: 16px;
+      position: sticky; top: 0; z-index: 50;
+      background: linear-gradient(180deg, #0a0d12 75%, rgba(10,13,18,0));
+      padding-top: 8px; margin-top: -8px;
+    }
+    .topbar-left {
+      display: flex; align-items: center; gap: 12px; width: 100%;
+    }
+    .topbar-title-block {
+      flex: 1; min-width: 0; flex-direction: column;
+      align-items: flex-start; gap: 2px;
+    }
+    .page-title { font-size: 1.125rem; }
+    .status { font-size: 0.6875rem; }
+    .status-text { white-space: nowrap; }
+
+    .hamburger {
+      display: inline-flex; flex-direction: column; justify-content: center;
+      gap: 4px; width: 38px; height: 38px; border-radius: 8px;
+      background: #11161d; border: 1px solid #1f2630; cursor: pointer;
+      padding: 0 9px; flex-shrink: 0;
+    }
+    .hamburger span {
+      display: block; height: 2px; width: 100%;
+      background: #e6e9ef; border-radius: 2px;
+    }
+
+    .filters-toggle {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 38px; height: 38px; border-radius: 8px;
+      background: #11161d; border: 1px solid #1f2630;
+      color: #e6e9ef; cursor: pointer; font-size: 1rem; flex-shrink: 0;
+    }
+
+    /* Filtros viram painel colapsável */
+    .topbar-right {
+      display: none; flex-direction: column; align-items: stretch;
+      gap: 8px; width: 100%;
+      background: #11161d; border: 1px solid #1f2630;
+      padding: 12px; border-radius: 12px;
+    }
+    .topbar-right.mobile-open { display: flex; }
+    .topbar-right .select,
+    .topbar-right .country-input,
+    .topbar-right .toggle,
+    .topbar-right .btn-reset {
+      width: 100%; padding: 11px 12px; font-size: 0.875rem;
+    }
+    .country-input { width: 100%; }
+    .toggle { justify-content: space-between; }
+
+    /* KPIs */
+    .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .kpi { padding: 14px 14px; }
+    .kpi-label { font-size: 0.625rem; }
+    .kpi-value { font-size: 1.5rem; margin-top: 4px; }
+    .kpi-sub { font-size: 0.6875rem; margin-top: 4px; }
+
+    /* Cards */
+    .card { padding: 14px; margin-bottom: 12px; border-radius: 10px; }
+    .card h2 { font-size: 0.875rem; margin-bottom: 12px; }
+    .card-head { flex-direction: column; align-items: flex-start; gap: 4px; }
+
+    /* Funil */
+    .funnel-row {
+      grid-template-columns: 1fr;
+      gap: 4px; padding: 6px 0; margin-bottom: 6px;
+      border-bottom: 1px solid #1a1f28;
+    }
+    .funnel-label { font-size: 0.8125rem; }
+    .funnel-bar-wrap { height: 26px; order: 2; }
+    .funnel-pct { text-align: left; font-size: 0.75rem; order: 3; }
+
+    /* Bar rows */
+    .bar-row {
+      grid-template-columns: 1fr;
+      gap: 4px; padding: 6px 0; margin-bottom: 6px;
+      border-bottom: 1px solid #1a1f28;
+    }
+    .bar-row:last-child { border-bottom: none; }
+    .bar-label { font-size: 0.8125rem; white-space: normal; }
+    .bar-wrap { height: 14px; }
+    .bar-val { text-align: left; font-size: 0.75rem; }
+
+    /* Time series */
+    .spark { height: 90px; }
+
+    /* Donuts */
+    .donut-wrap { gap: 14px; justify-content: center; }
+    .donut { width: 110px; height: 110px; }
+    .legend { width: 100%; }
+
+    /* Timing grid */
+    .timing-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .timing-item { padding: 10px; }
+    .timing-value { font-size: 1.125rem; }
+
+    /* A/B */
+    .ab-grid { grid-template-columns: 1fr; }
+
+    /* Live table → cards 2col */
+    .lt-head { display: none; }
+    .lt-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 10px; padding: 12px;
+      font-size: 0.8125rem; border-radius: 10px;
+    }
+    .lt-row > span { display: flex; flex-direction: column; gap: 1px; }
+    .lt-row > span:first-child { grid-column: 1 / -1; font-size: 0.75rem; padding-bottom: 4px; border-bottom: 1px solid #1a1f28; flex-direction: row; align-items: center; justify-content: space-between; }
+    .lt-row > span:last-child { grid-column: 1 / -1; padding-top: 4px; border-top: 1px solid #1a1f28; flex-direction: row; align-items: center; justify-content: flex-end; }
+
+    /* Feed → cards */
+    .feed { gap: 6px; max-height: none; }
+    .feed-row {
+      grid-template-columns: 22px 1fr auto;
+      grid-template-areas:
+        "icon ev time"
+        "icon path data"
+        "icon sid sid";
+      gap: 2px 10px; padding: 10px 12px; font-size: 0.75rem;
+      border-radius: 10px;
+    }
+    .feed-icon { grid-area: icon; align-self: start; }
+    .feed-ev { grid-area: ev; font-size: 0.8125rem; }
+    .feed-data { grid-area: data; text-align: right; }
+    .feed-path { grid-area: path; font-size: 0.6875rem; }
+    .feed-sid { grid-area: sid; font-size: 0.625rem; }
+    .feed-time { grid-area: time; font-size: 0.625rem; text-align: right; }
+
+    /* Heatmap */
+    .heatmap-canvas { max-width: 100%; }
+
+    /* Modal */
+    .modal-overlay { padding: 0; align-items: stretch; }
+    .modal {
+      border-radius: 0; max-width: 100%; min-height: 100vh;
+      padding: 16px 14px;
+      padding-top: calc(16px + env(safe-area-inset-top));
+      padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    }
+    .detail-grid { grid-template-columns: 1fr; gap: 10px; }
+    .detail-card { padding: 12px; }
+    .timeline-row {
+      grid-template-columns: 22px 60px 1fr;
+      grid-template-areas:
+        "icon time ev"
+        "icon path data";
+      gap: 2px 8px; padding: 8px 0;
+    }
+    .timeline-row > :nth-child(1) { grid-area: icon; align-self: center; }
+    .timeline-row > :nth-child(2) { grid-area: time; }
+    .timeline-row > :nth-child(3) { grid-area: ev; }
+    .timeline-row > :nth-child(4) { grid-area: path; }
+    .timeline-row > :nth-child(5) { grid-area: data; font-size: 0.625rem; }
+
+    /* Footer */
+    .dash-foot { flex-direction: column; gap: 4px; text-align: left; }
+
+    /* Toast */
+    .toast {
+      position: fixed; left: 12px; right: 12px; top: 60px;
+      z-index: 60; margin: 0;
+    }
+  }
+
+  /* ─────────────── RESPONSIVE — TELEFONE PEQUENO ≤ 420px ─────────────── */
+  @media (max-width: 420px) {
+    .main { padding: 12px 10px; padding-top: calc(12px + env(safe-area-inset-top)); }
+    .kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .kpi { padding: 12px 10px; }
+    .kpi-value { font-size: 1.25rem; }
+    .lt-row { grid-template-columns: 1fr; padding: 10px; }
+    .lt-row > span:first-child, .lt-row > span:last-child { grid-column: 1; }
+    .card { padding: 12px; }
+    .card h2 { font-size: 0.8125rem; }
+    .login-card { min-width: 0; width: calc(100vw - 32px); padding: 24px; }
+  }
+
+  /* Touch — alvo mínimo de 44px nos botões críticos */
+  @media (hover: none) and (pointer: coarse) {
+    .nav-item { padding: 12px 14px; font-size: 0.9375rem; }
+    .select, .btn-reset, .toggle { min-height: 40px; }
+    .lt-row { min-height: 56px; }
+    .modal-close { width: 40px; height: 40px; }
+  }
+
+  /* Scrollbar dark — webkit */
+  .feed::-webkit-scrollbar, .timeline::-webkit-scrollbar { width: 6px; }
+  .feed::-webkit-scrollbar-thumb, .timeline::-webkit-scrollbar-thumb { background: #1f2630; border-radius: 3px; }
+  .feed::-webkit-scrollbar-track, .timeline::-webkit-scrollbar-track { background: transparent; }
 </style>
