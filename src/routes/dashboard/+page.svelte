@@ -342,6 +342,23 @@
             <div class="kpi-label">Online agora</div>
             <div class="kpi-value">{snap.kpis.online}</div>
             <div class="kpi-sub">visitantes ativos · últimos 2 min</div>
+            <div class="kpi-breakdown">
+              <span class="kpi-chip" title="Visitantes em / (LP)">
+                <span class="kpi-chip-dot" style="background:#02a95c"></span>
+                <span class="kpi-chip-label">LP</span>
+                <strong>{snap.kpis.onlineLp ?? 0}</strong>
+              </span>
+              <span class="kpi-chip" title="Visitantes em /donate">
+                <span class="kpi-chip-dot" style="background:#ffd54f"></span>
+                <span class="kpi-chip-label">/donate</span>
+                <strong>{snap.kpis.onlineDonate ?? 0}</strong>
+              </span>
+              <span class="kpi-chip" title="Visitantes em /vsl">
+                <span class="kpi-chip-dot" style="background:#a78bfa"></span>
+                <span class="kpi-chip-label">/vsl</span>
+                <strong>{snap.kpis.onlineVsl ?? 0}</strong>
+              </span>
+            </div>
           </div>
           <div class="kpi">
             <div class="kpi-label">Sessões na janela</div>
@@ -1064,6 +1081,22 @@
     font-size: 2rem; font-weight: 600; margin-top: 8px; letter-spacing: -0.03em;
   }
   .kpi-live .kpi-value { color: #02a95c; }
+  .kpi-breakdown {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-top: 10px;
+  }
+  .kpi-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #0a0d12; border: 1px solid #1f2630;
+    padding: 4px 8px; border-radius: 999px;
+    font-size: 0.6875rem; color: #8b94a4;
+  }
+  .kpi-chip strong {
+    color: #e6e9ef; font-family: 'JetBrains Mono', monospace;
+    font-weight: 600; font-size: 0.75rem;
+  }
+  .kpi-chip-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .kpi-chip-label { font-weight: 500; }
   .kpi-sub { color: #8b94a4; font-size: 0.75rem; margin-top: 6px; }
   .kpi-delta.up { color: #02a95c; }
   .kpi-delta.down { color: #ff5b5b; }

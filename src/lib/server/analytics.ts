@@ -496,6 +496,24 @@ export function snapshot(opts: SnapshotOpts) {
   const liveCutoff = now - 2 * 60 * 1000;
   const liveSessions = sessionsInWindow.filter((s) => s.lastSeenAt >= liveCutoff);
 
+  // Contagem de online por rota (path atual da sessao)
+  const onlineByPath: Record<string, number> = {};
+  for (const s of liveSessions) {
+    const key = s.currentPath || '/';
+    onlineByPath[key] = (onlineByPath[key] ?? 0) + 1;
+  }
+  const onlineDonate =
+    (onlineByPath['/donate'] ?? 0) +
+    Object.entries(onlineByPath)
+      .filter(([k]) => k.startsWith('/donate/'))
+      .reduce((acc, [, v]) => acc + v, 0);
+  const onlineLp = onlineByPath['/'] ?? 0;
+  const onlineVsl =
+    (onlineByPath['/vsl'] ?? 0) +
+    Object.entries(onlineByPath)
+      .filter(([k]) => k.startsWith('/vsl/'))
+      .reduce((acc, [, v]) => acc + v, 0);
+
   // KPIs
   const pageviews = filteredEvents.filter((e) => e.ev === 'pageview').length;
   const uniqueVisitors = sessionsInWindow.length;
@@ -772,6 +790,10 @@ export function snapshot(opts: SnapshotOpts) {
     windowMs: winMs,
     kpis: {
       online: liveSessions.length,
+      onlineLp,
+      onlineDonate,
+      onlineVsl,
+      onlineByPath,
       pageviews,
       uniqueVisitors,
       avgSessionDurationSec,
