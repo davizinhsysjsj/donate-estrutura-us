@@ -223,22 +223,9 @@ export function thankYouHtml(vars: ThankYouVars): string {
           <p style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;color:#334155;font-size:16px;line-height:1.65;">
             ${t.thankP1(amount)}
           </p>
-          <p style="margin:0 0 24px;font-family:Arial,Helvetica,sans-serif;color:#334155;font-size:16px;line-height:1.65;">
+          <p style="margin:0 0 32px;font-family:Arial,Helvetica,sans-serif;color:#334155;font-size:16px;line-height:1.65;">
             ${t.thankP2}
           </p>
-        </td>
-      </tr>
-      <tr>
-        <td class="px-mob" align="center" style="padding:0 40px 32px;">
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-            <tr>
-              <td bgcolor="${BRAND_COLOR}" style="border-radius:8px;">
-                <a href="${DONATE_URL}" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:8px;">
-                  ${t.thankCta}
-                </a>
-              </td>
-            </tr>
-          </table>
         </td>
       </tr>
       <tr>
