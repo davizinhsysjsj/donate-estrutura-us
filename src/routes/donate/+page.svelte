@@ -97,6 +97,7 @@
     }, eid);
 
     // 2) Meta CAPI server-side — mesmo event_id = dedup automático com #1
+    //    + dispara notificação push (Pushcut) via mesmo endpoint
     fetch('/api/track-ic', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -108,7 +109,10 @@
         fbp,
         fbc: fbc ?? undefined,
         userAgent: navigator.userAgent,
-        sourceUrl: window.location.href
+        sourceUrl: window.location.href,
+        sid: getSid(),
+        utm_source: utm?.source ?? undefined,
+        utm_campaign: utm?.campaign ?? undefined
       })
     }).catch((e) => console.warn('[donate] CAPI IC failed', e));
 

@@ -8,6 +8,9 @@ import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
 import crypto from 'node:crypto';
 import { env } from '$env/dynamic/private';
+import { notifyIcStarted } from '$lib/server/notify';
+import { lookupGeo } from '$lib/server/geo';
+import { parseDevice, parseBrowser } from '$lib/server/analytics';
 
 const META_CAPI_VERSION = 'v21.0';
 
@@ -46,7 +49,10 @@ export const POST: RequestHandler = async ({ request }) => {
 		fbp,
 		fbc: fbcFromClient,
 		userAgent,
-		sourceUrl
+		sourceUrl,
+		sid,
+		utm_source,
+		utm_campaign
 	} = body;
 
 	// IP: prefere o do header (mais confiável) sobre o enviado pelo cliente
@@ -108,6 +114,33 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 
 		console.log('[track-ic] IC enviado via CAPI', { eventId, value, currency, hasFbc: !!fbc });
+
+		// Notificação push (Pushcut) — fire-and-forget, com geo lookup async
+		try {
+			const ua = userAgent || '';
+			const device = parseDevice(ua);
+			const { browser } = parseBrowser(ua);
+			const geoP = clientIp ? lookupGeo(clientIp) : Promise.resolve({} as any);
+			geoP
+				.then((geo) => {
+					notifyIcStarted({
+						sid,
+						amount: typeof value === 'number' ? value : Number(value) || undefined,
+						country: geo?.country,
+						countryCode: geo?.countryCode,
+						city: geo?.city,
+						device,
+						browser,
+						utmSource: utm_source,
+						utmCampaign: utm_campaign,
+						eventId
+					});
+				})
+				.catch(() => {});
+		} catch (e) {
+			console.warn('[track-ic] notify dispatch failed', e);
+		}
+
 		return json({ ok: true, eventId });
 	} catch (e) {
 		console.error('[track-ic] fetch failed', e);
