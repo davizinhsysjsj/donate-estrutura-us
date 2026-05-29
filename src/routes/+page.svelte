@@ -14,22 +14,9 @@
     captureAndPersistFbclid, getFbp, trackEvent, uuid, buildShopifyCartUrl,
     type UtmData
   } from '$lib/utils/fbtracking';
-
-  // Configuracao do destino Shopify — produto real complete-care-package-for-belgian-dogs
-  // 4 variants reais mapeadas por tier (Bronze/Silver/Gold/Platinum)
-  const SHOPIFY_SHOP_DOMAIN = 'inigualavelshop.myshopify.com';
-  const VARIANT_BY_TIER: Record<number, string> = {
-    10: '49461830844554', // Bronze  — BPCB-BRONZE
-    20: '49461830877322', // Silver  — BPCB-SILVER
-    25: '49461830910090', // Gold    — BPCB-GOLD
-    35: '49461830942858'  // Platinum — BPCB-PLATINUM
-  };
-  const TIER_NAME_BY_AMOUNT: Record<number, string> = {
-    10: 'Bronze',
-    20: 'Silver',
-    25: 'Gold',
-    35: 'Platinum'
-  };
+  import {
+    SHOPIFY_SHOP_DOMAIN, TIER_NAME_BY_AMOUNT, pickVariantForAmount
+  } from '$lib/data/variants';
 
   // Estado de tracking Meta (preenchido no onMount, usado no handleDonate)
   let fbclid: string | null = $state(null);
@@ -126,7 +113,8 @@
     }, eventId);
 
     // 3. Decide destino: Shopify real (se variant ID preenchido) ou fallback /supporter
-    const variantId = VARIANT_BY_TIER[selectedAmount];
+    //    Sorteia entre as variantes disponiveis pro tier (rotacao multi-produto)
+    const variantId = pickVariantForAmount(selectedAmount);
     const isPlaceholder = !variantId || variantId.startsWith('PLACEHOLDER');
     const tierName = TIER_NAME_BY_AMOUNT[selectedAmount] || String(selectedAmount);
 

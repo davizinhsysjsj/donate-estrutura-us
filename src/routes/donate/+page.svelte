@@ -5,24 +5,7 @@
     type UtmData
   } from '$lib/utils/fbtracking';
   import { track as trackAnalytics, getSid } from '$lib/utils/analytics';
-
-  const SHOPIFY_SHOP_DOMAIN = 'inigualavelshop.myshopify.com';
-
-  // Variantes Shopify — produto "Complete care package for Belgian dogs"
-  const VARIANT_BY_AMOUNT: Record<number, string> = {
-    10:  '49461830844554', // Bronze
-    15:  '49469523361930', // Helper
-    20:  '49461830877322', // Silver
-    25:  '49461830910090', // Gold
-    30:  '49469523394698', // Guardian
-    35:  '49461830942858', // Platinum
-    50:  '49469523427466', // Hero
-    80:  '49469523460234', // Champion
-    100: '49469523493002', // Protector
-    200: '49469523525770', // Benefactor
-    300: '49469523558538', // Patron
-    500: '49469523591306', // Saviour
-  };
+  import { SHOPIFY_SHOP_DOMAIN, pickVariantForAmount } from '$lib/data/variants';
 
   type AmountOption = {
     amount: number;
@@ -135,7 +118,8 @@
     // Reutiliza o eventId gerado ao abrir o popup (evita duplicatas no Meta CAPI)
     const eventId = pendingEventId || uuid();
 
-    const variantId = VARIANT_BY_AMOUNT[selectedAmount];
+    // Sorteia entre as variantes disponiveis pro tier (rotacao multi-produto)
+    const variantId = pickVariantForAmount(selectedAmount);
 
     setTimeout(() => {
       if (!variantId) {
