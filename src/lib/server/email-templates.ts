@@ -11,7 +11,9 @@
 
 const SITE_URL = 'https://belgianpawshelter.help';
 const DONATE_URL = `${SITE_URL}/`;
+const UPSELL_DONATE_URL = `${SITE_URL}/donate`;
 const HERO_IMAGE = `${SITE_URL}/email/feeding-dogs.jpg`;
+const UPSELL_HERO_IMAGE = `${SITE_URL}/email/rescued-dogs.jpg`;
 const LOGO_IMAGE = `${SITE_URL}/email/logo.png`;
 const SUPPORT_EMAIL = 'contact@belgianpaws.help';
 const BRAND_COLOR = '#16A34A'; // verde camisa (usado no botao CTA)
@@ -73,17 +75,17 @@ const STR = {
     thankSignoff: 'Met warme groet,',
     teamName: 'Het Belgian Paws team',
     heroAlt: 'Onze vrijwilligers voeden geredde honden vandaag',
-    // Upsell
-    upsellSubject: 'Nog één hondje wacht op je hulp 🐾',
-    upsellPreview: 'Jouw vorige donatie maakte het verschil. Doe je opnieuw mee?',
-    upsellH1: (name: string) => `${name}, er wacht nog een vriend op je.`,
+    // Upsell — 10 caes magros recem resgatados (texto comovente)
+    upsellSubject: 'Tien uitgehongerde honden net binnengebracht 🐾',
+    upsellPreview: 'Ze zijn gered, maar we hebben jouw hulp nodig om ze te voeden.',
+    upsellH1: (name: string) => `${name}, tien honden hebben jou vandaag nodig.`,
     upsellP1: (amount: string) =>
-      `Twee dagen geleden hielp jouw donatie van <strong style="color:${BRAND_DARK};">${amount}</strong> honden in ons opvangcentrum aan voer en warmte. Bedankt — dat blijven we ons herinneren.`,
-    upsellP2: 'Maar elke dag komen er nieuwe verlaten viervoeters bij. Met nog een kleine bijdrage help je een extra hond aan een veilige maaltijd vandaag.',
-    upsellP3: 'Wil je het opnieuw doen? Elke euro telt.',
-    upsellCta: 'Help nog een hond',
-    upsellSignoff: 'Met dank,',
-    upsellHeroAlt: 'Geredde honden in ons opvangcentrum'
+      `Vandaag zijn er tien extreem ondervoede honden in ons opvangcentrum aangekomen. Hun ribben staken uit, hun ogen waren leeg — maar we konden ze redden, mede dankzij jouw eerdere donatie van <strong style="color:${BRAND_DARK};">${amount}</strong>.`,
+    upsellP2: 'Nu beginnt het zwaarste deel: ze terug op krachten brengen. Elke hond heeft schoon water, hoogwaardig herstelvoer en medische zorg nodig om weer op poten te komen.',
+    upsellP3: 'Als je kunt — al is het maar een klein beetje — zou je ons opnieuw willen helpen? Zonder jou redden ze het niet.',
+    upsellCta: 'Ja, ik help nog een hond',
+    upsellSignoff: 'Uit de grond van ons hart, bedankt.',
+    upsellHeroAlt: 'Tien uitgehongerde honden net gered door Dog Paws Shelter'
   },
   pt: {
     htmlLang: 'pt-BR',
@@ -102,17 +104,17 @@ const STR = {
     thankSignoff: 'Com carinho,',
     teamName: 'Equipe Belgian Paws',
     heroAlt: 'Nossos voluntários alimentando cães resgatados hoje',
-    // Upsell
-    upsellSubject: 'Mais um cãozinho está esperando por você 🐾',
-    upsellPreview: 'Sua doação anterior fez a diferença. Topa repetir?',
-    upsellH1: (name: string) => `${name}, mais um amigo está esperando por você.`,
+    // Upsell — 10 caes magros recem resgatados (texto comovente)
+    upsellSubject: 'Dez cães faminto acabaram de chegar 🐾',
+    upsellPreview: 'Eles foram resgatados, mas precisamos de você pra alimentá-los.',
+    upsellH1: (name: string) => `${name}, dez cães precisam de você hoje.`,
     upsellP1: (amount: string) =>
-      `Dois dias atrás, sua doação de <strong style="color:${BRAND_DARK};">${amount}</strong> ajudou cães do nosso abrigo a terem comida e abrigo. Obrigado — a gente não esquece.`,
-    upsellP2: 'Mas todo dia chegam novos cães abandonados. Com mais uma pequena contribuição, você ajuda mais um cão a ter uma refeição segura hoje.',
-    upsellP3: 'Quer ajudar de novo? Cada euro conta.',
-    upsellCta: 'Ajudar mais um cão',
-    upsellSignoff: 'Com gratidão,',
-    upsellHeroAlt: 'Cães resgatados em nosso abrigo'
+      `Hoje chegaram dez cães extremamente magros no nosso abrigo. Costelas à mostra, olhar perdido — mas conseguimos resgatá-los, graças em parte à sua doação anterior de <strong style="color:${BRAND_DARK};">${amount}</strong>.`,
+    upsellP2: 'Agora começa a parte mais difícil: trazê-los de volta à vida. Cada um precisa de água limpa, ração de recuperação de alta qualidade e cuidados veterinários pra ficar em pé de novo.',
+    upsellP3: 'Se você puder — nem que seja um pouquinho — topa ajudar de novo? Sem você, eles não conseguem.',
+    upsellCta: 'Sim, quero ajudar mais um cão',
+    upsellSignoff: 'Do fundo do coração, obrigado.',
+    upsellHeroAlt: 'Dez cães faminto recém resgatados pela Dog Paws Shelter'
   }
 } as const;
 
@@ -264,7 +266,7 @@ export function upsellHtml(vars: UpsellVars): string {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr>
         <td>
-          <img src="${HERO_IMAGE}" alt="${t.upsellHeroAlt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
+          <img src="${UPSELL_HERO_IMAGE}" alt="${t.upsellHeroAlt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
         </td>
       </tr>
       <tr>
@@ -288,7 +290,7 @@ export function upsellHtml(vars: UpsellVars): string {
           <table role="presentation" cellpadding="0" cellspacing="0" border="0">
             <tr>
               <td bgcolor="${BRAND_COLOR}" style="border-radius:8px;">
-                <a href="${DONATE_URL}" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:8px;">
+                <a href="${UPSELL_DONATE_URL}" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:8px;">
                   ${t.upsellCta}
                 </a>
               </td>
