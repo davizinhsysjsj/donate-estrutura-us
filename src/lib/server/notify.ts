@@ -70,14 +70,14 @@ export function notifyIcStarted(p: IcNotifyPayload): void {
   if (p.country) locParts.push(p.country);
   const loc = locParts.length ? `${flag(p.countryCode)} ${locParts.join(', ')}` : '🌐 Localização desconhecida';
 
-  // Origem: "meta - nome-da-campanha" (sem device, sem ponto medio)
+  // Origem: "Source: meta - nome-da-campanha"
   let src: string;
   if (p.utmSource && p.utmCampaign) {
-    src = `📊 ${p.utmSource} - ${p.utmCampaign}`;
+    src = `Source: ${p.utmSource} - ${p.utmCampaign}`;
   } else if (p.utmSource) {
-    src = `📊 ${p.utmSource}`;
+    src = `Source: ${p.utmSource}`;
   } else {
-    src = '📊 direto';
+    src = 'Source: direto';
   }
 
   // Pushcut: title sobrescreve o titulo da notificação configurada
