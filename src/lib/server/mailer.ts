@@ -1,54 +1,19 @@
 /**
- * Envio de emails via SMTP Zoho.
+ * Envio de emails via Resend (API HTTPS).
+ *
+ * Migrado de SMTP Zoho (commit cb47461) pra Resend (e2690ae+) porque Railway
+ * bloqueia outbound SMTP. Resend usa HTTPS porta 443, passa qualquer firewall.
  *
  * Config via env vars (Railway):
- *  - ZOHO_SMTP_HOST       (default: smtp.zoho.com)
- *  - ZOHO_SMTP_PORT       (default: 465)
- *  - ZOHO_SMTP_USER       (ex: contact@belgianpaws.help)
- *  - ZOHO_SMTP_PASS       (App Password gerada no painel Zoho)
- *  - ZOHO_MAIL_FROM       (ex: "Belgian Paws Helper <contact@belgianpaws.help>")
+ *  - RESEND_API_KEY        (formato: re_...)
+ *  - RESEND_MAIL_FROM      (ex: "Belgian Paws Helper <contact@belgianpaws.help>")
+ *  - RESEND_MAIL_BCC       (opcional, ex: contact@belgianpaws.help)
  *
- * Limites Zoho Mail Free: 100 emails/dia, 25/hora.
- * Pra escalar, migra pra ZeptoMail (mesmo Zoho, focado em transacional).
+ * Limites Resend Free: 3000 emails/mes, 100/dia.
+ * Domain belgianpaws.help ja verificado na regiao eu-west-1.
  */
 
-import nodemailer from 'nodemailer';
-import type { Transporter } from 'nodemailer';
-
-let cached: Transporter | null = null;
-
-function getTransporter(): Transporter {
-  if (cached) return cached;
-
-  const host = process.env.ZOHO_SMTP_HOST || 'smtp.zoho.com';
-  const port = Number(process.env.ZOHO_SMTP_PORT || 465);
-  const user = process.env.ZOHO_SMTP_USER;
-  const pass = process.env.ZOHO_SMTP_PASS;
-
-  if (!user || !pass) {
-    throw new Error('SMTP nao configurado: ZOHO_SMTP_USER e ZOHO_SMTP_PASS sao obrigatorios');
-  }
-
-  cached = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465, // 465 = SSL implicit, 587 = STARTTLS
-    auth: { user, pass },
-    // Timeouts curtos pra nao travar a request 60s+ quando porta esta bloqueada
-    connectionTimeout: 10_000, // 10s pra abrir socket
-    greetingTimeout: 10_000,   // 10s pro server mandar HELO
-    socketTimeout: 15_000      // 15s pra operacao individual
-  });
-
-  return cached;
-}
-
-/**
- * Reseta o transporter cacheado. Util pra trocar config (porta, host) sem restart.
- */
-export function resetTransporter() {
-  cached = null;
-}
+const RESEND_API = 'https://api.resend.com/emails';
 
 export interface SendMailInput {
   to: string;
@@ -65,35 +30,63 @@ export interface SendMailResult {
 }
 
 export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
-  try {
-    const from =
-      process.env.ZOHO_MAIL_FROM ||
-      `Belgian Paws Helper <${process.env.ZOHO_SMTP_USER || 'contact@belgianpaws.help'}>`;
+  const apiKey = process.env.RESEND_API_KEY;
+  const from =
+    process.env.RESEND_MAIL_FROM ||
+    'Belgian Paws Helper <contact@belgianpaws.help>';
+  const bcc = process.env.RESEND_MAIL_BCC;
 
-    const t = getTransporter();
-    const info = await t.sendMail({
+  if (!apiKey) {
+    return { ok: false, error: 'RESEND_API_KEY nao configurado' };
+  }
+
+  try {
+    const body: Record<string, unknown> = {
       from,
-      to: input.to,
+      to: [input.to],
       subject: input.subject,
       html: input.html,
-      text: input.text ?? input.html.replace(/<[^>]+>/g, ''),
-      replyTo: input.replyTo
+      text: input.text ?? input.html.replace(/<[^>]+>/g, '')
+    };
+    if (input.replyTo) body.reply_to = input.replyTo;
+    if (bcc) body.bcc = [bcc];
+
+    const res = await fetch(RESEND_API, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
     });
 
-    return { ok: true, messageId: info.messageId };
+    const data = (await res.json().catch(() => ({}))) as any;
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: data?.message || data?.name || `HTTP ${res.status}`
+      };
+    }
+
+    return { ok: true, messageId: data?.id };
   } catch (e: any) {
     return { ok: false, error: e?.message || String(e) };
   }
 }
 
 /**
- * Verifica autenticacao SMTP sem mandar email.
- * Util pra healthcheck/debug.
+ * Health check da API Resend. Bate em /domains com o token configurado.
  */
 export async function verifySmtp(): Promise<{ ok: boolean; error?: string }> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return { ok: false, error: 'RESEND_API_KEY nao configurado' };
+
   try {
-    const t = getTransporter();
-    await t.verify();
+    const res = await fetch('https://api.resend.com/domains', {
+      headers: { Authorization: `Bearer ${apiKey}` }
+    });
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
     return { ok: true };
   } catch (e: any) {
     return { ok: false, error: e?.message || String(e) };
