@@ -217,7 +217,8 @@
 </script>
 
 <svelte:head>
-  <title>PawsCo · Analytics</title>
+  <title>Vitrack</title>
+  <link rel="icon" type="image/png" href="/dashboard/vitrack-favicon.png" />
   <meta name="robots" content="noindex" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -228,8 +229,7 @@
   <div class="login-wrap">
     <form method="POST" action="?/login" class="login-card">
       <div class="login-brand">
-        <span class="brand-dot"></span>
-        <h1>PawsCo · Analytics</h1>
+        <img src="/dashboard/vitrack-logo.png" alt="Vitrack" class="brand-logo" />
       </div>
       <p>Acesso restrito. Insira o token de acesso.</p>
       <input type="password" name="token" placeholder="Token" autofocus autocomplete="current-password" />
@@ -246,8 +246,11 @@
   <!-- Sidebar -->
   <aside class="sidebar" class:mobile-open={mobileMenuOpen}>
     <div class="sidebar-brand">
-      <span class="brand-dot"></span>
-      {#if sidebarOpen}<span class="brand-name">PawsCo</span>{/if}
+      {#if sidebarOpen}
+        <img src="/dashboard/vitrack-logo.png" alt="Vitrack" class="brand-logo-side" />
+      {:else}
+        <img src="/dashboard/vitrack-favicon.png" alt="Vitrack" class="brand-favicon-side" />
+      {/if}
     </div>
     <nav class="nav">
       {#each [
@@ -945,7 +948,8 @@
     display: flex; flex-direction: column; gap: 16px;
     box-shadow: 0 20px 60px rgba(0,0,0,0.5);
   }
-  .login-brand { display: flex; align-items: center; gap: 10px; }
+  .login-brand { display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .brand-logo { height: 56px; width: auto; display: block; }
   .login-card h1 { margin: 0; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
   .login-card p { margin: 0; color: #8b94a4; font-size: 0.875rem; }
   .login-card input {
@@ -981,6 +985,8 @@
     box-shadow: 0 0 12px rgba(2,169,92,0.7);
   }
   .brand-name { font-weight: 700; letter-spacing: -0.01em; }
+  .brand-logo-side { height: 32px; width: auto; display: block; }
+  .brand-favicon-side { width: 28px; height: 28px; display: block; margin: 0 auto; }
   .nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; }
   .nav-item {
     background: transparent; border: none; color: #8b94a4;

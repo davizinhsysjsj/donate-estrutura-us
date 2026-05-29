@@ -118,29 +118,7 @@
     const isPlaceholder = !variantId || variantId.startsWith('PLACEHOLDER');
     const tierName = TIER_NAME_BY_AMOUNT[selectedAmount] || String(selectedAmount);
 
-    // 4. Eventos GA4 — disparados ANTES do redirect pro checkout
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      // Evento custom — clique no botao de doar
-      (window as any).gtag('event', 'click_donate', {
-        tier: tierName,
-        value: selectedAmount,
-        currency: 'EUR',
-        variant_id: variantId
-      });
-
-      // Evento padrao GA4 e-commerce — inicio de checkout
-      (window as any).gtag('event', 'begin_checkout', {
-        currency: 'EUR',
-        value: selectedAmount,
-        items: [{
-          item_id: variantId,
-          item_name: 'Belgian Paws Care Bundle',
-          item_variant: tierName,
-          price: selectedAmount,
-          quantity: 1
-        }]
-      });
-    }
+    // GA4 removido — apenas Vitrack (analytics interno) + Meta CAPI + UTMify continuam ativos
 
     setTimeout(() => {
       if (isPlaceholder) {
