@@ -949,7 +949,7 @@
     box-shadow: 0 20px 60px rgba(0,0,0,0.5);
   }
   .login-brand { display: flex; align-items: center; justify-content: center; gap: 10px; }
-  .brand-logo { height: 56px; width: auto; display: block; }
+  .brand-logo { height: 80px; width: auto; display: block; }
   .login-card h1 { margin: 0; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
   .login-card p { margin: 0; color: #8b94a4; font-size: 0.875rem; }
   .login-card input {
@@ -976,8 +976,8 @@
     position: sticky; top: 0; height: 100vh;
   }
   .sidebar-brand {
-    display: flex; align-items: center; gap: 10px;
-    padding: 20px 18px; border-bottom: 1px solid #1a1f28;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 12px 8px; border-bottom: 1px solid #1a1f28; min-height: 64px;
   }
   .brand-dot {
     width: 10px; height: 10px; border-radius: 50%;
@@ -985,8 +985,8 @@
     box-shadow: 0 0 12px rgba(2,169,92,0.7);
   }
   .brand-name { font-weight: 700; letter-spacing: -0.01em; }
-  .brand-logo-side { height: 32px; width: auto; display: block; }
-  .brand-favicon-side { width: 28px; height: 28px; display: block; margin: 0 auto; }
+  .brand-logo-side { height: 44px; width: auto; display: block; }
+  .brand-favicon-side { width: 52px; height: 52px; display: block; margin: 0 auto; }
   .nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; }
   .nav-item {
     background: transparent; border: none; color: #8b94a4;
