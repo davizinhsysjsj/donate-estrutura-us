@@ -3,8 +3,10 @@ import { json, error } from '@sveltejs/kit';
 import crypto from 'node:crypto';
 import { env } from '$env/dynamic/private';
 import { ingest as ingestAnalytics, parseDevice, initStore as initAnalyticsStore } from '$lib/server/analytics';
+import { scheduleEmail, initEmailScheduler } from '$lib/server/email-scheduler';
 
 initAnalyticsStore();
+initEmailScheduler();
 
 const META_CAPI_VERSION = 'v21.0';
 
@@ -198,6 +200,32 @@ export const POST: RequestHandler = async ({ request }) => {
 			else console.log('[shopify-purchase] utmify ok', { orderId });
 		})
 		.catch((e) => console.error('[shopify-purchase] utmify fetch failed', e));
+
+	// ── Agendamento de emails transacionais (NL) ──
+	// Email 1: agradecimento 5min apos compra
+	// Email 2: upsell 48h apos compra
+	// Ambos persistidos em disco — sobrevivem a restart do Railway.
+	if (email) {
+		try {
+			const firstName = shipping.first_name || customer.first_name || undefined;
+			scheduleEmail({
+				toEmail: email,
+				templateName: 'thank-you',
+				templateData: { firstName, amount: value, currency },
+				delayMs: 5 * 60 * 1000 // 5 min
+			});
+			scheduleEmail({
+				toEmail: email,
+				templateName: 'upsell',
+				templateData: { firstName, previousAmount: value, currency },
+				delayMs: 48 * 60 * 60 * 1000 // 48 h
+			});
+		} catch (e) {
+			console.error('[shopify-purchase] schedule email failed', e);
+		}
+	} else {
+		console.warn('[shopify-purchase] no email in order, skipping email schedule', { orderId });
+	}
 
 	return json({ ok: true, eventId });
 };
