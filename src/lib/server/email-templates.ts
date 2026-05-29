@@ -12,8 +12,9 @@
 const SITE_URL = 'https://belgianpawshelter.help';
 const DONATE_URL = `${SITE_URL}/`;
 const HERO_IMAGE = `${SITE_URL}/email/feeding-dogs.jpg`;
+const LOGO_IMAGE = `${SITE_URL}/email/logo.png`;
 const SUPPORT_EMAIL = 'contact@belgianpaws.help';
-const BRAND_COLOR = '#16A34A'; // verde camisa
+const BRAND_COLOR = '#16A34A'; // verde camisa (usado no botao CTA)
 const BRAND_DARK = '#15803D';
 
 export type Locale = 'nl' | 'pt';
@@ -62,8 +63,8 @@ const STR = {
     footerBrand: 'Belgian Paws Helper · Rescued dog care, Belgium',
     footerSupport: (mail: string) => `Heb je een vraag? Antwoord direct op deze e-mail of mail naar <a href="mailto:${mail}" style="color:${BRAND_DARK};text-decoration:none;">${mail}</a>.`,
     // Thank you
-    thankSubject: 'Jouw donatie voedt onze honden vandaag 🐾',
-    thankPreview: 'Vandaag krijgen drie viervoeters een volle bak — dankzij jou.',
+    thankSubject: 'Wij hebben al voer gekocht voor 3 honden 🐾',
+    thankPreview: 'Hier is een foto van Max, Luna en Milo die eten dankzij jouw donatie. Klik en bekijk.',
     thankH1: (name: string) => `Bedankt, ${name}. Jij hebt vandaag het verschil gemaakt.`,
     thankP1: (amount: string) =>
       `Jouw donatie van <strong style="color:${BRAND_DARK};">${amount}</strong> is al onderweg naar de bakjes van enkele van onze geredde honden. Vandaag eten ze warm en veilig, en dat is dankzij jou.`,
@@ -91,8 +92,8 @@ const STR = {
     footerBrand: 'Belgian Paws Helper · Cuidado com cães resgatados, Bélgica',
     footerSupport: (mail: string) => `Alguma dúvida? Responda direto este e-mail ou escreva para <a href="mailto:${mail}" style="color:${BRAND_DARK};text-decoration:none;">${mail}</a>.`,
     // Thank you
-    thankSubject: 'Sua doação está alimentando nossos cães hoje 🐾',
-    thankPreview: 'Hoje três cães vão receber uma tigela cheia — graças a você.',
+    thankSubject: 'Nós já compramos rações para 3 cães 🐾',
+    thankPreview: 'Aqui está uma foto do Max, Luna e do Milo comendo com o dinheiro da sua doação. Clique e veja.',
     thankH1: (name: string) => `Obrigado, ${name}. Você fez a diferença hoje.`,
     thankP1: (amount: string) =>
       `Sua doação de <strong style="color:${BRAND_DARK};">${amount}</strong> já está alimentando alguns dos nossos cães resgatados. Hoje eles comem quentinho e seguro, e isso é graças a você.`,
@@ -119,24 +120,13 @@ function resolveLocale(l?: Locale): Locale {
   return l === 'pt' ? 'pt' : 'nl';
 }
 
-function header(locale: Locale): string {
-  const t = STR[locale];
+function header(_locale: Locale): string {
+  // Header branco com logo Dog Paws centralizada (substitui texto antigo)
   return `
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${BRAND_COLOR};">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-bottom:1px solid #f1f5f9;">
       <tr>
-        <td align="center" style="padding:24px 16px;">
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-            <tr>
-              <td style="font-family:Arial,Helvetica,sans-serif;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:1px;line-height:1;">
-                BELGIAN&nbsp;PAWS&nbsp;<span style="font-size:24px;">🐾</span>
-              </td>
-            </tr>
-            <tr>
-              <td style="font-family:Arial,Helvetica,sans-serif;color:#dcfce7;font-size:11px;font-weight:500;padding-top:4px;letter-spacing:2px;text-transform:uppercase;">
-                ${t.tagline}
-              </td>
-            </tr>
-          </table>
+        <td align="center" style="padding:28px 16px 24px;">
+          <img src="${LOGO_IMAGE}" alt="Belgian Paws" width="220" style="display:block;width:220px;max-width:80%;height:auto;border:0;">
         </td>
       </tr>
     </table>
@@ -183,6 +173,7 @@ function shell(locale: Locale, previewText: string, bodyHtml: string): string {
 <body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
   <div style="display:none;font-size:1px;color:#f1f5f9;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
     ${escape(previewText)}
+    ${'&#847; &zwnj; &nbsp; '.repeat(120)}
   </div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f1f5f9;">
     <tr>
