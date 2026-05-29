@@ -60,28 +60,28 @@ export function notifyIcStarted(p: IcNotifyPayload): void {
     gcDedup();
   }
 
-  const tier = p.tierName || (p.amount ? TIER_BY_AMOUNT[p.amount] : '') || '';
-  const amountTxt = p.amount ? `€${p.amount}` : 'IC';
-  const title = tier ? `${amountTxt} · ${tier}` : amountTxt;
+  // Titulo: "Checkout iniciado no valor de €30"
+  const amountTxt = p.amount ? `€${p.amount}` : '—';
+  const title = `Checkout iniciado no valor de ${amountTxt}`;
 
+  // Localizacao
   const locParts: string[] = [];
   if (p.city) locParts.push(p.city);
   if (p.country) locParts.push(p.country);
   const loc = locParts.length ? `${flag(p.countryCode)} ${locParts.join(', ')}` : '🌐 Localização desconhecida';
 
-  const devParts: string[] = [];
-  if (p.device) devParts.push(p.device);
-  if (p.browser) devParts.push(p.browser);
-  const dev = devParts.join(' / ');
-
-  const srcParts: string[] = [];
-  if (p.utmSource) srcParts.push(p.utmSource);
-  if (p.utmCampaign) srcParts.push(p.utmCampaign);
-  const src = srcParts.length ? `📊 ${srcParts.join(' · ')}` : '📊 direto';
+  // Origem: "meta - nome-da-campanha" (sem device, sem ponto medio)
+  let src: string;
+  if (p.utmSource && p.utmCampaign) {
+    src = `📊 ${p.utmSource} - ${p.utmCampaign}`;
+  } else if (p.utmSource) {
+    src = `📊 ${p.utmSource}`;
+  } else {
+    src = '📊 direto';
+  }
 
   // Pushcut: title sobrescreve o titulo da notificação configurada
-  // text  = corpo, input = campo extra (deixo com fonte)
-  const text = `${loc}\n${dev ? `📱 ${dev}\n` : ''}${src}`;
+  const text = `${loc}\n${src}`;
 
   const url = `https://api.pushcut.io/v1/notifications/${encodeURIComponent(NAME)}`;
 
