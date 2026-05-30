@@ -17,6 +17,11 @@
   import {
     SHOPIFY_SHOP_DOMAIN, TIER_NAME_BY_AMOUNT, pickVariantForAmount
   } from '$lib/data/variants';
+  import type { PageData } from './$types';
+
+  // Layout server retorna `donors` mesclado (reais 24h primeiro + fakes completando)
+  const { data } = $props<{ data: PageData }>();
+  const donorsList = $derived(data.donors);
 
   // Estado de tracking Meta (preenchido no onMount, usado no handleDonate)
   let fbclid: string | null = $state(null);
@@ -27,7 +32,7 @@
   // Rotacao do "ultimo doador" no ProgressCard e StickyBottomBar — cycle a cada 4.2s
   let donorIdx = $state(0);
   let donorTimer: ReturnType<typeof setInterval> | null = null;
-  const lastDonor = $derived(CAMPAIGN.donors[donorIdx % CAMPAIGN.donors.length]);
+  const lastDonor = $derived(donorsList[donorIdx % donorsList.length]);
 
   onMount(() => {
     // Captura fbclid + UTMs reais da URL (anuncio Meta) ou recupera do storage
@@ -39,7 +44,7 @@
     setTimeout(() => { fbp = getFbp(); }, 500);
 
     donorTimer = setInterval(() => {
-      donorIdx = (donorIdx + 1) % CAMPAIGN.donors.length;
+      donorIdx = (donorIdx + 1) % donorsList.length;
     }, 4200);
   });
 
@@ -290,7 +295,7 @@
         <button class="donations-link" onclick={() => (donorsModalOpen = true)}>Alles bekijken</button>
       </div>
       <ul class="donor-list">
-        {#each CAMPAIGN.donors.slice(0, 5) as d}
+        {#each donorsList.slice(0, 5) as d}
           <li class="donor-item">
             <div class="donor-avatar {d.color}">
               {#if d.anonymous}
@@ -308,7 +313,7 @@
         {/each}
       </ul>
       <button class="btn-see-all" onclick={() => (donorsModalOpen = true)}>
-        Bekijk alle {CAMPAIGN.donors.length}+ donaties
+        Bekijk alle {donorsList.length}+ donaties
       </button>
     </div>
 
@@ -491,7 +496,7 @@
     <div class="sheet-title">Alle donaties ({CAMPAIGN.donationsCount})</div>
     <p class="sheet-subtitle">Laatste supporters die Belgische opvangcentra helpen.</p>
     <ul class="donor-list donor-list-full">
-      {#each CAMPAIGN.donors as d}
+      {#each donorsList as d}
         <li class="donor-item">
           <div class="donor-avatar {d.color}">
             {#if d.anonymous}

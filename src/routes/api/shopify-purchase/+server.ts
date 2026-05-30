@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { env } from '$env/dynamic/private';
 import { ingest as ingestAnalytics, parseDevice, initStore as initAnalyticsStore } from '$lib/server/analytics';
 import { scheduleEmail, initEmailScheduler } from '$lib/server/email-scheduler';
+import { addRealDonor } from '$lib/server/donors-feed';
 
 initAnalyticsStore();
 initEmailScheduler();
@@ -200,6 +201,19 @@ export const POST: RequestHandler = async ({ request }) => {
 			else console.log('[shopify-purchase] utmify ok', { orderId });
 		})
 		.catch((e) => console.error('[shopify-purchase] utmify fetch failed', e));
+
+	// ── Feed de doadores reais (alimenta ProgressCard e lista da LP) ──
+	// So registra se a compra tem valor positivo (default). Privacy: so first name + inicial.
+	try {
+		addRealDonor({
+			firstName: shipping.first_name || customer.first_name,
+			lastName: shipping.last_name || customer.last_name,
+			amount: value,
+			currency
+		});
+	} catch (e) {
+		console.error('[shopify-purchase] addRealDonor failed', e);
+	}
 
 	// ── Agendamento de emails transacionais (NL) ──
 	// Email 1: agradecimento 1h apos compra
