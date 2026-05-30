@@ -202,7 +202,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		.catch((e) => console.error('[shopify-purchase] utmify fetch failed', e));
 
 	// ── Agendamento de emails transacionais (NL) ──
-	// Email 1: agradecimento 5min apos compra
+	// Email 1: agradecimento 1h apos compra
 	// Email 2: upsell 48h apos compra
 	// Ambos persistidos em disco — sobrevivem a restart do Railway.
 	if (email) {
@@ -212,7 +212,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				toEmail: email,
 				templateName: 'thank-you',
 				templateData: { firstName, amount: value, currency },
-				delayMs: 5 * 60 * 1000 // 5 min
+				delayMs: 60 * 60 * 1000 // 1 h
 			});
 			scheduleEmail({
 				toEmail: email,
