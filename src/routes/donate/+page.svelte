@@ -6,6 +6,17 @@
   } from '$lib/utils/fbtracking';
   import { track as trackAnalytics, getSid } from '$lib/utils/analytics';
   import { SHOPIFY_SHOP_DOMAIN, pickVariantForAmount } from '$lib/data/variants';
+  import { CAMPAIGN } from '$lib/data/campaign';
+  import type { PageData } from './$types';
+
+  const { data } = $props<{ data: PageData }>();
+  const raisedEur = $derived(data.raisedEur ?? CAMPAIGN.raisedEur);
+  const goalEur = CAMPAIGN.goalEur;
+  const pct = $derived(Math.min(100, Math.round((raisedEur / goalEur) * 100)));
+  // Circunferência do círculo SVG (r=24): 2*pi*24 = 150.8
+  const CIRC = 150.8;
+  const dashOffset = $derived(CIRC - (pct / 100) * CIRC);
+  const remaining = $derived(Math.max(0, goalEur - raisedEur));
 
   type AmountOption = {
     amount: number;
@@ -17,8 +28,8 @@
     { amount: 10,  desc: 'Geeft een maaltijd aan een gered dier.' },
     { amount: 15,  desc: 'Zorgt voor maaltijden voor een dier gedurende meerdere dagen.' },
     { amount: 20,  desc: 'Helpt een gered dier bijna een week lang te voeden.' },
-    { amount: 25,  desc: 'Vult lege bakjes en geeft troost aan wie honger heeft.' },
-    { amount: 30,  recommended: true, desc: 'Zorgt voor voer voor een hond gedurende circa 1 week.' },
+    { amount: 25,  recommended: true, desc: 'Vult lege bakjes en geeft troost aan wie honger heeft.' },
+    { amount: 30,  desc: 'Zorgt voor voer voor een hond gedurende circa 1 week.' },
     { amount: 35,  desc: 'Volledige verzorging voor meerdere dieren gedurende een week.' },
     { amount: 50,  desc: 'Helpt 2 tot 3 dieren meerdere dagen te voeden.' },
     { amount: 80,  desc: 'Draagt bij aan de voeding van meerdere dieren gedurende 1 à 2 weken.' },
@@ -163,25 +174,25 @@
 
   <div class="dn-card">
 
-    <!-- Progress row -->
+    <!-- Progress row (dinâmico) -->
     <div class="dn-progress-row">
       <div class="dn-circ">
         <svg width="58" height="58" viewBox="0 0 58 58">
           <circle cx="29" cy="29" r="24" fill="none" stroke="#e8e8e8" stroke-width="4"/>
           <circle cx="29" cy="29" r="24" fill="none" stroke="#02a95c" stroke-width="4"
-            stroke-dasharray="150.8" stroke-dashoffset="111.6" stroke-linecap="round"/>
+            stroke-dasharray={CIRC} stroke-dashoffset={dashOffset} stroke-linecap="round"/>
         </svg>
-        <div class="dn-circ-label">26 %</div>
+        <div class="dn-circ-label">{pct}%</div>
       </div>
       <div>
-        <div class="dn-progress-title">Nog maar <span>€ 717</span> te gaan!</div>
+        <div class="dn-progress-title">Nog maar <span>€ {remaining}</span> te gaan!</div>
         <div class="dn-progress-sub">Maak een verschil.</div>
       </div>
     </div>
 
     <!-- Tax badge -->
     <div class="dn-tax">
-      🏅 Door <strong>€30 of meer</strong> te doneren, kun jij tot <strong>25% terugkrijgen</strong> via je belastingaangifte.
+      🏅 Door <strong>€25 of meer</strong> te doneren, kun jij tot <strong>25% terugkrijgen</strong> via je belastingaangifte.
     </div>
 
     <!-- Amount grid -->
@@ -193,7 +204,7 @@
           onclick={() => selectAmount(opt.amount)}
         >
           {#if opt.recommended}
-            <span class="dn-badge">Aanbevolen</span>
+            <span class="dn-badge">Meest gekozen</span>
           {/if}
           <span class="dn-amount-val">€{opt.amount}</span>
           <span class="dn-amount-desc">{opt.desc}</span>
