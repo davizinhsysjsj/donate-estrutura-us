@@ -14,6 +14,7 @@
     captureAndPersistFbclid, getFbp, trackEvent, uuid, buildShopifyCartUrl,
     type UtmData
   } from '$lib/utils/fbtracking';
+  import { getSid } from '$lib/utils/analytics';
   import {
     SHOPIFY_SHOP_DOMAIN, TIER_NAME_BY_AMOUNT, pickVariantForAmount
   } from '$lib/data/variants';
@@ -137,7 +138,8 @@
           fbclid,
           fbp,
           eventId,
-          utm
+          utm,
+          sid: getSid()
         });
       }
     }, 800);
