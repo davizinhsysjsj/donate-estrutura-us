@@ -26,6 +26,7 @@
   const donorsList = $derived(data.donors);
   const raisedEur = $derived(data.raisedEur ?? CAMPAIGN.raisedEur);
   const donationsCount = $derived(data.donationsCount ?? CAMPAIGN.donationsCount);
+  const daysLeft = $derived(data.daysLeft ?? CAMPAIGN.daysLeft);
 
   // Estado de tracking Meta (preenchido no onMount, usado no handleDonate)
   let fbclid: string | null = $state(null);
@@ -260,7 +261,7 @@
 
       <div class="progress-stats-row">
         <span><span class="donations-count">{donationsCount}</span> donaties</span>
-        <span>{CAMPAIGN.daysLeft} dagen over</span>
+        <span>{daysLeft} dagen over</span>
       </div>
 
       <div id="story-section" data-section="story" class="story-text" class:story-text-collapsed={!descExpanded}>
@@ -460,8 +461,12 @@
               type="button"
               class="amount-btn amount-btn-tier"
               class:selected={selectedAmount === tier.amount}
+              class:popular={tier.amount === 25}
               onclick={() => selectAmount(tier.amount)}
             >
+              {#if tier.amount === 25}
+                <span class="amount-btn-badge">Meest gekozen</span>
+              {/if}
               <span class="amount-btn-value">€{tier.amount}</span>
               <span class="amount-btn-sub">voedt {tier.dogs} {tier.dogs === 1 ? 'dier' : 'dieren'}</span>
             </button>

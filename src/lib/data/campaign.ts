@@ -36,7 +36,9 @@ export const CAMPAIGN = {
   raisedEur: 1053,
   goalEur: 5000,
   donationsCount: 412,
-  daysLeft: 21,
+  // Data de encerramento da campanha (ISO). daysLeft calculado dinamicamente a partir daqui.
+  campaignEndDate: '2026-06-30',
+  daysLeft: 21, // fallback caso campaignEndDate seja removido
 
   // Story
   story: [

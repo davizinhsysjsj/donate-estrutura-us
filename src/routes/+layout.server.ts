@@ -42,6 +42,12 @@ export const load: LayoutServerLoad = async ({ setHeaders }) => {
 	// Stats dinâmicos: raisedEur e donationsCount do arquivo persistido
 	const stats = getCampaignStats();
 
+	// daysLeft calculado a partir da data de encerramento (evita hardcode ficar parado)
+	const endDate = new Date(CAMPAIGN.campaignEndDate ?? '2026-06-30');
+	const now = new Date();
+	const msLeft = endDate.getTime() - now.getTime();
+	const daysLeft = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
+
 	// cache curto: o feed muda quando uma nova compra entra (raro o suficiente
 	// pra 60s ser aceitavel; alivia I/O de disco em trafego alto)
 	setHeaders({ 'cache-control': 'public, max-age=60' });
@@ -50,6 +56,7 @@ export const load: LayoutServerLoad = async ({ setHeaders }) => {
 		donors: merged,
 		realDonorsCount: real.length,
 		raisedEur: stats.raisedEur,
-		donationsCount: stats.donationsCount
+		donationsCount: stats.donationsCount,
+		daysLeft
 	};
 };

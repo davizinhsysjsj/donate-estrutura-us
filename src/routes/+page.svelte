@@ -10,6 +10,7 @@
   import { TIERS, DEFAULT_TIER, dogsForAmount } from '$lib/data/tiers';
   import ProgressCard from '$lib/components/ProgressCard.svelte';
   import StickyBottomBar from '$lib/components/StickyBottomBar.svelte';
+  import ExitIntentPopup from '$lib/components/ExitIntentPopup.svelte';
   import {
     captureAndPersistFbclid, getFbp, trackEvent, uuid, buildShopifyCartUrl,
     type UtmData
@@ -26,12 +27,23 @@
   const donorsList = $derived(data.donors);
   const raisedEur = $derived(data.raisedEur ?? CAMPAIGN.raisedEur);
   const donationsCount = $derived(data.donationsCount ?? CAMPAIGN.donationsCount);
+  const daysLeft = $derived(data.daysLeft ?? CAMPAIGN.daysLeft);
 
   // Estado de tracking Meta (preenchido no onMount, usado no handleDonate)
   let fbclid: string | null = $state(null);
   let fbc: string | null = $state(null);
   let fbp: string | null = $state(null);
   let utm: UtmData | null = $state(null);
+
+  // Personalização por UTM: copy diferente para visitantes vindos do Facebook
+  let utmSource = $state<string | null>(null);
+  const isFbTraffic = $derived(utmSource === 'facebook' || utmSource === 'fb');
+  const heroTitle = $derived(isFbTraffic
+    ? 'Jij zag dit op Facebook — nu kun je echt helpen'
+    : CAMPAIGN.title);
+  const heroSubtitle = $derived(isFbTraffic
+    ? 'Duizenden mensen deelden dit verhaal. Jouw donatie van €10 voedt vanavond 2 dieren.'
+    : CAMPAIGN.subtitle);
 
   // Rotacao do "ultimo doador" no ProgressCard e StickyBottomBar — cycle a cada 4.2s
   let donorIdx = $state(0);
@@ -44,6 +56,7 @@
     fbclid = tracking.fbclid;
     fbc = tracking.fbc;
     utm = tracking.utm;
+    utmSource = tracking.utm?.utm_source ?? null;
     // fbp e setado pelo Pixel JS via cookie — le com pequeno delay pro Pixel inicializar
     setTimeout(() => { fbp = getFbp(); }, 500);
 
@@ -221,7 +234,10 @@
 
     <!-- Bloco principal: titulo + progress card + descricao curta -->
     <section class="hero-block" data-section="hero-block">
-      <h1 class="campaign-title">{CAMPAIGN.title}</h1>
+      <h1 class="campaign-title">{heroTitle}</h1>
+      {#if isFbTraffic}
+        <p class="campaign-subtitle-fb">{heroSubtitle}</p>
+      {/if}
 
       <div id="progress-anchor">
         <ProgressCard
@@ -238,7 +254,7 @@
 
       <div class="progress-stats-row">
         <span><span class="donations-count">{donationsCount}</span> donaties</span>
-        <span>{CAMPAIGN.daysLeft} dagen over</span>
+        <span>{daysLeft} dagen over</span>
       </div>
 
       <div id="story-section" data-section="story" class="story-text" class:story-text-collapsed={!descExpanded}>
@@ -352,6 +368,26 @@
 
     <!-- Footer -->
     <footer class="footer">
+      <!-- Trust badges -->
+      <div class="footer-trust">
+        <div class="trust-badge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Beveiligde betaling
+        </div>
+        <div class="trust-badge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          SSL versleuteld
+        </div>
+        <div class="trust-badge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+          88% gaat naar dieren
+        </div>
+        <div class="trust-badge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          {donationsCount}+ donateurs
+        </div>
+      </div>
+
       <div class="footer-social">
         <a href="#" aria-label="Facebook"><Facebook size={20} /></a>
         <a href="#" aria-label="YouTube"><Youtube size={20} /></a>
@@ -362,11 +398,11 @@
       <div class="footer-copy">© 2026 {CAMPAIGN.brand} Opvang</div>
 
       <div class="footer-links">
+        <a href="/over">Over ons</a>
+        <a href="/updates">Updates</a>
         <a href="#">Voorwaarden</a>
         <a href="#">Privacy</a>
-        <a href="#">Terugbetalingen</a>
-        <a href="#">Cookies</a>
-        <a href="mailto:hello@pawsco.com">Contact</a>
+        <a href="mailto:contact@belgianpaws.help">Contact</a>
       </div>
     </footer>
   </div>
@@ -411,8 +447,12 @@
               type="button"
               class="amount-btn amount-btn-tier"
               class:selected={selectedAmount === tier.amount}
+              class:popular={tier.amount === 25}
               onclick={() => selectAmount(tier.amount)}
             >
+              {#if tier.amount === 25}
+                <span class="amount-btn-badge">Meest gekozen</span>
+              {/if}
               <span class="amount-btn-value">€{tier.amount}</span>
               <span class="amount-btn-sub">voedt {tier.dogs} {tier.dogs === 1 ? 'dier' : 'dieren'}</span>
             </button>
@@ -524,3 +564,6 @@
 
 <!-- Toast -->
 <div class="toast" class:show={toastVisible}>{toastMessage}</div>
+
+<!-- Exit intent popup (desktop: cursor sai pelo topo após 8s) -->
+<ExitIntentPopup onDonate={openDonation} />

@@ -273,6 +273,10 @@ body {
   letter-spacing: -0.02em;
   margin: 0;
 }
+.campaign-subtitle-fb {
+  font-size: 0.9375rem; color: #555; line-height: 1.55;
+  margin: 8px 0 0; font-style: italic;
+}
 
 /* ─── Progress (linha donations / days left) ─── */
 .progress-block {
@@ -523,6 +527,19 @@ body {
 
 /* ─── Footer ─── */
 .footer { padding: 28px 16px 24px; background: var(--bg); border-top: 1px solid var(--border); }
+/* Trust badges no rodapé */
+.footer-trust {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px;
+  margin-bottom: 20px; padding: 14px 12px;
+  background: #f0faf5; border-radius: 12px; border: 1px solid #c8f0da;
+}
+.trust-badge {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 0.75rem; font-weight: 600; color: #2d7a4f;
+  white-space: nowrap;
+}
+.trust-badge svg { flex-shrink: 0; stroke: #2d7a4f; }
+
 .footer-social { display: flex; justify-content: center; gap: 24px; margin-bottom: 20px; }
 .footer-social a { color: var(--muted-fg); transition: color 0.15s; text-decoration: none; }
 .footer-social a:hover { color: var(--primary-dark); }
@@ -584,6 +601,16 @@ body {
 }
 .amount-btn-tier:hover .amount-btn-sub { opacity: 1; }
 .amount-btn-tier.selected .amount-btn-sub { opacity: 0.95; }
+
+/* Badge "Meest gekozen" — tier popular */
+.amount-btn-tier.popular { border-color: var(--primary); position: relative; }
+.amount-btn-badge {
+  position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+  background: var(--primary); color: #fff; font-size: 0.65rem; font-weight: 700;
+  padding: 2px 8px; border-radius: 20px; white-space: nowrap; letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.amount-btn-tier { position: relative; }
 
 /* ─── Confirm step ─── */
 .confirm-screen { text-align: center; padding: 4px 0; }
