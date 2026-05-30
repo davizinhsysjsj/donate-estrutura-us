@@ -5,6 +5,7 @@ import { env } from '$env/dynamic/private';
 import { ingest as ingestAnalytics, parseDevice, initStore as initAnalyticsStore } from '$lib/server/analytics';
 import { scheduleEmail, initEmailScheduler } from '$lib/server/email-scheduler';
 import { addRealDonor } from '$lib/server/donors-feed';
+import { recordPurchase } from '$lib/server/campaign-stats';
 
 initAnalyticsStore();
 initEmailScheduler();
@@ -213,6 +214,13 @@ export const POST: RequestHandler = async ({ request }) => {
 		});
 	} catch (e) {
 		console.error('[shopify-purchase] addRealDonor failed', e);
+	}
+
+	// ── Stats dinâmicos da campanha (raisedEur + donationsCount) ──
+	try {
+		recordPurchase(value);
+	} catch (e) {
+		console.error('[shopify-purchase] recordPurchase failed', e);
 	}
 
 	// ── Agendamento de emails transacionais (NL) ──

@@ -21,8 +21,11 @@
   import type { PageData } from './$types';
 
   // Layout server retorna `donors` mesclado (reais 24h primeiro + fakes completando)
+  // e também stats dinâmicos da campanha (raisedEur, donationsCount)
   const { data } = $props<{ data: PageData }>();
   const donorsList = $derived(data.donors);
+  const raisedEur = $derived(data.raisedEur ?? CAMPAIGN.raisedEur);
+  const donationsCount = $derived(data.donationsCount ?? CAMPAIGN.donationsCount);
 
   // Estado de tracking Meta (preenchido no onMount, usado no handleDonate)
   let fbclid: string | null = $state(null);
@@ -244,7 +247,7 @@
 
       <div id="progress-anchor">
         <ProgressCard
-          raised={CAMPAIGN.raisedEur}
+          raised={raisedEur}
           goal={CAMPAIGN.goalEur}
           lastDonorName={lastDonor.anonymous ? 'Anoniem' : lastDonor.name}
           lastDonorAmount={lastDonor.amount}
@@ -256,7 +259,7 @@
       </div>
 
       <div class="progress-stats-row">
-        <span><span class="donations-count">{CAMPAIGN.donationsCount}</span> donaties</span>
+        <span><span class="donations-count">{donationsCount}</span> donaties</span>
         <span>{CAMPAIGN.daysLeft} dagen over</span>
       </div>
 
@@ -341,7 +344,7 @@
       <div class="donations-header">
         <div class="donations-title">
           Donaties
-          <span class="donations-badge">{CAMPAIGN.donationsCount}</span>
+          <span class="donations-badge">{donationsCount}</span>
         </div>
         <button class="donations-link" onclick={() => (donorsModalOpen = true)}>Alles bekijken</button>
       </div>
@@ -544,7 +547,7 @@
 >
   <div class="sheet sheet-donors" role="document">
     <div class="sheet-handle"></div>
-    <div class="sheet-title">Alle donaties ({CAMPAIGN.donationsCount})</div>
+    <div class="sheet-title">Alle donaties ({donationsCount})</div>
     <p class="sheet-subtitle">Laatste supporters die Belgische opvangcentra helpen.</p>
     <ul class="donor-list donor-list-full">
       {#each donorsList as d}

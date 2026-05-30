@@ -132,6 +132,6 @@ export const CAMPAIGN = {
     }
   ],
 
-  shareUrl: 'https://donate-estrutura.vercel.app',
+  shareUrl: 'https://belgianpawshelter.help',
   shareTitle: 'Help deze winter Belgische opvangdieren te voeden'
 };

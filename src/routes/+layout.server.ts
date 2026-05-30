@@ -1,5 +1,6 @@
 import type { LayoutServerLoad } from './$types';
 import { getRecentRealDonors, type FeedDonor } from '$lib/server/donors-feed';
+import { getCampaignStats } from '$lib/server/campaign-stats';
 import { CAMPAIGN } from '$lib/data/campaign';
 
 /**
@@ -38,12 +39,17 @@ export const load: LayoutServerLoad = async ({ setHeaders }) => {
 		...fakes.slice(0, needed)
 	];
 
+	// Stats dinâmicos: raisedEur e donationsCount do arquivo persistido
+	const stats = getCampaignStats();
+
 	// cache curto: o feed muda quando uma nova compra entra (raro o suficiente
 	// pra 60s ser aceitavel; alivia I/O de disco em trafego alto)
 	setHeaders({ 'cache-control': 'public, max-age=60' });
 
 	return {
 		donors: merged,
-		realDonorsCount: real.length
+		realDonorsCount: real.length,
+		raisedEur: stats.raisedEur,
+		donationsCount: stats.donationsCount
 	};
 };
