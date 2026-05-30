@@ -171,6 +171,12 @@
 
 </script>
 
+<svelte:head>
+  <!-- Preconnect pro domínio do video (resolve DNS+TLS antes do user dar play) -->
+  <link rel="preconnect" href="https://belgianpaws-vsl.vercel.app" crossorigin />
+  <link rel="dns-prefetch" href="https://belgianpaws-vsl.vercel.app" />
+</svelte:head>
+
 <header class="header">
   <a href="/" class="header-logo">
     <img src="/logo.webp" alt="Officiële Donaties België" class="logo-img" />
@@ -263,10 +269,13 @@
       <video
         bind:this={videoEl}
         src={VSL_URL}
+        poster={CAMPAIGN.heroImage}
         autoplay
         muted
         playsinline
-        preload="auto"
+        preload="metadata"
+        width="900"
+        height="506"
         class="vsl-video"
       ></video>
 
