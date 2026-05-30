@@ -64,7 +64,9 @@ export function captureAndPersistFbclid(): { fbclid: string | null; fbc: string 
   const utmContent = params.get('utm_content');
   const utmTerm = params.get('utm_term');
 
-  // Persiste UTMs reais no localStorage se vieram da URL
+  // Persiste UTMs reais no localStorage E cookie (30 dias) se vieram da URL.
+  // Cookie sobrevive a diferentes abas/sessoes do mesmo browser — evita "sem parametros"
+  // quando usuario clica no anuncio hoje e compra amanha sem re-clicar.
   if (utmSource) {
     const utmData: UtmData = {
       source: utmSource,
@@ -73,7 +75,9 @@ export function captureAndPersistFbclid(): { fbclid: string | null; fbc: string 
       content: utmContent || undefined,
       term: utmTerm || undefined
     };
-    localStorage.setItem('utm_data', JSON.stringify(utmData));
+    const serialized = JSON.stringify(utmData);
+    localStorage.setItem('utm_data', serialized);
+    setCookie('_bp_utm', serialized, 30); // 30 dias — atualiza a cada novo clique de anuncio
   }
 
   if (urlFbclid) {
@@ -91,11 +95,12 @@ export function captureAndPersistFbclid(): { fbclid: string | null; fbc: string 
   return { fbclid: stored, fbc: storedFbc, utm: getStoredUtm() };
 }
 
-/** Recupera UTMs persistidas no localStorage. */
+/** Recupera UTMs persistidas no localStorage ou cookie _bp_utm (fallback). */
 export function getStoredUtm(): UtmData | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = localStorage.getItem('utm_data');
+    // Prefere localStorage (mais recente) — cai no cookie se localStorage vazio
+    const raw = localStorage.getItem('utm_data') || getCookie('_bp_utm');
     return raw ? (JSON.parse(raw) as UtmData) : null;
   } catch {
     return null;
