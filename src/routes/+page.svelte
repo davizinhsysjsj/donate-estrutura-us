@@ -63,6 +63,17 @@
     donorTimer = setInterval(() => {
       donorIdx = (donorIdx + 1) % donorsList.length;
     }, 4200);
+
+    // Back redirect: empurra um estado fake no histórico.
+    // Quando o user aperta "voltar", interceptamos e mandamos pra /wacht
+    if (typeof history !== 'undefined') {
+      history.pushState({ pawsBackGuard: true }, '', window.location.pathname + window.location.search);
+      const handlePopState = () => {
+        window.removeEventListener('popstate', handlePopState);
+        goto('/wacht');
+      };
+      window.addEventListener('popstate', handlePopState);
+    }
   });
 
   onDestroy(() => {

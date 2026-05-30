@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount } from 'svelte';
 
   interface Props {
     onDonate: () => void;
@@ -9,24 +9,57 @@
   let visible = $state(false);
   let dismissed = $state(false);
 
-  function handleMouseLeave(e: MouseEvent) {
-    // Só dispara se o cursor sair pelo topo da janela (indo pra barra de endereço)
-    if (e.clientY <= 5 && !dismissed) {
-      visible = true;
-      dismissed = true; // dispara só 1x por sessão
-      document.removeEventListener('mouseleave', handleMouseLeave);
-    }
+  function show() {
+    if (dismissed) return;
+    dismissed = true;
+    visible = true;
+    removeListeners();
   }
 
+  function removeListeners() {
+    document.removeEventListener('mouseleave', handleMouseLeave);
+    document.removeEventListener('click', handleDocumentClick);
+  }
+
+  // Exit intent: cursor sai pelo topo (vai pra barra de endereço)
+  function handleMouseLeave(e: MouseEvent) {
+    if (e.clientY <= 5) show();
+  }
+
+  // Click em área vazia: não é link, botão, input ou filho deles
+  function handleDocumentClick(e: MouseEvent) {
+    if (dismissed) return;
+    const target = e.target as HTMLElement;
+
+    // Ignora cliques em elementos interativos ou dentro de componentes de UI
+    if (target.closest(
+      'a, button, input, select, textarea, label, ' +
+      '[role="button"], [role="dialog"], ' +
+      '.exit-overlay, .sticky-bar, .mobile-menu, ' +
+      'header, nav, form, .share-modal, .donors-modal'
+    )) return;
+
+    show();
+  }
+
+  let exitTimer: ReturnType<typeof setTimeout>;
+  let clickTimer: ReturnType<typeof setTimeout>;
+
   onMount(() => {
-    // Espera 8s antes de ativar (não dispara logo no carregamento)
-    const timer = setTimeout(() => {
+    // Exit intent via mouse: ativa após 8s
+    exitTimer = setTimeout(() => {
       document.addEventListener('mouseleave', handleMouseLeave);
     }, 8000);
 
+    // Click em vazio: ativa após 5s (tempo mínimo de leitura)
+    clickTimer = setTimeout(() => {
+      document.addEventListener('click', handleDocumentClick);
+    }, 5000);
+
     return () => {
-      clearTimeout(timer);
-      document.removeEventListener('mouseleave', handleMouseLeave);
+      clearTimeout(exitTimer);
+      clearTimeout(clickTimer);
+      removeListeners();
     };
   });
 
