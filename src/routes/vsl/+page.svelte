@@ -53,8 +53,8 @@
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  // VSL player (servido do Railway via /static — mesma origem, sem CORS)
-  const VSL_URL = '/vsl.mp4';
+  // VSL player
+  const VSL_URL = 'https://belgianpaws-vsl.vercel.app/vsl.mp4';
   let videoEl: HTMLVideoElement | null = $state(null);
   let audioEnabled = $state(false);
 
@@ -172,7 +172,9 @@
 </script>
 
 <svelte:head>
-  <!-- VSL agora roda mesma origem (static do Railway) — nao precisa preconnect externo -->
+  <!-- Preconnect pro domínio do video (resolve DNS+TLS antes do user dar play) -->
+  <link rel="preconnect" href="https://belgianpaws-vsl.vercel.app" crossorigin />
+  <link rel="dns-prefetch" href="https://belgianpaws-vsl.vercel.app" />
 </svelte:head>
 
 <header class="header">
