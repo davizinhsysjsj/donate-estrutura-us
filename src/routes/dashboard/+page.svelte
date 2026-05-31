@@ -584,22 +584,20 @@
         </button>
         <div class="topbar-title-block">
           <h1 class="page-title">{activeTab[0].toUpperCase() + activeTab.slice(1)}</h1>
-          <span class="status">
-            <span class="status-dot" class:on={updateAgoSec < 6}></span>
-            <span class="status-text">{updateAgoSec < 6 ? 'live' : fmtAgo(updateAgoSec)}</span>
-          </span>
-          <button
-            class="btn-refresh"
-            class:spinning={refreshing}
-            onclick={refresh}
-            disabled={refreshing}
-            title="Atualizar dados agora"
-          >↻</button>
-          {#if liveRate}
-            <span class="rate-badge" title="Câmbio ao vivo — {liveRate.source}">
-              💱 {activeUsdToBrl.toFixed(4)}/USD
+          <div class="update-row">
+            <span class="status">
+              <span class="status-dot" class:on={updateAgoSec < 6}></span>
+              <span class="status-text">
+                {updateAgoSec < 6 ? 'live' : 'Atualizado há ' + fmtAgo(updateAgoSec)}
+              </span>
             </span>
-          {/if}
+            <button
+              class="btn-update"
+              class:spinning={refreshing}
+              onclick={refresh}
+              disabled={refreshing}
+            >{refreshing ? '↻' : 'Atualizar'}</button>
+          </div>
         </div>
         <button class="filters-toggle" aria-label="filtros" onclick={() => (mobileFiltersOpen = !mobileFiltersOpen)}>
           {mobileFiltersOpen ? '✕' : '⌥'}
@@ -1797,6 +1795,19 @@
   }
   .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #555; }
   .status-dot.on { background: #02a95c; animation: pulse 1.5s ease-in-out infinite; }
+
+  /* ── Update row (status + botão Atualizar) ── */
+  .update-row {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .btn-update {
+    background: #1a7fe8; color: #fff; border: none;
+    padding: 5px 14px; border-radius: 8px; font-size: 0.8125rem; font-weight: 600;
+    font-family: inherit; cursor: pointer; transition: background 0.15s; white-space: nowrap;
+  }
+  .btn-update:hover:not(:disabled) { background: #1569c7; }
+  .btn-update:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-update.spinning { animation: spin 0.6s linear infinite; }
   @keyframes pulse {
     0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(2,169,92,0.6); }
     50% { opacity:.6; box-shadow:0 0 0 8px rgba(2,169,92,0); }
@@ -2178,11 +2189,17 @@
     }
     .topbar-title-block {
       flex: 1; min-width: 0; flex-direction: column;
-      align-items: flex-start; gap: 2px;
+      align-items: flex-start; gap: 6px;
     }
     .page-title { font-size: 1.125rem; }
-    .status { font-size: 0.6875rem; }
+    .update-row {
+      width: 100%; justify-content: space-between;
+      background: #11161d; border: 1px solid #1f2630;
+      padding: 7px 12px; border-radius: 10px;
+    }
+    .status { font-size: 0.75rem; }
     .status-text { white-space: nowrap; }
+    .btn-update { padding: 5px 16px; font-size: 0.8125rem; }
 
     .hamburger {
       display: inline-flex; flex-direction: column; justify-content: center;
@@ -2455,11 +2472,6 @@
   .finance-total .finance-val { font-size: 1.125rem; }
 
   /* ── Câmbio ao vivo ── */
-  .rate-badge {
-    font-size: 0.6875rem; color: #4dd0e1;
-    background: rgba(77,208,225,0.08); border: 1px solid rgba(77,208,225,0.2);
-    padding: 3px 8px; border-radius: 6px; white-space: nowrap;
-  }
   .rate-live-box {
     background: #0d1117; border: 1px solid rgba(77,208,225,0.25);
     border-radius: 10px; padding: 14px 16px; margin-bottom: 16px;
