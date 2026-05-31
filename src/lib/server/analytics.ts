@@ -548,7 +548,7 @@ export function snapshot(opts: SnapshotOpts) {
   const reachedDonate = sessionsInWindow.filter((s) => s.reachedDonate).length;
   const selectedAmount = sessionsInWindow.filter((s) => s.selectedAmount !== null).length;
   const clickedBancontact = sessionsInWindow.filter((s) => s.clickedBancontact).length;
-  const purchased = sessionsInWindow.filter((s) => s.purchaseAmount).length;
+  // purchased e revenue calculados abaixo por purchaseAt (ver seção Receita)
 
   const timesLpToDonate: number[] = [];
   const timesDonateToAmount: number[] = [];
@@ -562,27 +562,35 @@ export function snapshot(opts: SnapshotOpts) {
   }
   const median = (arr: number[]) => p(arr, 0.5);
 
-  // Receita
+  // Receita — filtra por purchaseAt (quando a compra ocorreu), não por lastSeenAt
+  // Isso evita atribuir compras de ontem a "hoje" se a sessão ainda está ativa
   let revenue = 0;
-  for (const s of sessionsInWindow) if (s.purchaseAmount) revenue += s.purchaseAmount;
-  const avgTicket = purchased ? revenue / purchased : 0;
-
-  let revenuePrev = 0;
-  for (const s of sessionsPrev) if (s.purchaseAmount) revenuePrev += s.purchaseAmount;
-  const pageviewsPrev = events.filter(
-    (e) => e.ts >= prevSince && e.ts < since && e.ev === 'pageview'
-  ).length;
-
-  // Receita por origem
+  let purchasedCount = 0;
   const revenueBySource = new Map<string, { revenue: number; count: number }>();
-  for (const s of sessionsInWindow) {
-    if (!s.purchaseAmount) continue;
+
+  for (const s of sessions.values()) {
+    if (!matchSession(s)) continue;
+    if (!s.purchaseAmount || !s.purchaseAt) continue;
+    if (s.purchaseAt < since || s.purchaseAt >= until) continue;
+    revenue += s.purchaseAmount;
+    purchasedCount++;
     const key = s.utm_source || '(direct)';
     const cur = revenueBySource.get(key) ?? { revenue: 0, count: 0 };
     cur.revenue += s.purchaseAmount;
     cur.count++;
     revenueBySource.set(key, cur);
   }
+  const purchased = purchasedCount;
+  const avgTicket = purchased ? revenue / purchased : 0;
+
+  let revenuePrev = 0;
+  for (const s of sessions.values()) {
+    if (!matchSession(s) || !s.purchaseAmount || !s.purchaseAt) continue;
+    if (s.purchaseAt >= prevSince && s.purchaseAt < since) revenuePrev += s.purchaseAmount;
+  }
+  const pageviewsPrev = events.filter(
+    (e) => e.ts >= prevSince && e.ts < since && e.ev === 'pageview'
+  ).length;
 
   // Top amounts
   const amountCounts = new Map<number, number>();
