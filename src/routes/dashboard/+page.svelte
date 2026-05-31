@@ -121,8 +121,26 @@
     setTimeout(() => (toastMsg = ''), 4000);
   }
 
+  // ── Refresh manual ──
+  async function refresh() {
+    if (refreshing) return;
+    refreshing = true;
+    await pull();
+    refreshing = false;
+  }
+
   // ── Helpers ──
   const fmtNum = (n: number) => n.toLocaleString('pt-BR');
+  function fmtAgo(sec: number): string {
+    if (sec < 5) return 'agora mesmo';
+    if (sec < 60) return `${sec}s atrás`;
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    if (m < 60) return s > 0 ? `${m}m ${s}s atrás` : `${m}m atrás`;
+    const h = Math.floor(m / 60);
+    const rm = m % 60;
+    return rm > 0 ? `${h}h ${rm}m atrás` : `${h}h atrás`;
+  }
   const fmtPct = (n: number) => (n * 100).toFixed(1) + '%';
   const fmtDelta = (n: number) => (n >= 0 ? '+' : '') + (n * 100).toFixed(1) + '%';
   const fmtEur = (n: number) => '€' + n.toFixed(2).replace('.', ',');
@@ -444,6 +462,7 @@
   });
 
   let updateAgoSec = $state(0);
+  let refreshing = $state(false);
   let agoTimer: ReturnType<typeof setInterval> | null = null;
   onMount(() => {
     agoTimer = setInterval(() => {
@@ -535,8 +554,15 @@
           <h1 class="page-title">{activeTab[0].toUpperCase() + activeTab.slice(1)}</h1>
           <span class="status">
             <span class="status-dot" class:on={updateAgoSec < 6}></span>
-            <span class="status-text">{updateAgoSec < 6 ? `live · ${updateAgoSec}s` : `${updateAgoSec}s atrás`}</span>
+            <span class="status-text">{updateAgoSec < 6 ? 'live' : fmtAgo(updateAgoSec)}</span>
           </span>
+          <button
+            class="btn-refresh"
+            class:spinning={refreshing}
+            onclick={refresh}
+            disabled={refreshing}
+            title="Atualizar dados agora"
+          >↻</button>
           {#if liveRate}
             <span class="rate-badge" title="Câmbio ao vivo — {liveRate.source}">
               💱 R${activeUsdToBrl.toFixed(4)}/USD
@@ -1670,6 +1696,18 @@
   }
   .btn-reset:hover:not(:disabled) { background: rgba(255,70,70,0.1); border-color: #ff7070; }
   .btn-reset:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-refresh {
+    background: transparent; border: 1px solid #1f2630; color: #8b94a4;
+    width: 28px; height: 28px; border-radius: 8px; font-size: 1rem; line-height: 1;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; font-family: inherit; transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .btn-refresh:hover:not(:disabled) { border-color: #02a95c; color: #02a95c; background: rgba(2,169,92,0.08); }
+  .btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-refresh.spinning { animation: spin 0.6s linear infinite; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
   .toast {
     background: rgba(2,169,92,0.12); border: 1px solid #02a95c; color: #02a95c;
