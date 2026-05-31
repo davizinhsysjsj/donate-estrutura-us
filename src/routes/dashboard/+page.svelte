@@ -13,7 +13,7 @@
   let pathFilter = $state<'' | '/' | '/donate' | '/vsl'>('');
   let deviceFilter = $state<'' | 'mobile' | 'desktop' | 'tablet'>('');
   let countryFilter = $state('');
-  let includeBots = $state(false);
+  const includeBots = false; // bots sempre filtrados
 
   const PERIOD_LABELS: Record<Period, string> = {
     hoje:        'Hoje',
@@ -202,7 +202,9 @@
   const utmItems = $derived(
     snap?.utmBreakdown
       ? snap.utmBreakdown.slice(0, 6).map((u: any, i: number) => ({
-          label: u.source, value: u.count, color: PALETTE[i % PALETTE.length]
+          label: u.source === '(direct)' ? 'Sem UTM / Direto' : u.source,
+          value: u.count,
+          color: PALETTE[i % PALETTE.length],
         }))
       : []
   );
@@ -292,6 +294,20 @@
   let dragSrc = $state<CardId | null>(null);
   let customizeOpen = $state(false);
 
+  // ── Taxa de câmbio ao vivo ──
+  let liveRate = $state<{ usdToBrl: number; eurToBrl: number; eurToUsd: number; source: string; updatedAt: number } | null>(null);
+
+  async function fetchLiveRate() {
+    try {
+      const r = await fetch('/api/exchange-rate', { cache: 'no-store' });
+      if (r.ok) liveRate = await r.json();
+    } catch {}
+  }
+
+  // Taxas efetivas: usa câmbio ao vivo; fallback para manual do taxConfig
+  const activeUsdToBrl = $derived(liveRate?.usdToBrl ?? taxConfig.usdToBrl ?? 5.70);
+  const activeEurToBrl = $derived(liveRate?.eurToBrl ?? (taxConfig.eurToUsd * (taxConfig.usdToBrl || 5.70)));
+
   onMount(() => {
     if (!data.authed) return;
     // Carrega taxConfig do localStorage
@@ -309,11 +325,12 @@
       const co = localStorage.getItem('vitrack_card_order');
       if (co) {
         const parsed = JSON.parse(co) as CardId[];
-        // Garante que todos os IDs válidos estão presentes
         const valid = DEFAULT_ORDER.filter(id => !parsed.includes(id));
         cardOrder = [...parsed.filter(id => DEFAULT_ORDER.includes(id)), ...valid];
       }
     } catch {}
+    // Busca câmbio ao vivo
+    fetchLiveRate();
   });
 
   function dragStart(id: CardId) { dragSrc = id; }
@@ -361,24 +378,24 @@
     adSpendEur > 0 && snap ? (snap.kpis.revenue / adSpendEur) : 0
   );
 
-  // Conversões BRL
-  const eurToBrl   = $derived((taxConfig.eurToUsd || 1.08) * (taxConfig.usdToBrl || 5.70));
-  const adSpendBrl = $derived(fbAds?.spend ? fbAds.spend * (taxConfig.usdToBrl || 5.70) : 0);
-  const revenueBrl = $derived(snap ? snap.kpis.revenue * eurToBrl : 0);
-  const profitBrl  = $derived(profitEur * eurToBrl);
+  // Conversões BRL — usa câmbio ao vivo (BCB), fallback para manual
+  const eurToBrl   = $derived(activeEurToBrl);
+  const adSpendBrl = $derived(fbAds?.spend ? fbAds.spend * activeUsdToBrl : 0);
+  const revenueBrl = $derived(snap ? snap.kpis.revenue * activeEurToBrl : 0);
+  const profitBrl  = $derived(profitEur * activeEurToBrl);
 
   // ── Métricas estilo UTMfy ──────────────────────────────────────────
   // Faturamento Líquido = Receita bruta − taxa Shopify (% sobre receita)
-  const taxasBrl         = $derived(snap ? snap.kpis.revenue * (taxConfig.shopifyPct / 100) * eurToBrl : 0);
+  const taxasBrl          = $derived(snap ? snap.kpis.revenue * (taxConfig.shopifyPct / 100) * activeEurToBrl : 0);
   const faturamentoLiqBrl = $derived(revenueBrl - taxasBrl);
-  // ROAS = Receita bruta / Gasto (UTMfy usa receita bruta)
-  const roasUtm          = $derived(adSpendBrl > 0 && snap ? revenueBrl / adSpendBrl : 0);
-  // ROI = Faturamento Líquido / Gasto
-  const roiUtm           = $derived(adSpendBrl > 0 ? faturamentoLiqBrl / adSpendBrl : 0);
-  // Lucro UTMfy = Faturamento Líquido − Gasto (sem gateway, só Shopify)
-  const lucroUtmBrl      = $derived(faturamentoLiqBrl - adSpendBrl);
+  // ROAS = Receita bruta BRL / Gasto BRL (= UTMfy ROAS)
+  const roasUtm           = $derived(adSpendBrl > 0 && snap ? revenueBrl / adSpendBrl : 0);
+  // ROI = Faturamento Líquido / Gasto BRL (= UTMfy ROI)
+  const roiUtm            = $derived(adSpendBrl > 0 ? faturamentoLiqBrl / adSpendBrl : 0);
+  // Lucro = Faturamento Líquido − Gasto
+  const lucroUtmBrl       = $derived(faturamentoLiqBrl - adSpendBrl);
   // Margem = Lucro / Faturamento Líquido
-  const margemPct        = $derived(faturamentoLiqBrl > 0 ? (lucroUtmBrl / faturamentoLiqBrl) * 100 : 0);
+  const margemPct         = $derived(faturamentoLiqBrl > 0 ? (lucroUtmBrl / faturamentoLiqBrl) * 100 : 0);
 
   const fmtUsd = (n: number) => '$' + n.toFixed(2).replace('.', ',');
   const fmtPct2 = (n: number) => n.toFixed(2) + '%';
@@ -501,6 +518,11 @@
             <span class="status-dot" class:on={updateAgoSec < 6}></span>
             <span class="status-text">{updateAgoSec < 6 ? `live · ${updateAgoSec}s` : `${updateAgoSec}s atrás`}</span>
           </span>
+          {#if liveRate}
+            <span class="rate-badge" title="Câmbio ao vivo — {liveRate.source}">
+              💱 R${activeUsdToBrl.toFixed(4)}/USD
+            </span>
+          {/if}
         </div>
         <button class="filters-toggle" aria-label="filtros" onclick={() => (mobileFiltersOpen = !mobileFiltersOpen)}>
           {mobileFiltersOpen ? '✕' : '⌥'}
@@ -530,10 +552,6 @@
           <option value="tablet">Tablet</option>
         </select>
         <input class="select country-input" placeholder="País (ex: BE)" bind:value={countryFilter} maxlength="2" />
-        <label class="toggle">
-          <input type="checkbox" bind:checked={includeBots} />
-          <span>Bots</span>
-        </label>
         <button class="btn-reset" onclick={resetData} disabled={resetting} title="Zerar todos os dados">
           {resetting ? '…' : 'Reset'}
         </button>
@@ -1239,8 +1257,26 @@
       {#if activeTab === 'taxas'}
         <section class="card" style="max-width: 560px;">
           <h2>⊕ Configuração de Taxas</h2>
+
+          <!-- Badge câmbio ao vivo -->
+          {#if liveRate && liveRate.source !== 'fallback'}
+            <div class="rate-live-box">
+              <div class="rate-live-title">💱 Câmbio ao vivo — {liveRate.source}</div>
+              <div class="rate-live-grid">
+                <span>USD → BRL</span><strong>R$ {activeUsdToBrl.toFixed(4)}</strong>
+                <span>EUR → BRL</span><strong>R$ {activeEurToBrl.toFixed(4)}</strong>
+                <span>EUR → USD</span><strong>$ {liveRate.eurToUsd.toFixed(4)}</strong>
+              </div>
+              <p class="muted small" style="margin:6px 0 0">Atualiza a cada hora. Os valores manuais abaixo são usados como fallback.</p>
+            </div>
+          {:else}
+            <div class="rate-live-box rate-live-fallback">
+              ⚠ Câmbio ao vivo indisponível — usando valores manuais abaixo.
+            </div>
+          {/if}
+
           <p class="muted small" style="margin-bottom:20px">
-            Essas taxas são usadas para calcular o lucro líquido na visão geral e na aba Anúncios.
+            Taxas e câmbios manuais (fallback quando API offline).
             Salvas localmente no seu browser.
           </p>
 
@@ -2239,6 +2275,29 @@
   .finance-total { margin-top: 4px; }
   .finance-total .finance-label { color: #d6dae3; font-weight: 600; }
   .finance-total .finance-val { font-size: 1.125rem; }
+
+  /* ── Câmbio ao vivo ── */
+  .rate-badge {
+    font-size: 0.6875rem; color: #4dd0e1;
+    background: rgba(77,208,225,0.08); border: 1px solid rgba(77,208,225,0.2);
+    padding: 3px 8px; border-radius: 6px; white-space: nowrap;
+  }
+  .rate-live-box {
+    background: #0d1117; border: 1px solid rgba(77,208,225,0.25);
+    border-radius: 10px; padding: 14px 16px; margin-bottom: 16px;
+  }
+  .rate-live-fallback {
+    border-color: rgba(255,170,0,0.3); color: #ffaa00; font-size: 0.8125rem;
+  }
+  .rate-live-title {
+    font-size: 0.8125rem; font-weight: 600; color: #4dd0e1; margin-bottom: 10px;
+  }
+  .rate-live-grid {
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 4px 16px; font-size: 0.8125rem;
+  }
+  .rate-live-grid span { color: #8b94a4; }
+  .rate-live-grid strong { font-family: 'JetBrains Mono', monospace; color: #e6e9ef; }
 
   /* ── BRL secondary ── */
   .kpi-secondary {
