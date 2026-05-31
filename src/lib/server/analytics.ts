@@ -461,6 +461,8 @@ function p(arr: number[], pct: number): number {
 
 export interface SnapshotOpts {
   windowMs?: number;
+  sinceTs?: number;   // timestamp exato de início (sobrescreve windowMs)
+  untilTs?: number;   // timestamp exato de fim (default: now)
   pathFilter?: string;
   device?: 'mobile' | 'desktop' | 'tablet';
   countryCode?: string;
@@ -469,8 +471,19 @@ export interface SnapshotOpts {
 
 export function snapshot(opts: SnapshotOpts) {
   const now = Date.now();
-  const winMs = opts.windowMs ?? 24 * 60 * 60 * 1000;
-  const since = now - winMs;
+  let since: number;
+  let until: number;
+  let winMs: number;
+
+  if (opts.sinceTs !== undefined) {
+    since = opts.sinceTs;
+    until = opts.untilTs ?? now;
+    winMs = until - since;
+  } else {
+    winMs = opts.windowMs ?? 24 * 60 * 60 * 1000;
+    until = now;
+    since = until - winMs;
+  }
   const prevSince = since - winMs;
 
   // Filtra sessoes
@@ -485,13 +498,13 @@ export function snapshot(opts: SnapshotOpts) {
   const sessionsPrev: Session[] = [];
   for (const s of sessions.values()) {
     if (!matchSession(s)) continue;
-    if (s.lastSeenAt >= since) sessionsInWindow.push(s);
-    else if (s.lastSeenAt >= prevSince) sessionsPrev.push(s);
+    if (s.lastSeenAt >= since && s.lastSeenAt < until) sessionsInWindow.push(s);
+    else if (s.lastSeenAt >= prevSince && s.lastSeenAt < since) sessionsPrev.push(s);
   }
   const sidsInWindow = new Set(sessionsInWindow.map((s) => s.sid));
 
   const filteredEvents = events.filter((e) => {
-    if (e.ts < since) return false;
+    if (e.ts < since || e.ts >= until) return false;
     if (opts.pathFilter && !e.path.startsWith(opts.pathFilter)) return false;
     if (opts.device && e.device !== opts.device) return false;
     if (!sidsInWindow.has(e.sid)) return false;

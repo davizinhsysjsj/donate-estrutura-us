@@ -5,7 +5,7 @@
 
   // ── State ──
   type Tab = 'overview' | 'live' | 'funnel' | 'vsl' | 'heatmap' | 'sessions' | 'revenue' | 'tech' | 'ads' | 'taxas' | 'campanhas';
-  type Period = 'hoje' | 'hoje_ontem' | 'ultimos_7d' | 'este_mes';
+  type Period = 'hoje' | 'ontem' | 'hoje_ontem' | 'ultimos_7d' | 'este_mes';
   let activeTab = $state<Tab>('overview');
   let period = $state<Period>('hoje');
   // win e fbWin são derivados do período unificado
@@ -17,12 +17,22 @@
 
   const PERIOD_LABELS: Record<Period, string> = {
     hoje:        'Hoje',
+    ontem:       'Ontem',
     hoje_ontem:  'Hoje + Ontem',
     ultimos_7d:  'Últimos 7 dias',
     este_mes:    'Este mês',
   };
+  // Modo da API analytics: today|yesterday|hoje_ontem|month|null (null = usa window)
+  const PERIOD_TO_MODE: Record<Period, string | null> = {
+    hoje:       'today',
+    ontem:      'yesterday',
+    hoje_ontem: 'hoje_ontem',
+    ultimos_7d: null,   // usa window=7d
+    este_mes:   'month',
+  };
   const PERIOD_TO_WIN: Record<Period, typeof win> = {
     hoje:       '24h',
+    ontem:      '24h',
     hoje_ontem: '24h',
     ultimos_7d: '7d',
     este_mes:   '7d',
@@ -30,6 +40,7 @@
   type FbWinExtended = 'today' | 'yesterday' | 'hoje_ontem' | 'last_7_d' | 'last_14_d' | 'last_30_d' | 'this_month';
   const PERIOD_TO_FBWIN: Record<Period, FbWinExtended> = {
     hoje:       'today',
+    ontem:      'yesterday',
     hoje_ontem: 'hoje_ontem',
     ultimos_7d: 'last_7_d',
     este_mes:   'this_month',
@@ -45,7 +56,14 @@
 
   // ── Fetch ──
   async function pull() {
-    const params = new URLSearchParams({ window: win });
+    const params = new URLSearchParams();
+    const mode = PERIOD_TO_MODE[period];
+    if (mode) {
+      params.set('mode', mode);
+    } else {
+      // 7d
+      params.set('window', '7d');
+    }
     if (pathFilter) params.set('path', pathFilter);
     if (deviceFilter) params.set('device', deviceFilter);
     if (countryFilter) params.set('country', countryFilter);
@@ -531,7 +549,7 @@
       <div class="topbar-right" class:mobile-open={mobileFiltersOpen}>
         <!-- Seletor de período unificado -->
         <div class="period-pills">
-          {#each (['hoje','hoje_ontem','ultimos_7d','este_mes'] as Period[]) as p}
+          {#each (['hoje','ontem','hoje_ontem','ultimos_7d','este_mes'] as Period[]) as p}
             <button
               class="period-pill"
               class:active={period === p}
@@ -1141,7 +1159,7 @@
         <!-- Seletor de período dos anúncios -->
         <div class="ads-topbar">
           <div class="period-pills">
-            {#each (['hoje','hoje_ontem','ultimos_7d','este_mes'] as Period[]) as p}
+            {#each (['hoje','ontem','hoje_ontem','ultimos_7d','este_mes'] as Period[]) as p}
               <button class="period-pill" class:active={period === p} onclick={() => { period = p; }}>{PERIOD_LABELS[p]}</button>
             {/each}
           </div>
@@ -1358,7 +1376,7 @@
       <div class="tab-content">
         <div class="ads-topbar">
           <div class="period-pills">
-            {#each (['hoje','hoje_ontem','ultimos_7d','este_mes'] as Period[]) as p}
+            {#each (['hoje','ontem','hoje_ontem','ultimos_7d','este_mes'] as Period[]) as p}
               <button class="period-pill" class:active={period === p} onclick={() => { period = p; }}>{PERIOD_LABELS[p]}</button>
             {/each}
           </div>
