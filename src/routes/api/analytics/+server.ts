@@ -11,84 +11,46 @@ function checkAuth(token: string | null): boolean {
   return token === expected;
 }
 
-// Retorna meia-noite de um dia em timestamp UTC
-// offset: 0 = hoje, -1 = ontem, +1 = amanhã
-// Usa fuso Europe/Brussels (UTC+1 inverno / UTC+2 verão)
+// Retorna timestamp UTC de meia-noite em Europe/Brussels
+// offsetDays: 0 = hoje, -1 = ontem, 1 = amanhã
 function midnightBrussels(offsetDays = 0): number {
+  // Pega a data atual em Brussels
   const now = new Date();
-  // Formata data em Brussels para obter a data local
-  const fmt = new Intl.DateTimeFormat('en-CA', {
+  const dateStr = new Intl.DateTimeFormat('sv-SE', { // sv-SE = formato YYYY-MM-DD
+    timeZone: 'Europe/Brussels'
+  }).format(now);
+
+  // Aplica offset de dias
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const targetDate = new Date(Date.UTC(y, m - 1, d + offsetDays));
+  const targetStr  = targetDate.toISOString().slice(0, 10); // YYYY-MM-DD
+
+  const utcBase = new Date(`${targetStr}T00:00:00Z`).getTime();
+  // Busca binária: encontra o UTC que corresponde a 00:00:00 em Brussels
+  const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Europe/Brussels',
-    year: 'numeric', month: '2-digit', day: '2-digit'
+    year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric',
+    hour12: false
   });
-  const parts = fmt.formatToParts(now);
-  const year  = parseInt(parts.find(p => p.type === 'year')!.value);
-  const month = parseInt(parts.find(p => p.type === 'month')!.value) - 1;
-  const day   = parseInt(parts.find(p => p.type === 'day')!.value);
-
-  // Cria Date de meia-noite em Brussels usando o offset de dias
-  const localMidnight = new Date(Date.UTC(year, month, day + offsetDays));
-  // Ajusta para meia-noite real em Brussels (subtrai o offset do fuso)
-  // Encontra o offset do fuso nessa data específica
-  const brusselsMidnight = new Date(
-    localMidnight.toLocaleString('en-US', { timeZone: 'Europe/Brussels' })
-  );
-  // Calcula quantos ms de diferença entre UTC e Brussels nessa meia-noite
-  const tmpUTC = new Date(year, month, day + offsetDays);
-  const brusselsFmt = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/Brussels',
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-  });
-  // Usa Date construído a partir da string localizada
-  const target = new Date(`${year}-${String(month + 1).padStart(2,'0')}-${String(day + offsetDays).padStart(2,'0')}T00:00:00`);
-  // Determina o offset real do fuso neste momento
-  const utcMs  = Date.UTC(target.getFullYear(), target.getMonth(), target.getDate());
-  // Detecta offset via Intl
-  const checkDate = new Date(utcMs);
-  const brusselsStr = checkDate.toLocaleString('en-US', { timeZone: 'Europe/Brussels', hour12: false });
-  // Abordagem mais simples e robusta:
-  return utcMs - getTzOffsetMs('Europe/Brussels', utcMs);
-}
-
-// Retorna o offset UTC→localTZ em ms para uma data UTC específica
-function getTzOffsetMs(tz: string, utcMs: number): number {
-  const d = new Date(utcMs);
-  // Formata a data nas duas zonas
-  const localStr = d.toLocaleString('en-US', { timeZone: tz });
-  const utcStr   = d.toLocaleString('en-US', { timeZone: 'UTC' });
-  const diff = new Date(localStr).getTime() - new Date(utcStr).getTime();
-  return diff; // positivo quando local está à frente de UTC
-}
-
-// Versão simples e correta: meia-noite local em Brussels
-function todayMidnightBrussels(offsetDays = 0): number {
-  const now = new Date();
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/Brussels',
-    year: 'numeric', month: '2-digit', day: '2-digit'
-  }).formatToParts(now);
-  const y = parseInt(parts.find(p => p.type === 'year')!.value);
-  const mo = parseInt(parts.find(p => p.type === 'month')!.value) - 1;
-  const d = parseInt(parts.find(p => p.type === 'day')!.value);
-
-  // Cria a string ISO de meia-noite nesse fuso e converte para UTC
-  const dateStr = `${y}-${String(mo+1).padStart(2,'0')}-${String(d + offsetDays).padStart(2,'0')}`;
-  // Hack: usa o fuso para descobrir o offset nessa data
-  const probe = new Date(`${dateStr}T12:00:00Z`); // meio-dia UTC como probe
-  const localMidStr = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/Brussels',
-    year: 'numeric', month: '2-digit', day: '2-digit'
-  }).format(probe);
-
-  // Constrói meia-noite Brussels em UTC
-  const tzOffset = (() => {
-    const utcD = new Date(`${dateStr}T00:00:00Z`);
-    const asLocal = new Date(utcD.toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
-    return utcD.getTime() - asLocal.getTime();
-  })();
-
-  return new Date(`${dateStr}T00:00:00Z`).getTime() + tzOffset;
+  // Encontra o UTC que corresponde a 00:00:00 em Brussels via iteração binária
+  // Estimativa inicial: UTC - 2h (máximo offset Brussels CEST)
+  let lo = utcBase - 3 * 3600_000;
+  let hi = utcBase + 3 * 3600_000;
+  for (let i = 0; i < 50; i++) {
+    const mid = Math.floor((lo + hi) / 2);
+    const dt = new Date(mid);
+    const parts = formatter.formatToParts(dt);
+    const h = parseInt(parts.find(p => p.type === 'hour')!.value);
+    const mn = parseInt(parts.find(p => p.type === 'minute')!.value);
+    const s = parseInt(parts.find(p => p.type === 'second')!.value);
+    const totalSec = h * 3600 + mn * 60 + s;
+    if (totalSec === 0 && hi - lo <= 1000) return mid;
+    if (totalSec > 0 && totalSec < 43200) hi = mid;
+    else lo = mid;
+  }
+  // Fallback: UTC+2 (CEST)
+  return utcBase - 2 * 3600_000;
 }
 
 export const GET: RequestHandler = async ({ url, cookies }) => {
@@ -102,24 +64,20 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
   let windowMs: number | undefined;
 
   if (mode === 'today') {
-    sinceTs = todayMidnightBrussels(0);
+    sinceTs = midnightBrussels(0);
     untilTs = Date.now();
   } else if (mode === 'yesterday') {
-    sinceTs = todayMidnightBrussels(-1);
-    untilTs = todayMidnightBrussels(0);
+    sinceTs = midnightBrussels(-1);
+    untilTs = midnightBrussels(0);
   } else if (mode === 'hoje_ontem') {
-    sinceTs = todayMidnightBrussels(-1);
+    sinceTs = midnightBrussels(-1);
     untilTs = Date.now();
   } else if (mode === 'month') {
-    // Primeiro dia do mês
-    const now = new Date();
-    const parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Europe/Brussels',
-      year: 'numeric', month: '2-digit', day: '2-digit'
-    }).formatToParts(now);
-    const y = parseInt(parts.find(p => p.type === 'year')!.value);
-    const mo = parseInt(parts.find(p => p.type === 'month')!.value) - 1;
-    sinceTs = todayMidnightBrussels(-(new Date(y, mo, parseInt(parts.find(p => p.type === 'day')!.value)).getDate() - 1));
+    // Primeiro dia do mês corrente em Brussels
+    const dayOfMonth = parseInt(
+      new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels', day: '2-digit' }).format(new Date())
+    );
+    sinceTs = midnightBrussels(-(dayOfMonth - 1));
     untilTs = Date.now();
   } else {
     const windowParam = url.searchParams.get('window') || '24h';

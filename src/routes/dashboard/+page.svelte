@@ -98,7 +98,8 @@
 
   $effect(() => {
     if (!data.authed) return;
-    const _ = win + pathFilter + deviceFilter + countryFilter + includeBots;
+    // Inclui period diretamente — win pode ser igual entre 'hoje' e 'ontem'
+    const _ = period + win + pathFilter + deviceFilter + countryFilter + includeBots;
     pull();
   });
 
