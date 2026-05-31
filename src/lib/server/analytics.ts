@@ -543,22 +543,26 @@ export function snapshot(opts: SnapshotOpts) {
     ? Math.round(totalDuration / sessionsInWindow.length / 1000)
     : 0;
 
-  // Funnel + tempo entre etapas
+  // Funnel — contadores por timestamp da ação (não por lastSeenAt da sessão)
+  // Garante que "clicou hoje" = ação ocorreu hoje, não que "estava ativo hoje"
   const totalSessions = sessionsInWindow.length;
-  const reachedDonate = sessionsInWindow.filter((s) => s.reachedDonate).length;
-  const selectedAmount = sessionsInWindow.filter((s) => s.selectedAmount !== null).length;
-  const clickedBancontact = sessionsInWindow.filter((s) => s.clickedBancontact).length;
+
+  const inWin = (ts?: number) => ts !== undefined && ts >= since && ts < until;
+
+  const reachedDonate    = sessionsInWindow.filter((s) => inWin(s.reachedDonateAt)).length;
+  const selectedAmount   = sessionsInWindow.filter((s) => inWin(s.selectedAmountAt)).length;
+  const clickedBancontact = sessionsInWindow.filter((s) => inWin(s.clickedBancontactAt)).length;
   // purchased e revenue calculados abaixo por purchaseAt (ver seção Receita)
 
   const timesLpToDonate: number[] = [];
   const timesDonateToAmount: number[] = [];
   const timesAmountToBcc: number[] = [];
   for (const s of sessionsInWindow) {
-    if (s.reachedDonateAt) timesLpToDonate.push(s.reachedDonateAt - s.startedAt);
-    if (s.reachedDonateAt && s.selectedAmountAt)
-      timesDonateToAmount.push(s.selectedAmountAt - s.reachedDonateAt);
-    if (s.selectedAmountAt && s.clickedBancontactAt)
-      timesAmountToBcc.push(s.clickedBancontactAt - s.selectedAmountAt);
+    if (inWin(s.reachedDonateAt)) timesLpToDonate.push(s.reachedDonateAt! - s.startedAt);
+    if (inWin(s.reachedDonateAt) && inWin(s.selectedAmountAt))
+      timesDonateToAmount.push(s.selectedAmountAt! - s.reachedDonateAt!);
+    if (inWin(s.selectedAmountAt) && inWin(s.clickedBancontactAt))
+      timesAmountToBcc.push(s.clickedBancontactAt! - s.selectedAmountAt!);
   }
   const median = (arr: number[]) => p(arr, 0.5);
 
