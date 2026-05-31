@@ -5,12 +5,35 @@
 
   // ── State ──
   type Tab = 'overview' | 'live' | 'funnel' | 'vsl' | 'heatmap' | 'sessions' | 'revenue' | 'tech' | 'ads' | 'taxas' | 'campanhas';
+  type Period = 'hoje' | 'hoje_ontem' | 'ultimos_7d' | 'este_mes';
   let activeTab = $state<Tab>('overview');
+  let period = $state<Period>('hoje');
+  // win e fbWin são derivados do período unificado
   let win = $state<'2m' | '15m' | '1h' | '6h' | '24h' | '7d'>('24h');
   let pathFilter = $state<'' | '/' | '/donate' | '/vsl'>('');
   let deviceFilter = $state<'' | 'mobile' | 'desktop' | 'tablet'>('');
   let countryFilter = $state('');
   let includeBots = $state(false);
+
+  const PERIOD_LABELS: Record<Period, string> = {
+    hoje:        'Hoje',
+    hoje_ontem:  'Hoje + Ontem',
+    ultimos_7d:  'Últimos 7 dias',
+    este_mes:    'Este mês',
+  };
+  const PERIOD_TO_WIN: Record<Period, typeof win> = {
+    hoje:       '24h',
+    hoje_ontem: '24h',
+    ultimos_7d: '7d',
+    este_mes:   '7d',
+  };
+  type FbWinExtended = 'today' | 'yesterday' | 'hoje_ontem' | 'last_7_d' | 'last_14_d' | 'last_30_d' | 'this_month';
+  const PERIOD_TO_FBWIN: Record<Period, FbWinExtended> = {
+    hoje:       'today',
+    hoje_ontem: 'hoje_ontem',
+    ultimos_7d: 'last_7_d',
+    este_mes:   'this_month',
+  };
   let snap = $state<any>(null);
   let lastUpdate = $state(0);
   let pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -201,8 +224,7 @@
   );
 
   // ── FB Ads ──
-  type FbAdWin = 'today' | 'yesterday' | 'last_7_d' | 'last_14_d' | 'last_30_d' | 'this_month';
-  let fbWin = $state<FbAdWin>('today');
+  let fbWin = $state<FbWinExtended>('today');
   let fbAds = $state<any>(null);
   let fbLoading = $state(false);
 
@@ -214,6 +236,14 @@
     } catch {}
     fbLoading = false;
   }
+
+  // Efeito: quando period muda, atualiza win + fbWin em sincronia
+  $effect(() => {
+    if (!data.authed) return;
+    const _p = period;
+    win   = PERIOD_TO_WIN[_p];
+    fbWin = PERIOD_TO_FBWIN[_p];
+  });
 
   $effect(() => {
     if (!data.authed) return;
@@ -231,7 +261,7 @@
     usdToBrl:     number;  // taxa USD→BRL (ex: 5.70)
   }
   const DEFAULT_TAX: TaxConfig = {
-    shopifyPct: 2, gatewayPct: 2.9,
+    shopifyPct: 17, gatewayPct: 0,  // 17% padrão (igual UTMfy)
     shopifyFixed: 0, otherFixed: 0,
     eurToUsd: 1.08, usdToBrl: 5.70,
   };
@@ -239,20 +269,25 @@
   let taxSaved = $state(false);
 
   // Visible cards na overview
-  type CardId = 'online' | 'sessions' | 'pageviews' | 'revenue' | 'conversion' | 'duration' | 'spend' | 'profit' | 'roas';
+  type CardId = 'online' | 'sessions' | 'pageviews' | 'faturamento' | 'revenue' | 'conversion' | 'duration' | 'spend' | 'profit' | 'roas' | 'roi' | 'margem' | 'taxas_card';
   const ALL_CARD_DEFS: { id: CardId; label: string }[] = [
-    { id: 'online',      label: 'Online agora' },
-    { id: 'sessions',    label: 'Sessões' },
-    { id: 'pageviews',   label: 'Pageviews' },
-    { id: 'revenue',     label: 'Receita' },
-    { id: 'conversion',  label: 'Conversão' },
-    { id: 'duration',    label: 'Tempo médio' },
-    { id: 'spend',       label: 'Gasto Meta' },
-    { id: 'profit',      label: 'Lucro' },
-    { id: 'roas',        label: 'ROAS' },
+    { id: 'faturamento',  label: 'Faturamento Líquido' },
+    { id: 'spend',        label: 'Gastos com Anúncios' },
+    { id: 'roas',         label: 'ROAS' },
+    { id: 'profit',       label: 'Lucro' },
+    { id: 'roi',          label: 'ROI' },
+    { id: 'margem',       label: 'Margem' },
+    { id: 'taxas_card',   label: 'Taxas' },
+    { id: 'online',       label: 'Online agora' },
+    { id: 'sessions',     label: 'Sessões' },
+    { id: 'pageviews',    label: 'Pageviews' },
+    { id: 'revenue',      label: 'Receita Bruta' },
+    { id: 'conversion',   label: 'Conversão' },
+    { id: 'duration',     label: 'Tempo médio' },
   ];
-  const DEFAULT_ORDER: CardId[] = ['online','sessions','pageviews','revenue','conversion','duration','spend','profit','roas'];
-  let visibleCards = $state<Set<CardId>>(new Set(DEFAULT_ORDER));
+  const DEFAULT_ORDER: CardId[] = ['faturamento','spend','roas','profit','roi','margem','taxas_card','online','sessions','pageviews','revenue','conversion','duration'];
+  const DEFAULT_VISIBLE: CardId[] = ['faturamento','spend','roas','profit','roi','margem','taxas_card','online','sessions','pageviews'];
+  let visibleCards = $state<Set<CardId>>(new Set(DEFAULT_VISIBLE));
   let cardOrder = $state<CardId[]>([...DEFAULT_ORDER]);
   let dragSrc = $state<CardId | null>(null);
   let customizeOpen = $state(false);
@@ -331,6 +366,19 @@
   const adSpendBrl = $derived(fbAds?.spend ? fbAds.spend * (taxConfig.usdToBrl || 5.70) : 0);
   const revenueBrl = $derived(snap ? snap.kpis.revenue * eurToBrl : 0);
   const profitBrl  = $derived(profitEur * eurToBrl);
+
+  // ── Métricas estilo UTMfy ──────────────────────────────────────────
+  // Faturamento Líquido = Receita bruta − taxa Shopify (% sobre receita)
+  const taxasBrl         = $derived(snap ? snap.kpis.revenue * (taxConfig.shopifyPct / 100) * eurToBrl : 0);
+  const faturamentoLiqBrl = $derived(revenueBrl - taxasBrl);
+  // ROAS = Receita bruta / Gasto (UTMfy usa receita bruta)
+  const roasUtm          = $derived(adSpendBrl > 0 && snap ? revenueBrl / adSpendBrl : 0);
+  // ROI = Faturamento Líquido / Gasto
+  const roiUtm           = $derived(adSpendBrl > 0 ? faturamentoLiqBrl / adSpendBrl : 0);
+  // Lucro UTMfy = Faturamento Líquido − Gasto (sem gateway, só Shopify)
+  const lucroUtmBrl      = $derived(faturamentoLiqBrl - adSpendBrl);
+  // Margem = Lucro / Faturamento Líquido
+  const margemPct        = $derived(faturamentoLiqBrl > 0 ? (lucroUtmBrl / faturamentoLiqBrl) * 100 : 0);
 
   const fmtUsd = (n: number) => '$' + n.toFixed(2).replace('.', ',');
   const fmtPct2 = (n: number) => n.toFixed(2) + '%';
@@ -459,14 +507,16 @@
         </button>
       </div>
       <div class="topbar-right" class:mobile-open={mobileFiltersOpen}>
-        <select bind:value={win} class="select">
-          <option value="2m">Últimos 2 min</option>
-          <option value="15m">15 min</option>
-          <option value="1h">1 hora</option>
-          <option value="6h">6 horas</option>
-          <option value="24h">24 horas</option>
-          <option value="7d">7 dias</option>
-        </select>
+        <!-- Seletor de período unificado -->
+        <div class="period-pills">
+          {#each (['hoje','hoje_ontem','ultimos_7d','este_mes'] as Period[]) as p}
+            <button
+              class="period-pill"
+              class:active={period === p}
+              onclick={() => { period = p; }}
+            >{PERIOD_LABELS[p]}</button>
+          {/each}
+        </div>
         <select bind:value={pathFilter} class="select">
           <option value="">Todas as rotas</option>
           <option value="/">/ (LP)</option>
@@ -594,14 +644,32 @@
                 <div class="kpi-value">{fbAds ? fmtBrl(adSpendBrl) : '—'}</div>
                 <div class="kpi-sub kpi-secondary">{fbAds ? fmtEur(adSpendEur) + ' · ' + fmtUsd(fbAds.spend) : 'carregando…'}</div>
               {:else if cardId === 'profit'}
-                <div class="kpi-label">Lucro estimado <span class="drag-hint">⠿</span></div>
-                <div class="kpi-value">{fmtBrl(profitBrl)}</div>
-                <div class="kpi-sub kpi-secondary">{fmtEur(profitEur)} · {fmtUsd(profitEur * (taxConfig.eurToUsd || 1.08))}</div>
-                <div class="kpi-sub">receita − anúncios − taxas</div>
+                <div class="kpi-label">Lucro <span class="drag-hint">⠿</span></div>
+                <div class="kpi-value">{snap ? fmtBrl(lucroUtmBrl) : '—'}</div>
+                <div class="kpi-sub kpi-secondary">{snap ? fmtEur(lucroUtmBrl / eurToBrl) : ''}</div>
+                <div class="kpi-sub">faturamento líq − gasto</div>
               {:else if cardId === 'roas'}
                 <div class="kpi-label">ROAS <span class="drag-hint">⠿</span></div>
-                <div class="kpi-value">{roasCalc > 0 ? roasCalc.toFixed(2) + '×' : '—'}</div>
-                <div class="kpi-sub">receita / gasto em €</div>
+                <div class="kpi-value kpi-green">{roasUtm > 0 ? roasUtm.toFixed(2) : '—'}</div>
+                <div class="kpi-sub">receita bruta / gasto</div>
+              {:else if cardId === 'faturamento'}
+                <div class="kpi-label">Faturamento Líquido <span class="drag-hint">⠿</span></div>
+                <div class="kpi-value">{snap ? fmtBrl(faturamentoLiqBrl) : '—'}</div>
+                <div class="kpi-sub kpi-secondary">{snap ? fmtEur(snap.kpis.revenue * (1 - taxConfig.shopifyPct / 100)) : ''}</div>
+                <div class="kpi-sub">receita − {taxConfig.shopifyPct}% Shopify</div>
+              {:else if cardId === 'roi'}
+                <div class="kpi-label">ROI <span class="drag-hint">⠿</span></div>
+                <div class="kpi-value kpi-green">{roiUtm > 0 ? roiUtm.toFixed(2) : '—'}</div>
+                <div class="kpi-sub">faturamento líq / gasto</div>
+              {:else if cardId === 'margem'}
+                <div class="kpi-label">Margem <span class="drag-hint">⠿</span></div>
+                <div class="kpi-value {margemPct > 0 ? 'kpi-green' : margemPct < 0 ? 'kpi-red' : ''}">{margemPct !== 0 ? margemPct.toFixed(1) + '%' : '—'}</div>
+                <div class="kpi-sub">lucro / faturamento líq</div>
+              {:else if cardId === 'taxas_card'}
+                <div class="kpi-label">Taxas ({taxConfig.shopifyPct}%) <span class="drag-hint">⠿</span></div>
+                <div class="kpi-value">{snap ? fmtBrl(taxasBrl) : '—'}</div>
+                <div class="kpi-sub kpi-secondary">{snap ? fmtEur(snap.kpis.revenue * taxConfig.shopifyPct / 100) : ''}</div>
+                <div class="kpi-sub">Shopify sobre receita bruta</div>
               {/if}
             </div>
           {/each}
@@ -1054,14 +1122,11 @@
       <div class="tab-content">
         <!-- Seletor de período dos anúncios -->
         <div class="ads-topbar">
-          <select bind:value={fbWin} class="select" onchange={pullFbAds}>
-            <option value="today">Hoje</option>
-            <option value="yesterday">Ontem</option>
-            <option value="last_7_d">Últimos 7 dias</option>
-            <option value="last_14_d">Últimos 14 dias</option>
-            <option value="last_30_d">Últimos 30 dias</option>
-            <option value="this_month">Este mês</option>
-          </select>
+          <div class="period-pills">
+            {#each (['hoje','hoje_ontem','ultimos_7d','este_mes'] as Period[]) as p}
+              <button class="period-pill" class:active={period === p} onclick={() => { period = p; }}>{PERIOD_LABELS[p]}</button>
+            {/each}
+          </div>
           <button class="btn-refresh" onclick={pullFbAds} disabled={fbLoading}>
             {fbLoading ? '…' : '↺ Atualizar'}
           </button>
@@ -1256,14 +1321,11 @@
       {#if activeTab === 'campanhas'}
       <div class="tab-content">
         <div class="ads-topbar">
-          <select bind:value={fbWin} class="select" onchange={pullCampaigns}>
-            <option value="today">Hoje</option>
-            <option value="yesterday">Ontem</option>
-            <option value="last_7_d">Últimos 7 dias</option>
-            <option value="last_14_d">Últimos 14 dias</option>
-            <option value="last_30_d">Últimos 30 dias</option>
-            <option value="this_month">Este mês</option>
-          </select>
+          <div class="period-pills">
+            {#each (['hoje','hoje_ontem','ultimos_7d','este_mes'] as Period[]) as p}
+              <button class="period-pill" class:active={period === p} onclick={() => { period = p; }}>{PERIOD_LABELS[p]}</button>
+            {/each}
+          </div>
           <button class="btn-refresh" onclick={pullCampaigns} disabled={campaignsLoading}>
             {campaignsLoading ? '…' : '↺ Atualizar'}
           </button>
@@ -2113,6 +2175,27 @@
   .kpi-profit-pos .kpi-value { color: #02a95c; }
   .kpi-profit-neg { border-color: rgba(255,91,91,0.3); }
   .kpi-profit-neg .kpi-value { color: #ff5b5b; }
+  .kpi-green { color: #02a95c; }
+  .kpi-red   { color: #ff5b5b; }
+
+  /* ── Period pills ── */
+  .period-pills {
+    display: flex; gap: 4px; flex-wrap: wrap;
+  }
+  .period-pill {
+    background: #11161d; border: 1px solid #1f2630; color: #8b94a4;
+    padding: 7px 13px; border-radius: 8px; font-size: 0.8125rem; font-weight: 500;
+    font-family: inherit; cursor: pointer; transition: all 0.12s; white-space: nowrap;
+  }
+  .period-pill:hover { border-color: #2a3340; color: #c8cdd5; }
+  .period-pill.active {
+    background: rgba(2,169,92,0.12); border-color: #02a95c; color: #02a95c;
+  }
+
+  @media (max-width: 768px) {
+    .period-pills { gap: 3px; }
+    .period-pill { padding: 6px 10px; font-size: 0.75rem; }
+  }
 
   /* ── Tab content wrapper ── */
   .tab-content {
