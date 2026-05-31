@@ -11,14 +11,12 @@ function checkAuth(token: string | null): boolean {
   return token === expected;
 }
 
-// Retorna timestamp UTC de meia-noite em Europe/Brussels
+// Retorna timestamp UTC de meia-noite em America/Sao_Paulo (horário do usuário)
 // offsetDays: 0 = hoje, -1 = ontem, 1 = amanhã
 function midnightBrussels(offsetDays = 0): number {
-  // Pega a data atual em Brussels
+  const TZ = 'America/Sao_Paulo';
   const now = new Date();
-  const dateStr = new Intl.DateTimeFormat('sv-SE', { // sv-SE = formato YYYY-MM-DD
-    timeZone: 'Europe/Brussels'
-  }).format(now);
+  const dateStr = new Intl.DateTimeFormat('sv-SE', { timeZone: TZ }).format(now);
 
   // Aplica offset de dias
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -26,17 +24,16 @@ function midnightBrussels(offsetDays = 0): number {
   const targetStr  = targetDate.toISOString().slice(0, 10); // YYYY-MM-DD
 
   const utcBase = new Date(`${targetStr}T00:00:00Z`).getTime();
-  // Busca binária: encontra o UTC que corresponde a 00:00:00 em Brussels
+  // Busca binária: encontra o UTC que corresponde a 00:00:00 em Sao_Paulo
   const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Europe/Brussels',
+    timeZone: TZ,
     year: 'numeric', month: 'numeric', day: 'numeric',
     hour: 'numeric', minute: 'numeric', second: 'numeric',
     hour12: false
   });
-  // Encontra o UTC que corresponde a 00:00:00 em Brussels via iteração binária
-  // Estimativa inicial: UTC - 2h (máximo offset Brussels CEST)
-  let lo = utcBase - 3 * 3600_000;
-  let hi = utcBase + 3 * 3600_000;
+  // São Paulo é UTC-3 (BRT) ou UTC-2 (BRST no verão, raro agora)
+  let lo = utcBase - 1 * 3600_000;
+  let hi = utcBase + 5 * 3600_000;
   for (let i = 0; i < 50; i++) {
     const mid = Math.floor((lo + hi) / 2);
     const dt = new Date(mid);
@@ -49,8 +46,8 @@ function midnightBrussels(offsetDays = 0): number {
     if (totalSec > 0 && totalSec < 43200) hi = mid;
     else lo = mid;
   }
-  // Fallback: UTC+2 (CEST)
-  return utcBase - 2 * 3600_000;
+  // Fallback: UTC-3 (BRT)
+  return utcBase + 3 * 3600_000;
 }
 
 export const GET: RequestHandler = async ({ url, cookies }) => {

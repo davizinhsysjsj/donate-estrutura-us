@@ -1194,8 +1194,8 @@
         <section class="card card-wide">
           <h2>Compras rastreadas na janela</h2>
           <div class="kpi-sub muted" style="margin-bottom:8px">
-            Janela: {new Date(snap.sinceTs).toISOString().replace('T',' ').slice(0,19)} UTC
-            → {new Date(snap.untilTs).toISOString().replace('T',' ').slice(0,19)} UTC
+            Janela SP: {new Date(snap.sinceTs).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', hour12: false })}
+            → {new Date(snap.untilTs).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', hour12: false })}
           </div>
           {#if !snap.purchaseList?.length}
             <p class="muted">Nenhuma compra rastreada na janela.</p>
@@ -1204,8 +1204,7 @@
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>São Paulo</th>
-                  <th>Brussels</th>
+                  <th>Horário São Paulo</th>
                   <th>Valor</th>
                 </tr>
               </thead>
@@ -1213,15 +1212,14 @@
                 {#each snap.purchaseList as p, i}
                   <tr>
                     <td class="muted small">{i + 1}</td>
-                    <td style="font-family:monospace">{new Date(p.purchaseAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', hour12: false, year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
-                    <td style="font-family:monospace;color:#888">{new Date(p.purchaseAt).toLocaleString('pt-BR', { timeZone: 'Europe/Brussels', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
+                    <td style="font-family:monospace">{new Date(p.purchaseAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', hour12: false, year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
                     <td style="font-family:monospace;color:#f9d65b">{fmtEur(p.amount)}</td>
                   </tr>
                 {/each}
               </tbody>
               <tfoot>
                 <tr>
-                  <td colspan="3" style="font-weight:600">Total ({snap.purchaseList.length} pedidos)</td>
+                  <td colspan="2" style="font-weight:600">Total ({snap.purchaseList.length} pedidos)</td>
                   <td style="font-family:monospace;color:#f9d65b;font-weight:600">{fmtEur(snap.purchaseList.reduce((a,p) => a + p.amount, 0))}</td>
                 </tr>
               </tfoot>
