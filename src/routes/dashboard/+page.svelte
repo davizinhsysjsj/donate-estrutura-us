@@ -13,6 +13,26 @@
   let pathFilter = $state<'' | '/' | '/donate' | '/vsl'>('');
   let deviceFilter = $state<'' | 'mobile' | 'desktop' | 'tablet'>('');
   let countryFilter = $state('');
+
+  // ── País / Moeda ──
+  type DisplayCurrency = 'BRL' | 'EUR' | 'USD';
+  let displayCurrency = $state<DisplayCurrency>('BRL');
+  const COUNTRY_OPTIONS = [
+    { code: '',   flag: '🌍', label: 'Todos',   currency: 'BRL' as DisplayCurrency },
+    { code: 'BR', flag: '🇧🇷', label: 'Brasil',  currency: 'BRL' as DisplayCurrency },
+    { code: 'BE', flag: '🇧🇪', label: 'Bélgica', currency: 'EUR' as DisplayCurrency },
+    { code: 'NL', flag: '🇳🇱', label: 'Holanda', currency: 'EUR' as DisplayCurrency },
+    { code: 'US', flag: '🇺🇸', label: 'EUA',     currency: 'USD' as DisplayCurrency },
+  ];
+  let selectedCountryOpt = $state(COUNTRY_OPTIONS[0]);
+  function selectCountry(opt: typeof COUNTRY_OPTIONS[number]) {
+    selectedCountryOpt = opt;
+    countryFilter = opt.code;
+    displayCurrency = opt.currency;
+  }
+
+  // ── Período colapsável ──
+  let periodOpen = $state(false);
   const includeBots = false; // bots sempre filtrados
 
   const PERIOD_LABELS: Record<Period, string> = {
@@ -437,6 +457,18 @@
   const fmtUsd = (n: number) => '$' + n.toFixed(2).replace('.', ',');
   const fmtPct2 = (n: number) => n.toFixed(2) + '%';
 
+  // Formata gasto (USD) na moeda display ativa
+  function fmtSpendDisplay(usd: number): string {
+    if (displayCurrency === 'USD') return '$' + usd.toFixed(2);
+    if (displayCurrency === 'EUR') return '€' + (usd / (liveRate?.eurToUsd ?? 1.16)).toFixed(2).replace('.', ',');
+    return 'R$ ' + (usd * activeUsdToBrl).toFixed(2).replace('.', ',');
+  }
+  // Sub-label do gasto (moeda secundária)
+  function fmtSpendSub(usd: number): string {
+    if (displayCurrency === 'BRL') return fmtUsd(usd);
+    return 'R$ ' + (usd * activeUsdToBrl).toFixed(2).replace('.', ',');
+  }
+
   // ── Campanhas ──
   let fbCampaigns = $state<any[]>([]);
   let campaignsLoading = $state(false);
@@ -565,7 +597,7 @@
           >↻</button>
           {#if liveRate}
             <span class="rate-badge" title="Câmbio ao vivo — {liveRate.source}">
-              💱 R${activeUsdToBrl.toFixed(4)}/USD
+              💱 {activeUsdToBrl.toFixed(4)}/USD
             </span>
           {/if}
         </div>
@@ -574,29 +606,54 @@
         </button>
       </div>
       <div class="topbar-right" class:mobile-open={mobileFiltersOpen}>
-        <!-- Seletor de período unificado -->
-        <div class="period-pills">
-          {#each (['hoje','ontem','hoje_ontem','ultimos_7d','este_mes'] as Period[]) as p}
-            <button
-              class="period-pill"
-              class:active={period === p}
-              onclick={() => { period = p; }}
-            >{PERIOD_LABELS[p]}</button>
-          {/each}
-        </div>
-        <select bind:value={pathFilter} class="select">
-          <option value="">Todas as rotas</option>
+        <!-- Período de visualização colapsável -->
+        <button class="period-label-btn" onclick={() => (periodOpen = !periodOpen)}>
+          <span class="period-label-icon">📅</span>
+          <span>Período</span>
+          <span class="period-label-active">{PERIOD_LABELS[period]}</span>
+          <span class="period-chevron" class:open={periodOpen}>▾</span>
+        </button>
+        {#if periodOpen}
+          <div class="period-pills">
+            {#each (['hoje','ontem','hoje_ontem','ultimos_7d','este_mes'] as Period[]) as p}
+              <button
+                class="period-pill"
+                class:active={period === p}
+                onclick={() => { period = p; periodOpen = false; }}
+              >{PERIOD_LABELS[p]}</button>
+            {/each}
+          </div>
+        {/if}
+        <select bind:value={pathFilter} class="select select-sm">
+          <option value="">Todas rotas</option>
           <option value="/">/ (LP)</option>
           <option value="/donate">/donate</option>
           <option value="/vsl">/vsl</option>
         </select>
-        <select bind:value={deviceFilter} class="select">
+        <select bind:value={deviceFilter} class="select select-sm">
           <option value="">Todos devices</option>
           <option value="mobile">Mobile</option>
           <option value="desktop">Desktop</option>
           <option value="tablet">Tablet</option>
         </select>
-        <input class="select country-input" placeholder="País (ex: BE)" bind:value={countryFilter} maxlength="2" />
+        <!-- Seletor de país / moeda com bandeira -->
+        <div class="country-select-wrap">
+          <select
+            class="select select-flag"
+            value={selectedCountryOpt.code}
+            onchange={(e) => {
+              const opt = COUNTRY_OPTIONS.find(o => o.code === (e.target as HTMLSelectElement).value);
+              if (opt) selectCountry(opt);
+            }}
+          >
+            {#each COUNTRY_OPTIONS as opt}
+              <option value={opt.code}>{opt.flag} {opt.label}</option>
+            {/each}
+          </select>
+          <span class="currency-badge currency-{displayCurrency.toLowerCase()}">
+            {displayCurrency}
+          </span>
+        </div>
         <button class="btn-reset" onclick={resetData} disabled={resetting} title="Zerar todos os dados">
           {resetting ? '…' : 'Reset'}
         </button>
@@ -1401,16 +1458,31 @@
 
       {#if activeTab === 'campanhas'}
       <div class="tab-content">
-        <div class="ads-topbar">
-          <div class="period-pills">
-            {#each (['hoje','ontem','hoje_ontem','ultimos_7d','este_mes'] as Period[]) as p}
-              <button class="period-pill" class:active={period === p} onclick={() => { period = p; }}>{PERIOD_LABELS[p]}</button>
-            {/each}
+
+        <!-- Barra de filtros estilo UTMfy -->
+        <div class="camp-filterbar">
+          <div class="camp-filterbar-left">
+            <div class="camp-filter-group">
+              <label class="camp-filter-label">Período de visualização</label>
+              <div class="period-pills camp-period">
+                {#each (['hoje','ontem','hoje_ontem','ultimos_7d','este_mes'] as Period[]) as p}
+                  <button class="period-pill" class:active={period === p} onclick={() => { period = p; }}>{PERIOD_LABELS[p]}</button>
+                {/each}
+              </div>
+            </div>
           </div>
-          <button class="btn-refresh" onclick={pullCampaigns} disabled={campaignsLoading}>
-            {campaignsLoading ? '…' : '↺ Atualizar'}
-          </button>
-          <span class="muted small">Cache 5 min · breakdown por campanha</span>
+          <div class="camp-filterbar-right">
+            <span class="camp-update-info">
+              {#if campaignsLoading}
+                <span class="camp-updating">↻ Atualizando…</span>
+              {:else}
+                Atualizado {fmtAgo(updateAgoSec)}
+              {/if}
+            </span>
+            <button class="btn-camp-refresh" onclick={pullCampaigns} disabled={campaignsLoading}>
+              ↻ Atualizar
+            </button>
+          </div>
         </div>
 
         {#if campaignsLoading}
@@ -1418,66 +1490,86 @@
         {:else if fbCampaigns.length === 0}
           <div class="empty"><span class="empty-emoji">◎</span><p>Sem campanhas no período. Tente outro intervalo.</p></div>
         {:else}
-          <section class="card card-wide">
-            <div class="camp-table">
-              <div class="camp-head">
-                <span>Campanha</span>
-                <span class="ta-right">Gasto</span>
-                <span class="ta-right">Impressões</span>
-                <span class="ta-right">Cliques</span>
-                <span class="ta-right">CTR</span>
-                <span class="ta-right">CPM</span>
-                <span class="ta-right">CPC</span>
-              </div>
-              {#each fbCampaigns.sort((a, b) => b.spend - a.spend) as c}
-              <div class="camp-row">
-                <span class="camp-name">{c.name}</span>
-                <span class="ta-right">
-                  <strong>{fmtBrl(c.spend * activeUsdToBrl)}</strong>
-                  <small class="camp-sub">{fmtUsd(c.spend)}</small>
-                </span>
-                <span class="ta-right">{fmtNum(c.impressions)}</span>
-                <span class="ta-right">{fmtNum(c.clicks)}</span>
-                <span class="ta-right">{fmtPct2(c.ctr)}</span>
-                <span class="ta-right">
-                  {fmtBrl(c.cpm * activeUsdToBrl)}
-                  <small class="camp-sub">{fmtUsd(c.cpm)}</small>
-                </span>
-                <span class="ta-right">
-                  {fmtBrl(c.cpc * activeUsdToBrl)}
-                  <small class="camp-sub">{fmtUsd(c.cpc)}</small>
-                </span>
-              </div>
-              {/each}
-              <!-- Total -->
-              <div class="camp-row camp-total">
-                <span>Total ({fbCampaigns.length} campanhas)</span>
-                <span class="ta-right">
-                  <strong>{fmtBrl(fbCampaigns.reduce((s, c) => s + c.spend, 0) * activeUsdToBrl)}</strong>
-                  <small class="camp-sub">{fmtUsd(fbCampaigns.reduce((s, c) => s + c.spend, 0))}</small>
-                </span>
-                <span class="ta-right">{fmtNum(fbCampaigns.reduce((s, c) => s + c.impressions, 0))}</span>
-                <span class="ta-right">{fmtNum(fbCampaigns.reduce((s, c) => s + c.clicks, 0))}</span>
-                <span class="ta-right">—</span>
-                <span class="ta-right">—</span>
-                <span class="ta-right">—</span>
-              </div>
-            </div>
-          </section>
+          <!-- Tabela estilo UTMfy -->
+          {@const campTotalSpend  = fbCampaigns.reduce((s, c) => s + c.spend, 0)}
+          {@const campTotalImpr   = fbCampaigns.reduce((s, c) => s + c.impressions, 0)}
+          {@const campTotalClicks = fbCampaigns.reduce((s, c) => s + c.clicks, 0)}
+          <div class="camp-utmfy-wrap">
+            <table class="camp-utmfy">
+              <thead>
+                <tr>
+                  <th class="th-status">Status</th>
+                  <th class="th-name">Campanha</th>
+                  <th class="th-num">Gastos</th>
+                  <th class="th-num">Impressões</th>
+                  <th class="th-num">Cliques</th>
+                  <th class="th-num">CTR</th>
+                  <th class="th-num">CPM</th>
+                  <th class="th-num">CPC</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each fbCampaigns.sort((a, b) => b.spend - a.spend) as c, i}
+                <tr class="camp-tr" class:camp-tr-alt={i % 2 !== 0}>
+                  <td class="td-status">
+                    <span class="camp-status-dot" class:active={c.spend > 0}></span>
+                  </td>
+                  <td class="td-name">
+                    <span class="camp-name-txt" title={c.name}>{c.name}</span>
+                  </td>
+                  <td class="td-num">
+                    <span class="camp-val-main">{fmtSpendDisplay(c.spend)}</span>
+                    <span class="camp-val-sub">{fmtSpendSub(c.spend)}</span>
+                  </td>
+                  <td class="td-num">
+                    <span class="camp-val-main">{fmtNum(c.impressions)}</span>
+                  </td>
+                  <td class="td-num">
+                    <span class="camp-val-main">{fmtNum(c.clicks)}</span>
+                  </td>
+                  <td class="td-num">
+                    <span class="camp-val-main {c.ctr > 2 ? 'camp-val-green' : c.ctr < 1 ? 'camp-val-red' : ''}">{fmtPct2(c.ctr)}</span>
+                  </td>
+                  <td class="td-num">
+                    <span class="camp-val-main">{fmtSpendDisplay(c.cpm / 1000)}</span>
+                    <span class="camp-val-sub">por mil</span>
+                  </td>
+                  <td class="td-num">
+                    <span class="camp-val-main">{fmtSpendDisplay(c.cpc)}</span>
+                    <span class="camp-val-sub">por clique</span>
+                  </td>
+                </tr>
+                {/each}
+              </tbody>
+              <tfoot>
+                <tr class="camp-tr-total">
+                  <td></td>
+                  <td class="td-name"><strong>{fbCampaigns.length} campanha{fbCampaigns.length !== 1 ? 's' : ''}</strong></td>
+                  <td class="td-num"><span class="camp-val-main"><strong>{fmtSpendDisplay(campTotalSpend)}</strong></span><span class="camp-val-sub">{fmtSpendSub(campTotalSpend)}</span></td>
+                  <td class="td-num"><span class="camp-val-main"><strong>{fmtNum(campTotalImpr)}</strong></span></td>
+                  <td class="td-num"><span class="camp-val-main"><strong>{fmtNum(campTotalClicks)}</strong></span></td>
+                  <td class="td-num">—</td>
+                  <td class="td-num">—</td>
+                  <td class="td-num">—</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
 
-          <!-- Barras de gasto por campanha -->
-          <section class="card">
-            <h2>Gasto por campanha</h2>
+          <!-- Barras de gasto -->
+          <div class="camp-bars-wrap">
+            <h3 class="camp-bars-title">Distribuição de gastos</h3>
             {#each [...fbCampaigns].sort((a, b) => b.spend - a.spend) as c}
-              <div class="bar-row">
-                <div class="bar-label" title={c.name}>{c.name.length > 30 ? c.name.slice(0, 30) + '…' : c.name}</div>
-                <div class="bar-wrap">
-                  <div class="bar-fill bar-orange" style="width: {fbCampaigns.length ? (c.spend / Math.max(...fbCampaigns.map(x => x.spend))) * 100 : 0}%"></div>
+              {@const maxSpend = Math.max(...fbCampaigns.map(x => x.spend))}
+              <div class="camp-bar-row">
+                <div class="camp-bar-label" title={c.name}>{c.name.length > 35 ? c.name.slice(0, 35) + '…' : c.name}</div>
+                <div class="camp-bar-track">
+                  <div class="camp-bar-fill" style="width: {maxSpend > 0 ? (c.spend / maxSpend) * 100 : 0}%"></div>
                 </div>
-                <div class="bar-val">{fmtBrl(c.spend * activeUsdToBrl)}</div>
+                <div class="camp-bar-val">{fmtSpendDisplay(c.spend)}</div>
               </div>
             {/each}
-          </section>
+          </div>
         {/if}
       </div><!-- /tab-content campanhas -->
       {/if}
@@ -2303,13 +2395,6 @@
     display: flex; align-items: center; gap: 10px;
     flex-wrap: wrap;
   }
-  .btn-refresh {
-    background: transparent; border: 1px solid #1f2630; color: #8b94a4;
-    padding: 8px 14px; border-radius: 8px; font-size: 0.8125rem; font-weight: 500;
-    font-family: inherit; cursor: pointer; transition: all 0.15s;
-  }
-  .btn-refresh:hover:not(:disabled) { border-color: #02a95c; color: #02a95c; }
-  .btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
   .ads-error {
     background: rgba(255,91,91,0.1); border: 1px solid rgba(255,91,91,0.3);
     color: #ff5b5b; padding: 12px 16px; border-radius: 10px;
@@ -2372,50 +2457,167 @@
   }
 
   /* ── Campanhas table ── */
-  .camp-table { display: flex; flex-direction: column; gap: 0; }
-  .camp-head, .camp-row {
-    display: grid;
-    grid-template-columns: 2fr 1.1fr 100px 80px 70px 110px 100px;
-    gap: 10px; padding: 10px 12px; align-items: center;
-    font-size: 0.8125rem;
-  }
-  .camp-head {
-    color: #8b94a4; font-size: 0.6875rem; text-transform: uppercase;
-    letter-spacing: 0.05em; font-weight: 600;
-    border-bottom: 1px solid #1a1f28; padding-bottom: 8px;
-  }
-  .camp-row {
-    border-bottom: 1px solid #0f1419; transition: background 0.1s;
-  }
-  .camp-row:hover { background: #0d1117; }
-  .camp-row:last-child { border-bottom: none; }
-  .camp-name {
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    font-weight: 500;
-  }
-  .camp-total {
-    border-top: 1px solid #1a1f28; margin-top: 4px;
-    font-weight: 600; color: #d6dae3;
-  }
-  .camp-sub {
-    display: block; font-size: 0.675rem; color: #4a5568;
-    font-family: 'JetBrains Mono', monospace;
-  }
+  /* legado */
   .ta-right { text-align: right; }
   .bar-orange { background: linear-gradient(90deg, #ff7043, #ff9800); }
 
+  /* ── Período colapsável ── */
+  .period-label-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #11161d; border: 1px solid #1f2630; color: #c8cdd5;
+    padding: 7px 12px; border-radius: 8px; font-size: 0.8125rem; font-weight: 500;
+    font-family: inherit; cursor: pointer; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .period-label-btn:hover { border-color: #2e3a4a; color: #e6e9ef; }
+  .period-label-active {
+    color: #02a95c; font-weight: 700;
+    background: rgba(2,169,92,0.1); padding: 1px 6px; border-radius: 4px;
+    font-size: 0.75rem;
+  }
+  .period-chevron { font-size: 0.6rem; color: #6b7787; transition: transform 0.2s; }
+  .period-chevron.open { transform: rotate(180deg); }
+  .period-label-icon { font-size: 0.875rem; }
+
+  /* ── Country / Moeda ── */
+  .country-select-wrap {
+    display: inline-flex; align-items: center; gap: 0;
+    border: 1px solid #1f2630; border-radius: 8px; overflow: hidden;
+    background: #11161d;
+  }
+  .select-flag {
+    border: none !important; border-radius: 0 !important; background: transparent !important;
+    padding: 7px 10px; font-size: 0.8125rem; min-width: 130px;
+  }
+  .currency-badge {
+    padding: 0 10px; font-size: 0.6875rem; font-weight: 700;
+    border-left: 1px solid #1a1f28; height: 100%;
+    display: flex; align-items: center; white-space: nowrap;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .currency-brl { color: #1de9b6; background: rgba(29,233,182,0.08); }
+  .currency-eur { color: #4dd0e1; background: rgba(77,208,225,0.08); }
+  .currency-usd { color: #f9d65b; background: rgba(249,214,91,0.08); }
+  .select-sm { font-size: 0.75rem; padding: 6px 10px; }
+
+  /* ── Filterbar campanhas (UTMfy style) ── */
+  .camp-filterbar {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap; margin-bottom: 20px;
+    padding: 16px 20px; background: #0d1117;
+    border: 1px solid #1a1f28; border-radius: 12px;
+  }
+  .camp-filterbar-left { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+  .camp-filterbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .camp-filter-group { display: flex; flex-direction: column; gap: 6px; }
+  .camp-filter-label {
+    font-size: 0.6875rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; color: #6b7787;
+  }
+  .camp-period.period-pills { gap: 4px; }
+  .camp-update-info { font-size: 0.75rem; color: #6b7787; white-space: nowrap; }
+  .camp-updating { color: #4dd0e1; }
+  .btn-camp-refresh {
+    background: #1a2332; border: 1px solid #2a3a4a; color: #c8cdd5;
+    padding: 8px 16px; border-radius: 8px; font-size: 0.8125rem; font-weight: 600;
+    font-family: inherit; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .btn-camp-refresh:hover:not(:disabled) { background: #243040; border-color: #02a95c; color: #02a95c; }
+  .btn-camp-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── Tabela UTMfy ── */
+  .camp-utmfy-wrap {
+    overflow-x: auto; border-radius: 12px;
+    border: 1px solid #1a1f28; background: #0d1117; margin-bottom: 20px;
+  }
+  .camp-utmfy {
+    width: 100%; border-collapse: collapse; font-size: 0.8125rem;
+  }
+  .camp-utmfy thead tr {
+    border-bottom: 2px solid #1a1f28;
+  }
+  .camp-utmfy th {
+    padding: 12px 16px; text-align: left;
+    font-size: 0.6875rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: #6b7787; white-space: nowrap;
+  }
+  .camp-utmfy th.th-num { text-align: right; }
+  .camp-tr td { padding: 14px 16px; border-bottom: 1px solid #0f1419; }
+  .camp-tr:last-child td { border-bottom: none; }
+  .camp-tr:hover td { background: rgba(255,255,255,0.02); }
+  .camp-tr-alt td { background: rgba(255,255,255,0.01); }
+  .td-status { width: 48px; }
+  .td-name { max-width: 280px; }
+  .td-num { text-align: right; }
+  .camp-status-dot {
+    display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+    background: #2a3340;
+  }
+  .camp-status-dot.active {
+    background: #02a95c;
+    box-shadow: 0 0 0 3px rgba(2,169,92,0.15);
+  }
+  .camp-name-txt {
+    display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-weight: 500; color: #c8cdd5; max-width: 260px;
+  }
+  .camp-val-main {
+    display: block; font-weight: 600; color: #e6e9ef;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.875rem;
+  }
+  .camp-val-sub {
+    display: block; font-size: 0.675rem; color: #4a5568;
+    font-family: 'JetBrains Mono', monospace; margin-top: 1px;
+  }
+  .camp-val-green { color: #02a95c; }
+  .camp-val-red   { color: #ff5b5b; }
+  .camp-tr-total td {
+    padding: 14px 16px; border-top: 2px solid #1a2332;
+    background: #0a0e14;
+  }
+  .camp-tr-total .camp-val-main { color: #e6e9ef; font-size: 0.9375rem; }
+  .camp-utmfy tfoot .td-num { text-align: right; color: #6b7787; font-size: 0.8125rem; }
+
+  /* ── Barras de gasto ── */
+  .camp-bars-wrap {
+    background: #0d1117; border: 1px solid #1a1f28;
+    border-radius: 12px; padding: 20px 20px 12px;
+  }
+  .camp-bars-title {
+    font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: #6b7787; margin: 0 0 16px;
+  }
+  .camp-bar-row {
+    display: grid; grid-template-columns: 200px 1fr 120px;
+    align-items: center; gap: 12px; padding: 6px 0;
+  }
+  .camp-bar-label {
+    font-size: 0.75rem; color: #8b94a4; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  .camp-bar-track {
+    height: 8px; background: #1a1f28; border-radius: 4px; overflow: hidden;
+  }
+  .camp-bar-fill {
+    height: 100%; border-radius: 4px;
+    background: linear-gradient(90deg, #ff6b35, #ff9800);
+    transition: width 0.5s ease;
+  }
+  .camp-bar-val {
+    font-size: 0.8125rem; font-family: 'JetBrains Mono', monospace;
+    font-weight: 600; color: #c8cdd5; text-align: right;
+  }
+
   @media (max-width: 768px) {
-    .camp-head { display: none; }
-    .camp-row {
-      grid-template-columns: 1fr auto; gap: 6px 10px;
-      padding: 12px;
-    }
-    .camp-row > span:nth-child(3),
-    .camp-row > span:nth-child(4),
-    .camp-row > span:nth-child(5),
-    .camp-row > span:nth-child(6),
-    .camp-row > span:nth-child(7) { display: none; }
-    .camp-name { font-size: 0.8125rem; }
+    /* Campanhas mobile */
+    .camp-filterbar { padding: 12px; gap: 10px; }
+    .camp-filterbar-right { flex-wrap: wrap; }
+    .camp-bar-row { grid-template-columns: 120px 1fr 90px; }
+    /* ocultar cols secundárias na tabela UTMfy em mobile */
+    .camp-utmfy th.th-num:nth-child(n+5),
+    .camp-tr td.td-num:nth-child(n+5) { display: none; }
+    .period-label-btn { font-size: 0.75rem; padding: 6px 10px; }
+    .country-select-wrap { flex: 1 1 140px; }
   }
 
   /* ── Taxas form ── */
