@@ -4,7 +4,7 @@
   let { data } = $props();
 
   // ── State ──
-  type Tab = 'overview' | 'live' | 'funnel' | 'vsl' | 'heatmap' | 'sessions' | 'revenue' | 'tech' | 'ads' | 'taxas';
+  type Tab = 'overview' | 'live' | 'funnel' | 'vsl' | 'heatmap' | 'sessions' | 'revenue' | 'tech' | 'ads' | 'taxas' | 'campanhas';
   let activeTab = $state<Tab>('overview');
   let win = $state<'2m' | '15m' | '1h' | '6h' | '24h' | '7d'>('24h');
   let pathFilter = $state<'' | '/' | '/donate' | '/vsl'>('');
@@ -84,6 +84,7 @@
   const fmtPct = (n: number) => (n * 100).toFixed(1) + '%';
   const fmtDelta = (n: number) => (n >= 0 ? '+' : '') + (n * 100).toFixed(1) + '%';
   const fmtEur = (n: number) => '€' + n.toFixed(2).replace('.', ',');
+  const fmtBrl = (n: number) => 'R$ ' + n.toFixed(2).replace('.', ',');
   function fmtDuration(sec: number): string {
     if (sec < 60) return `${sec}s`;
     const m = Math.floor(sec / 60);
@@ -226,11 +227,13 @@
     gatewayPct:   number;  // % da receita
     shopifyFixed: number;  // € fixo (ex: mensalidade)
     otherFixed:   number;  // outros custos € fixos
-    eurToUsd:     number;  // taxa EUR→USD
+    eurToUsd:     number;  // taxa EUR→USD (ex: 1.08 = 1 EUR = 1.08 USD)
+    usdToBrl:     number;  // taxa USD→BRL (ex: 5.70)
   }
   const DEFAULT_TAX: TaxConfig = {
     shopifyPct: 2, gatewayPct: 2.9,
-    shopifyFixed: 0, otherFixed: 0, eurToUsd: 1.08,
+    shopifyFixed: 0, otherFixed: 0,
+    eurToUsd: 1.08, usdToBrl: 5.70,
   };
   let taxConfig = $state<TaxConfig>({ ...DEFAULT_TAX });
   let taxSaved = $state(false);
@@ -248,7 +251,10 @@
     { id: 'profit',      label: 'Lucro' },
     { id: 'roas',        label: 'ROAS' },
   ];
-  let visibleCards = $state<Set<CardId>>(new Set(['online','sessions','pageviews','revenue','conversion','duration','spend','profit','roas']));
+  const DEFAULT_ORDER: CardId[] = ['online','sessions','pageviews','revenue','conversion','duration','spend','profit','roas'];
+  let visibleCards = $state<Set<CardId>>(new Set(DEFAULT_ORDER));
+  let cardOrder = $state<CardId[]>([...DEFAULT_ORDER]);
+  let dragSrc = $state<CardId | null>(null);
   let customizeOpen = $state(false);
 
   onMount(() => {
@@ -263,7 +269,34 @@
       const sc = localStorage.getItem('vitrack_cards');
       if (sc) visibleCards = new Set(JSON.parse(sc) as CardId[]);
     } catch {}
+    // Carrega cardOrder
+    try {
+      const co = localStorage.getItem('vitrack_card_order');
+      if (co) {
+        const parsed = JSON.parse(co) as CardId[];
+        // Garante que todos os IDs válidos estão presentes
+        const valid = DEFAULT_ORDER.filter(id => !parsed.includes(id));
+        cardOrder = [...parsed.filter(id => DEFAULT_ORDER.includes(id)), ...valid];
+      }
+    } catch {}
   });
+
+  function dragStart(id: CardId) { dragSrc = id; }
+  function dragOverCard(e: DragEvent, id: CardId) {
+    e.preventDefault();
+    if (!dragSrc || dragSrc === id) return;
+    const next = [...cardOrder];
+    const from = next.indexOf(dragSrc);
+    const to = next.indexOf(id);
+    if (from === -1 || to === -1) return;
+    next.splice(from, 1);
+    next.splice(to, 0, dragSrc);
+    cardOrder = next;
+  }
+  function dragEnd() {
+    dragSrc = null;
+    localStorage.setItem('vitrack_card_order', JSON.stringify(cardOrder));
+  }
 
   function saveTax() {
     localStorage.setItem('vitrack_tax', JSON.stringify(taxConfig));
@@ -293,8 +326,38 @@
     adSpendEur > 0 && snap ? (snap.kpis.revenue / adSpendEur) : 0
   );
 
+  // Conversões BRL
+  const eurToBrl   = $derived((taxConfig.eurToUsd || 1.08) * (taxConfig.usdToBrl || 5.70));
+  const adSpendBrl = $derived(fbAds?.spend ? fbAds.spend * (taxConfig.usdToBrl || 5.70) : 0);
+  const revenueBrl = $derived(snap ? snap.kpis.revenue * eurToBrl : 0);
+  const profitBrl  = $derived(profitEur * eurToBrl);
+
   const fmtUsd = (n: number) => '$' + n.toFixed(2).replace('.', ',');
   const fmtPct2 = (n: number) => n.toFixed(2) + '%';
+
+  // ── Campanhas ──
+  let fbCampaigns = $state<any[]>([]);
+  let campaignsLoading = $state(false);
+
+  async function pullCampaigns() {
+    campaignsLoading = true;
+    try {
+      const r = await fetch(`/api/fb-ads?window=${fbWin}&campaigns=1`, { cache: 'no-store' });
+      if (r.ok) {
+        const d = await r.json();
+        fbCampaigns = d.campaigns || [];
+      }
+    } catch {}
+    campaignsLoading = false;
+  }
+
+  $effect(() => {
+    if (!data.authed) return;
+    if (activeTab === 'campanhas') {
+      const _w = fbWin;
+      pullCampaigns();
+    }
+  });
 
   let updateAgoSec = $state(0);
   let agoTimer: ReturnType<typeof setInterval> | null = null;
@@ -355,6 +418,7 @@
         { id: 'live', label: 'Live', icon: '●' },
         { id: 'funnel', label: 'Funil', icon: '⊞' },
         { id: 'ads', label: 'Anúncios', icon: '◎' },
+        { id: 'campanhas', label: 'Campanhas', icon: '⊞' },
         { id: 'taxas', label: 'Taxas', icon: '⊕' },
         { id: 'vsl', label: 'VSL', icon: '▶' },
         { id: 'heatmap', label: 'Heatmap', icon: '◉' },
@@ -460,96 +524,87 @@
           </div>
         {/if}
 
-        <!-- KPIs -->
+        <!-- KPIs (drag para reordenar) -->
         <section class="kpi-grid">
-          {#if visibleCards.has('online')}
-          <div class="kpi kpi-live">
-            <div class="kpi-label">Online agora</div>
-            <div class="kpi-value">{snap.kpis.online}</div>
-            <div class="kpi-sub">visitantes ativos · últimos 2 min</div>
-            <div class="kpi-breakdown">
-              <span class="kpi-chip" title="Visitantes em / (LP)">
-                <span class="kpi-chip-dot" style="background:#02a95c"></span>
-                <span class="kpi-chip-label">LP</span>
-                <strong>{snap.kpis.onlineLp ?? 0}</strong>
-              </span>
-              <span class="kpi-chip" title="Visitantes em /donate">
-                <span class="kpi-chip-dot" style="background:#ffd54f"></span>
-                <span class="kpi-chip-label">/donate</span>
-                <strong>{snap.kpis.onlineDonate ?? 0}</strong>
-              </span>
-              <span class="kpi-chip" title="Visitantes em /vsl">
-                <span class="kpi-chip-dot" style="background:#a78bfa"></span>
-                <span class="kpi-chip-label">/vsl</span>
-                <strong>{snap.kpis.onlineVsl ?? 0}</strong>
-              </span>
+          {#each cardOrder.filter(id => visibleCards.has(id)) as cardId (cardId)}
+            <div
+              class="kpi"
+              class:kpi-live={cardId === 'online'}
+              class:kpi-spend={cardId === 'spend'}
+              class:kpi-profit-pos={cardId === 'profit' && profitBrl > 0}
+              class:kpi-profit-neg={cardId === 'profit' && profitBrl < 0}
+              class:kpi-dragging={dragSrc === cardId}
+              draggable="true"
+              ondragstart={() => dragStart(cardId)}
+              ondragover={(e) => dragOverCard(e, cardId)}
+              ondragend={dragEnd}
+            >
+              {#if cardId === 'online'}
+                <div class="kpi-label">Online agora <span class="drag-hint">⠿</span></div>
+                <div class="kpi-value">{snap.kpis.online}</div>
+                <div class="kpi-sub">visitantes ativos · últimos 2 min</div>
+                <div class="kpi-breakdown">
+                  <span class="kpi-chip" title="Visitantes em / (LP)">
+                    <span class="kpi-chip-dot" style="background:#02a95c"></span>
+                    <span class="kpi-chip-label">LP</span>
+                    <strong>{snap.kpis.onlineLp ?? 0}</strong>
+                  </span>
+                  <span class="kpi-chip" title="Visitantes em /donate">
+                    <span class="kpi-chip-dot" style="background:#ffd54f"></span>
+                    <span class="kpi-chip-label">/donate</span>
+                    <strong>{snap.kpis.onlineDonate ?? 0}</strong>
+                  </span>
+                  <span class="kpi-chip" title="Visitantes em /vsl">
+                    <span class="kpi-chip-dot" style="background:#a78bfa"></span>
+                    <span class="kpi-chip-label">/vsl</span>
+                    <strong>{snap.kpis.onlineVsl ?? 0}</strong>
+                  </span>
+                </div>
+              {:else if cardId === 'sessions'}
+                <div class="kpi-label">Sessões <span class="drag-hint">⠿</span></div>
+                <div class="kpi-value">{fmtNum(snap.kpis.totalSessions)}</div>
+                <div class="kpi-sub kpi-delta {deltaClass(snap.compare.sessions.delta)}">
+                  {fmtDelta(snap.compare.sessions.delta)} vs período anterior
+                </div>
+              {:else if cardId === 'pageviews'}
+                <div class="kpi-label">Pageviews <span class="drag-hint">⠿</span></div>
+                <div class="kpi-value">{fmtNum(snap.kpis.pageviews)}</div>
+                <div class="kpi-sub kpi-delta {deltaClass(snap.compare.pageviews.delta)}">
+                  {fmtDelta(snap.compare.pageviews.delta)}
+                </div>
+              {:else if cardId === 'revenue'}
+                <div class="kpi-label">Receita <span class="drag-hint">⠿</span></div>
+                <div class="kpi-value">{fmtBrl(revenueBrl)}</div>
+                <div class="kpi-sub kpi-secondary">{fmtEur(snap.kpis.revenue)} · {fmtUsd(snap.kpis.revenue * (taxConfig.eurToUsd || 1.08))}</div>
+                <div class="kpi-sub kpi-delta {deltaClass(snap.compare.revenue.delta)}">
+                  {fmtDelta(snap.compare.revenue.delta)} · {snap.kpis.purchased} pedidos
+                </div>
+              {:else if cardId === 'conversion'}
+                <div class="kpi-label">Conversão <span class="drag-hint">⠿</span></div>
+                <div class="kpi-value">{fmtPct(snap.kpis.conversionRate)}</div>
+                <div class="kpi-sub kpi-delta {deltaClass(snap.compare.conversion.delta)}">
+                  {fmtDelta(snap.compare.conversion.delta)} · sessões → Bancontact
+                </div>
+              {:else if cardId === 'duration'}
+                <div class="kpi-label">Tempo médio <span class="drag-hint">⠿</span></div>
+                <div class="kpi-value">{fmtDuration(snap.kpis.avgSessionDurationSec)}</div>
+                <div class="kpi-sub">duração da sessão</div>
+              {:else if cardId === 'spend'}
+                <div class="kpi-label">Gasto Meta <span class="drag-hint">⠿</span></div>
+                <div class="kpi-value">{fbAds ? fmtBrl(adSpendBrl) : '—'}</div>
+                <div class="kpi-sub kpi-secondary">{fbAds ? fmtEur(adSpendEur) + ' · ' + fmtUsd(fbAds.spend) : 'carregando…'}</div>
+              {:else if cardId === 'profit'}
+                <div class="kpi-label">Lucro estimado <span class="drag-hint">⠿</span></div>
+                <div class="kpi-value">{fmtBrl(profitBrl)}</div>
+                <div class="kpi-sub kpi-secondary">{fmtEur(profitEur)} · {fmtUsd(profitEur * (taxConfig.eurToUsd || 1.08))}</div>
+                <div class="kpi-sub">receita − anúncios − taxas</div>
+              {:else if cardId === 'roas'}
+                <div class="kpi-label">ROAS <span class="drag-hint">⠿</span></div>
+                <div class="kpi-value">{roasCalc > 0 ? roasCalc.toFixed(2) + '×' : '—'}</div>
+                <div class="kpi-sub">receita / gasto em €</div>
+              {/if}
             </div>
-          </div>
-          {/if}
-          {#if visibleCards.has('sessions')}
-          <div class="kpi">
-            <div class="kpi-label">Sessões na janela</div>
-            <div class="kpi-value">{fmtNum(snap.kpis.totalSessions)}</div>
-            <div class="kpi-sub kpi-delta {deltaClass(snap.compare.sessions.delta)}">
-              {fmtDelta(snap.compare.sessions.delta)} vs período anterior
-            </div>
-          </div>
-          {/if}
-          {#if visibleCards.has('pageviews')}
-          <div class="kpi">
-            <div class="kpi-label">Pageviews</div>
-            <div class="kpi-value">{fmtNum(snap.kpis.pageviews)}</div>
-            <div class="kpi-sub kpi-delta {deltaClass(snap.compare.pageviews.delta)}">
-              {fmtDelta(snap.compare.pageviews.delta)}
-            </div>
-          </div>
-          {/if}
-          {#if visibleCards.has('revenue')}
-          <div class="kpi">
-            <div class="kpi-label">Receita</div>
-            <div class="kpi-value">{fmtEur(snap.kpis.revenue)}</div>
-            <div class="kpi-sub kpi-delta {deltaClass(snap.compare.revenue.delta)}">
-              {fmtDelta(snap.compare.revenue.delta)} · {snap.kpis.purchased} pedidos
-            </div>
-          </div>
-          {/if}
-          {#if visibleCards.has('conversion')}
-          <div class="kpi">
-            <div class="kpi-label">Conversão</div>
-            <div class="kpi-value">{fmtPct(snap.kpis.conversionRate)}</div>
-            <div class="kpi-sub kpi-delta {deltaClass(snap.compare.conversion.delta)}">
-              {fmtDelta(snap.compare.conversion.delta)} · sessões → Bancontact
-            </div>
-          </div>
-          {/if}
-          {#if visibleCards.has('duration')}
-          <div class="kpi">
-            <div class="kpi-label">Tempo médio</div>
-            <div class="kpi-value">{fmtDuration(snap.kpis.avgSessionDurationSec)}</div>
-            <div class="kpi-sub">duração da sessão</div>
-          </div>
-          {/if}
-          {#if visibleCards.has('spend')}
-          <div class="kpi kpi-spend">
-            <div class="kpi-label">Gasto Meta (hoje)</div>
-            <div class="kpi-value">{fbAds ? fmtEur(fbAds.spend / (taxConfig.eurToUsd || 1.08)) : '—'}</div>
-            <div class="kpi-sub">{fbAds ? fmtUsd(fbAds.spend) + ' USD' : 'carregando…'}</div>
-          </div>
-          {/if}
-          {#if visibleCards.has('profit')}
-          <div class="kpi" class:kpi-profit-pos={profitEur > 0} class:kpi-profit-neg={profitEur < 0}>
-            <div class="kpi-label">Lucro estimado</div>
-            <div class="kpi-value">{fmtEur(profitEur)}</div>
-            <div class="kpi-sub">receita − anúncios − taxas</div>
-          </div>
-          {/if}
-          {#if visibleCards.has('roas')}
-          <div class="kpi">
-            <div class="kpi-label">ROAS</div>
-            <div class="kpi-value">{roasCalc > 0 ? roasCalc.toFixed(2) + '×' : '—'}</div>
-            <div class="kpi-sub">receita / gasto em €</div>
-          </div>
-          {/if}
+          {/each}
         </section>
 
         <!-- Time series -->
@@ -1022,18 +1077,18 @@
           <section class="kpi-grid">
             <div class="kpi kpi-spend">
               <div class="kpi-label">Gasto</div>
-              <div class="kpi-value">{fmtEur(fbAds.spend / (taxConfig.eurToUsd || 1.08))}</div>
-              <div class="kpi-sub kpi-usd">{fmtUsd(fbAds.spend)} USD</div>
+              <div class="kpi-value">{fmtBrl(adSpendBrl)}</div>
+              <div class="kpi-sub kpi-secondary">{fmtEur(adSpendEur)} · {fmtUsd(fbAds.spend)}</div>
             </div>
             <div class="kpi">
               <div class="kpi-label">Impressões</div>
               <div class="kpi-value">{fmtNum(fbAds.impressions)}</div>
-              <div class="kpi-sub">CPM {fmtEur(fbAds.cpm / (taxConfig.eurToUsd || 1.08))}</div>
+              <div class="kpi-sub">CPM {fmtBrl(fbAds.cpm * (taxConfig.usdToBrl || 5.70))}</div>
             </div>
             <div class="kpi">
               <div class="kpi-label">Cliques</div>
               <div class="kpi-value">{fmtNum(fbAds.clicks)}</div>
-              <div class="kpi-sub">CPC {fmtEur(fbAds.cpc / (taxConfig.eurToUsd || 1.08))}</div>
+              <div class="kpi-sub">CPC {fmtBrl(fbAds.cpc * (taxConfig.usdToBrl || 5.70))}</div>
             </div>
             <div class="kpi">
               <div class="kpi-label">Alcance</div>
@@ -1046,15 +1101,15 @@
               <div class="kpi-sub">taxa de clique</div>
             </div>
             {#if snap}
-            <div class="kpi" class:kpi-profit-pos={profitEur > 0} class:kpi-profit-neg={profitEur < 0}>
+            <div class="kpi" class:kpi-profit-pos={profitBrl > 0} class:kpi-profit-neg={profitBrl < 0}>
               <div class="kpi-label">Lucro estimado</div>
-              <div class="kpi-value">{fmtEur(profitEur)}</div>
-              <div class="kpi-sub">receita − ads − taxas</div>
+              <div class="kpi-value">{fmtBrl(profitBrl)}</div>
+              <div class="kpi-sub kpi-secondary">{fmtEur(profitEur)} · {fmtUsd(profitEur * (taxConfig.eurToUsd || 1.08))}</div>
             </div>
             <div class="kpi">
               <div class="kpi-label">ROAS</div>
               <div class="kpi-value">{roasCalc > 0 ? roasCalc.toFixed(2) + '×' : '—'}</div>
-              <div class="kpi-sub">receita EUR / gasto EUR</div>
+              <div class="kpi-sub">receita / gasto</div>
             </div>
             {/if}
           </section>
@@ -1066,42 +1121,49 @@
             <div class="finance-grid">
               <div class="finance-row">
                 <span class="finance-label">Receita bruta</span>
-                <span class="finance-val finance-green">+{fmtEur(snap.kpis.revenue)}</span>
+                <span class="finance-val finance-green">+{fmtBrl(revenueBrl)}</span>
+                <span class="finance-secondary">{fmtEur(snap.kpis.revenue)}</span>
               </div>
               <div class="finance-row">
                 <span class="finance-label">Gasto Meta Ads</span>
-                <span class="finance-val finance-red">−{fmtEur(adSpendEur)}</span>
+                <span class="finance-val finance-red">−{fmtBrl(adSpendBrl)}</span>
+                <span class="finance-secondary">{fmtEur(adSpendEur)}</span>
               </div>
               <div class="finance-row">
                 <span class="finance-label">Taxa Shopify ({taxConfig.shopifyPct}%)</span>
-                <span class="finance-val finance-red">−{fmtEur(snap.kpis.revenue * taxConfig.shopifyPct / 100)}</span>
+                <span class="finance-val finance-red">−{fmtBrl(snap.kpis.revenue * taxConfig.shopifyPct / 100 * eurToBrl)}</span>
+                <span class="finance-secondary">{fmtEur(snap.kpis.revenue * taxConfig.shopifyPct / 100)}</span>
               </div>
               <div class="finance-row">
                 <span class="finance-label">Taxa gateway ({taxConfig.gatewayPct}%)</span>
-                <span class="finance-val finance-red">−{fmtEur(snap.kpis.revenue * taxConfig.gatewayPct / 100)}</span>
+                <span class="finance-val finance-red">−{fmtBrl(snap.kpis.revenue * taxConfig.gatewayPct / 100 * eurToBrl)}</span>
+                <span class="finance-secondary">{fmtEur(snap.kpis.revenue * taxConfig.gatewayPct / 100)}</span>
               </div>
               {#if taxConfig.shopifyFixed > 0}
               <div class="finance-row">
                 <span class="finance-label">Shopify fixo</span>
-                <span class="finance-val finance-red">−{fmtEur(taxConfig.shopifyFixed)}</span>
+                <span class="finance-val finance-red">−{fmtBrl(taxConfig.shopifyFixed * eurToBrl)}</span>
+                <span class="finance-secondary">{fmtEur(taxConfig.shopifyFixed)}</span>
               </div>
               {/if}
               {#if taxConfig.otherFixed > 0}
               <div class="finance-row">
                 <span class="finance-label">Outros custos</span>
-                <span class="finance-val finance-red">−{fmtEur(taxConfig.otherFixed)}</span>
+                <span class="finance-val finance-red">−{fmtBrl(taxConfig.otherFixed * eurToBrl)}</span>
+                <span class="finance-secondary">{fmtEur(taxConfig.otherFixed)}</span>
               </div>
               {/if}
               <div class="finance-row finance-total">
                 <span class="finance-label">Lucro líquido</span>
-                <span class="finance-val" class:finance-green={profitEur > 0} class:finance-red={profitEur < 0}>
-                  {profitEur >= 0 ? '+' : ''}{fmtEur(profitEur)}
+                <span class="finance-val" class:finance-green={profitBrl > 0} class:finance-red={profitBrl < 0}>
+                  {profitBrl >= 0 ? '+' : ''}{fmtBrl(profitBrl)}
                 </span>
+                <span class="finance-secondary">{fmtEur(profitEur)}</span>
               </div>
             </div>
             <p class="muted small" style="margin-top:12px">
-              ⓘ Câmbio EUR→USD: {taxConfig.eurToUsd}. Ajuste na aba Taxas.
-              Receita usa janela do dashboard ({win}); anúncios usam {fbWin}.
+              ⓘ USD→BRL: {taxConfig.usdToBrl} · EUR→USD: {taxConfig.eurToUsd}. Ajuste na aba Taxas.
+              Receita usa janela ({win}); anúncios usam {fbWin}.
             </p>
           </section>
           {/if}
@@ -1143,10 +1205,16 @@
               <span class="tax-hint">ferramentas, apps, criativos, etc.</span>
             </div>
             <div class="tax-field">
-              <label>Taxa USD → EUR</label>
+              <label>Taxa EUR → USD</label>
               <input type="number" min="0.5" max="2" step="0.001"
                 bind:value={taxConfig.eurToUsd} class="tax-input" />
               <span class="tax-hint">ex: 1.08 = 1 EUR = 1.08 USD</span>
+            </div>
+            <div class="tax-field">
+              <label>Taxa USD → BRL</label>
+              <input type="number" min="1" max="20" step="0.01"
+                bind:value={taxConfig.usdToBrl} class="tax-input" />
+              <span class="tax-hint">ex: 5.70 = 1 USD = R$ 5,70</span>
             </div>
 
             <button class="btn-save-tax" onclick={saveTax}>
@@ -1156,29 +1224,119 @@
 
           <!-- Preview do cálculo -->
           <div class="tax-preview">
-            <h3>Preview para €{(100).toFixed(0)} de receita</h3>
+            <h3>Preview para €100,00 de receita</h3>
             <div class="finance-grid">
               <div class="finance-row">
                 <span class="finance-label">Receita</span>
-                <span class="finance-val finance-green">+€100,00</span>
+                <span class="finance-val finance-green">+{fmtBrl(100 * eurToBrl)}</span>
+                <span class="finance-secondary">€100,00</span>
               </div>
               <div class="finance-row">
                 <span class="finance-label">Taxa Shopify ({taxConfig.shopifyPct}%)</span>
-                <span class="finance-val finance-red">−{fmtEur(100 * taxConfig.shopifyPct / 100)}</span>
+                <span class="finance-val finance-red">−{fmtBrl(100 * taxConfig.shopifyPct / 100 * eurToBrl)}</span>
+                <span class="finance-secondary">{fmtEur(100 * taxConfig.shopifyPct / 100)}</span>
               </div>
               <div class="finance-row">
                 <span class="finance-label">Taxa Gateway ({taxConfig.gatewayPct}%)</span>
-                <span class="finance-val finance-red">−{fmtEur(100 * taxConfig.gatewayPct / 100)}</span>
+                <span class="finance-val finance-red">−{fmtBrl(100 * taxConfig.gatewayPct / 100 * eurToBrl)}</span>
+                <span class="finance-secondary">{fmtEur(100 * taxConfig.gatewayPct / 100)}</span>
               </div>
               <div class="finance-row finance-total">
                 <span class="finance-label">Líquido (sem ads/fixos)</span>
                 <span class="finance-val finance-green">
-                  {fmtEur(100 - 100 * taxConfig.shopifyPct / 100 - 100 * taxConfig.gatewayPct / 100)}
+                  +{fmtBrl((100 - 100 * taxConfig.shopifyPct / 100 - 100 * taxConfig.gatewayPct / 100) * eurToBrl)}
                 </span>
+                <span class="finance-secondary">{fmtEur(100 - 100 * taxConfig.shopifyPct / 100 - 100 * taxConfig.gatewayPct / 100)}</span>
               </div>
             </div>
           </div>
         </section>
+      {/if}
+
+      {#if activeTab === 'campanhas'}
+      <div class="tab-content">
+        <div class="ads-topbar">
+          <select bind:value={fbWin} class="select" onchange={pullCampaigns}>
+            <option value="today">Hoje</option>
+            <option value="yesterday">Ontem</option>
+            <option value="last_7_d">Últimos 7 dias</option>
+            <option value="last_14_d">Últimos 14 dias</option>
+            <option value="last_30_d">Últimos 30 dias</option>
+            <option value="this_month">Este mês</option>
+          </select>
+          <button class="btn-refresh" onclick={pullCampaigns} disabled={campaignsLoading}>
+            {campaignsLoading ? '…' : '↺ Atualizar'}
+          </button>
+          <span class="muted small">Cache 5 min · breakdown por campanha</span>
+        </div>
+
+        {#if campaignsLoading}
+          <div class="loading"><div class="spinner"></div><span>Carregando campanhas…</span></div>
+        {:else if fbCampaigns.length === 0}
+          <div class="empty"><span class="empty-emoji">◎</span><p>Sem campanhas no período. Tente outro intervalo.</p></div>
+        {:else}
+          <section class="card card-wide">
+            <div class="camp-table">
+              <div class="camp-head">
+                <span>Campanha</span>
+                <span class="ta-right">Gasto</span>
+                <span class="ta-right">Impressões</span>
+                <span class="ta-right">Cliques</span>
+                <span class="ta-right">CTR</span>
+                <span class="ta-right">CPM</span>
+                <span class="ta-right">CPC</span>
+              </div>
+              {#each fbCampaigns.sort((a, b) => b.spend - a.spend) as c}
+              <div class="camp-row">
+                <span class="camp-name">{c.name}</span>
+                <span class="ta-right">
+                  <strong>{fmtBrl(c.spend * (taxConfig.usdToBrl || 5.70))}</strong>
+                  <small class="camp-sub">{fmtUsd(c.spend)}</small>
+                </span>
+                <span class="ta-right">{fmtNum(c.impressions)}</span>
+                <span class="ta-right">{fmtNum(c.clicks)}</span>
+                <span class="ta-right">{fmtPct2(c.ctr)}</span>
+                <span class="ta-right">
+                  {fmtBrl(c.cpm * (taxConfig.usdToBrl || 5.70))}
+                  <small class="camp-sub">{fmtUsd(c.cpm)}</small>
+                </span>
+                <span class="ta-right">
+                  {fmtBrl(c.cpc * (taxConfig.usdToBrl || 5.70))}
+                  <small class="camp-sub">{fmtUsd(c.cpc)}</small>
+                </span>
+              </div>
+              {/each}
+              <!-- Total -->
+              <div class="camp-row camp-total">
+                <span>Total ({fbCampaigns.length} campanhas)</span>
+                <span class="ta-right">
+                  <strong>{fmtBrl(fbCampaigns.reduce((s, c) => s + c.spend, 0) * (taxConfig.usdToBrl || 5.70))}</strong>
+                  <small class="camp-sub">{fmtUsd(fbCampaigns.reduce((s, c) => s + c.spend, 0))}</small>
+                </span>
+                <span class="ta-right">{fmtNum(fbCampaigns.reduce((s, c) => s + c.impressions, 0))}</span>
+                <span class="ta-right">{fmtNum(fbCampaigns.reduce((s, c) => s + c.clicks, 0))}</span>
+                <span class="ta-right">—</span>
+                <span class="ta-right">—</span>
+                <span class="ta-right">—</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Barras de gasto por campanha -->
+          <section class="card">
+            <h2>Gasto por campanha</h2>
+            {#each [...fbCampaigns].sort((a, b) => b.spend - a.spend) as c}
+              <div class="bar-row">
+                <div class="bar-label" title={c.name}>{c.name.length > 30 ? c.name.slice(0, 30) + '…' : c.name}</div>
+                <div class="bar-wrap">
+                  <div class="bar-fill bar-orange" style="width: {fbCampaigns.length ? (c.spend / Math.max(...fbCampaigns.map(x => x.spend))) * 100 : 0}%"></div>
+                </div>
+                <div class="bar-val">{fmtBrl(c.spend * (taxConfig.usdToBrl || 5.70))}</div>
+              </div>
+            {/each}
+          </section>
+        {/if}
+      </div><!-- /tab-content campanhas -->
       {/if}
 
     {/if}
@@ -1985,17 +2143,81 @@
   /* ── Finance breakdown ── */
   .finance-grid { display: flex; flex-direction: column; gap: 0; }
   .finance-row {
-    display: flex; justify-content: space-between; align-items: center;
+    display: grid; grid-template-columns: 1fr auto auto;
+    align-items: center; gap: 12px;
     padding: 10px 0; border-bottom: 1px solid #1a1f28; font-size: 0.875rem;
   }
   .finance-row:last-child { border-bottom: none; }
   .finance-label { color: #8b94a4; }
   .finance-val { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 0.9375rem; }
+  .finance-secondary { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #4a5568; }
   .finance-green { color: #02a95c; }
   .finance-red   { color: #ff5b5b; }
   .finance-total { margin-top: 4px; }
   .finance-total .finance-label { color: #d6dae3; font-weight: 600; }
   .finance-total .finance-val { font-size: 1.125rem; }
+
+  /* ── BRL secondary ── */
+  .kpi-secondary {
+    font-size: 0.6875rem; color: #4a5568;
+    font-family: 'JetBrains Mono', monospace; margin-top: 1px;
+  }
+
+  /* ── Drag & drop cards ── */
+  .kpi[draggable="true"] { cursor: grab; }
+  .kpi[draggable="true"]:active { cursor: grabbing; }
+  .kpi.kpi-dragging { opacity: 0.45; border-style: dashed; }
+  .drag-hint {
+    font-size: 0.65rem; color: #3a4455; margin-left: 4px;
+    user-select: none; vertical-align: middle;
+  }
+
+  /* ── Campanhas table ── */
+  .camp-table { display: flex; flex-direction: column; gap: 0; }
+  .camp-head, .camp-row {
+    display: grid;
+    grid-template-columns: 2fr 1.1fr 100px 80px 70px 110px 100px;
+    gap: 10px; padding: 10px 12px; align-items: center;
+    font-size: 0.8125rem;
+  }
+  .camp-head {
+    color: #8b94a4; font-size: 0.6875rem; text-transform: uppercase;
+    letter-spacing: 0.05em; font-weight: 600;
+    border-bottom: 1px solid #1a1f28; padding-bottom: 8px;
+  }
+  .camp-row {
+    border-bottom: 1px solid #0f1419; transition: background 0.1s;
+  }
+  .camp-row:hover { background: #0d1117; }
+  .camp-row:last-child { border-bottom: none; }
+  .camp-name {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-weight: 500;
+  }
+  .camp-total {
+    border-top: 1px solid #1a1f28; margin-top: 4px;
+    font-weight: 600; color: #d6dae3;
+  }
+  .camp-sub {
+    display: block; font-size: 0.675rem; color: #4a5568;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .ta-right { text-align: right; }
+  .bar-orange { background: linear-gradient(90deg, #ff7043, #ff9800); }
+
+  @media (max-width: 768px) {
+    .camp-head { display: none; }
+    .camp-row {
+      grid-template-columns: 1fr auto; gap: 6px 10px;
+      padding: 12px;
+    }
+    .camp-row > span:nth-child(3),
+    .camp-row > span:nth-child(4),
+    .camp-row > span:nth-child(5),
+    .camp-row > span:nth-child(6),
+    .camp-row > span:nth-child(7) { display: none; }
+    .camp-name { font-size: 0.8125rem; }
+  }
 
   /* ── Taxas form ── */
   .tax-form { display: flex; flex-direction: column; gap: 18px; }
