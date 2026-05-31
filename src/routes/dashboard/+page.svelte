@@ -325,7 +325,7 @@
 
   // Taxas efetivas: usa câmbio ao vivo; fallback para manual do taxConfig
   const activeUsdToBrl = $derived(liveRate?.usdToBrl ?? taxConfig.usdToBrl ?? 5.70);
-  const activeEurToBrl = $derived(liveRate?.eurToBrl ?? (taxConfig.eurToUsd * (taxConfig.usdToBrl || 5.70)));
+  const activeEurToBrl = $derived(liveRate?.eurToBrl ?? (taxConfig.eurToUsd * activeUsdToBrl));
 
   onMount(() => {
     if (!data.authed) return;
@@ -1185,12 +1185,12 @@
             <div class="kpi">
               <div class="kpi-label">Impressões</div>
               <div class="kpi-value">{fmtNum(fbAds.impressions)}</div>
-              <div class="kpi-sub">CPM {fmtBrl(fbAds.cpm * (taxConfig.usdToBrl || 5.70))}</div>
+              <div class="kpi-sub">CPM {fmtBrl(fbAds.cpm * activeUsdToBrl)}</div>
             </div>
             <div class="kpi">
               <div class="kpi-label">Cliques</div>
               <div class="kpi-value">{fmtNum(fbAds.clicks)}</div>
-              <div class="kpi-sub">CPC {fmtBrl(fbAds.cpc * (taxConfig.usdToBrl || 5.70))}</div>
+              <div class="kpi-sub">CPC {fmtBrl(fbAds.cpc * activeUsdToBrl)}</div>
             </div>
             <div class="kpi">
               <div class="kpi-label">Alcance</div>
@@ -1407,18 +1407,18 @@
               <div class="camp-row">
                 <span class="camp-name">{c.name}</span>
                 <span class="ta-right">
-                  <strong>{fmtBrl(c.spend * (taxConfig.usdToBrl || 5.70))}</strong>
+                  <strong>{fmtBrl(c.spend * activeUsdToBrl)}</strong>
                   <small class="camp-sub">{fmtUsd(c.spend)}</small>
                 </span>
                 <span class="ta-right">{fmtNum(c.impressions)}</span>
                 <span class="ta-right">{fmtNum(c.clicks)}</span>
                 <span class="ta-right">{fmtPct2(c.ctr)}</span>
                 <span class="ta-right">
-                  {fmtBrl(c.cpm * (taxConfig.usdToBrl || 5.70))}
+                  {fmtBrl(c.cpm * activeUsdToBrl)}
                   <small class="camp-sub">{fmtUsd(c.cpm)}</small>
                 </span>
                 <span class="ta-right">
-                  {fmtBrl(c.cpc * (taxConfig.usdToBrl || 5.70))}
+                  {fmtBrl(c.cpc * activeUsdToBrl)}
                   <small class="camp-sub">{fmtUsd(c.cpc)}</small>
                 </span>
               </div>
@@ -1427,7 +1427,7 @@
               <div class="camp-row camp-total">
                 <span>Total ({fbCampaigns.length} campanhas)</span>
                 <span class="ta-right">
-                  <strong>{fmtBrl(fbCampaigns.reduce((s, c) => s + c.spend, 0) * (taxConfig.usdToBrl || 5.70))}</strong>
+                  <strong>{fmtBrl(fbCampaigns.reduce((s, c) => s + c.spend, 0) * activeUsdToBrl)}</strong>
                   <small class="camp-sub">{fmtUsd(fbCampaigns.reduce((s, c) => s + c.spend, 0))}</small>
                 </span>
                 <span class="ta-right">{fmtNum(fbCampaigns.reduce((s, c) => s + c.impressions, 0))}</span>
@@ -1448,7 +1448,7 @@
                 <div class="bar-wrap">
                   <div class="bar-fill bar-orange" style="width: {fbCampaigns.length ? (c.spend / Math.max(...fbCampaigns.map(x => x.spend))) * 100 : 0}%"></div>
                 </div>
-                <div class="bar-val">{fmtBrl(c.spend * (taxConfig.usdToBrl || 5.70))}</div>
+                <div class="bar-val">{fmtBrl(c.spend * activeUsdToBrl)}</div>
               </div>
             {/each}
           </section>
