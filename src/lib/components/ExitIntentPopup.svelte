@@ -3,11 +3,24 @@
 
   interface Props {
     onDonate: () => void;
+    onBack?: () => void; // chamado ao fechar popup via tentativa de sair (back/exit)
   }
-  const { onDonate }: Props = $props();
+  const { onDonate, onBack }: Props = $props();
 
   let visible = $state(false);
   let dismissed = $state(false);
+
+  // Exposto para o pai chamar via bind:this ou ação direta
+  export function triggerBackExit() {
+    if (dismissed) {
+      // Já foi mostrado e fechado — vai direto pro destino
+      onBack?.();
+      return;
+    }
+    dismissed = true;
+    visible = true;
+    removeListeners();
+  }
 
   function show() {
     if (dismissed) return;
@@ -21,24 +34,21 @@
     document.removeEventListener('click', handleDocumentClick);
   }
 
-  // Exit intent: cursor sai pelo topo (vai pra barra de endereço)
+  // Exit intent: cursor sai pelo topo (vai pra barra de endereço) — desktop
   function handleMouseLeave(e: MouseEvent) {
     if (e.clientY <= 5) show();
   }
 
-  // Click em área vazia: não é link, botão, input ou filho deles
+  // Tap em área vazia no mobile após 5s de leitura
   function handleDocumentClick(e: MouseEvent) {
     if (dismissed) return;
     const target = e.target as HTMLElement;
-
-    // Ignora cliques em elementos interativos ou dentro de componentes de UI
     if (target.closest(
-      'a, button, input, select, textarea, label, ' +
+      'a, button, input, select, textarea, label, video, ' +
       '[role="button"], [role="dialog"], ' +
       '.exit-overlay, .sticky-bar, .mobile-menu, ' +
       'header, nav, form, .share-modal, .donors-modal'
     )) return;
-
     show();
   }
 
@@ -46,12 +56,12 @@
   let clickTimer: ReturnType<typeof setTimeout>;
 
   onMount(() => {
-    // Exit intent via mouse: ativa após 8s
+    // Exit intent via mouse: ativa após 8s (desktop)
     exitTimer = setTimeout(() => {
       document.addEventListener('mouseleave', handleMouseLeave);
     }, 8000);
 
-    // Click em vazio: ativa após 5s (tempo mínimo de leitura)
+    // Tap em vazio: ativa após 5s (funciona mobile + desktop)
     clickTimer = setTimeout(() => {
       document.addEventListener('click', handleDocumentClick);
     }, 5000);
@@ -65,6 +75,8 @@
 
   function close() {
     visible = false;
+    // Se veio de back press, executa callback de saída
+    onBack?.();
   }
 
   function handleDonate() {

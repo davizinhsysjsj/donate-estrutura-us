@@ -6,6 +6,7 @@
   } from 'lucide-svelte';
   import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
+  import ExitIntentPopup from '$lib/components/ExitIntentPopup.svelte';
   import { CAMPAIGN } from '$lib/data/campaign';
   import { TIERS, DEFAULT_TIER, dogsForAmount } from '$lib/data/tiers';
   import ProgressCard from '$lib/components/ProgressCard.svelte';
@@ -51,11 +52,24 @@
     donorTimer = setInterval(() => {
       donorIdx = (donorIdx + 1) % donorsList.length;
     }, 4200);
+
+    // Back guard: mesmo comportamento da LP
+    if (typeof history !== 'undefined') {
+      history.pushState({ pawsBackGuard: true }, '', window.location.pathname + window.location.search);
+      const handlePopState = () => {
+        window.removeEventListener('popstate', handlePopState);
+        history.pushState({ pawsBackGuard: true }, '', window.location.pathname + window.location.search);
+        exitPopupVsl?.triggerBackExit();
+      };
+      window.addEventListener('popstate', handlePopState);
+    }
   });
 
   onDestroy(() => {
     if (donorTimer) clearInterval(donorTimer);
   });
+
+  let exitPopupVsl: ReturnType<typeof ExitIntentPopup> | null = $state(null);
 
   function scrollToDonors() {
     const el = document.getElementById('donations');
@@ -578,3 +592,6 @@
 
 <!-- Toast -->
 <div class="toast" class:show={toastVisible}>{toastMessage}</div>
+
+<!-- Exit intent popup (desktop: cursor sai pelo topo após 8s; mobile: back press) -->
+<ExitIntentPopup bind:this={exitPopupVsl} onDonate={openDonation} onBack={() => goto('/wacht')} />

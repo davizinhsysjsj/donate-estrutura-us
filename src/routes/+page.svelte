@@ -64,13 +64,16 @@
       donorIdx = (donorIdx + 1) % donorsList.length;
     }, 4200);
 
-    // Back redirect: empurra um estado fake no histórico.
-    // Quando o user aperta "voltar", interceptamos e mandamos pra /wacht
+    // Back guard: empurra estado fake no histórico.
+    // Desktop: popup já aparece por mouseleave/click em vazio.
+    // Mobile: quando user aperta "voltar", mostra o popup antes de sair.
     if (typeof history !== 'undefined') {
       history.pushState({ pawsBackGuard: true }, '', window.location.pathname + window.location.search);
       const handlePopState = () => {
         window.removeEventListener('popstate', handlePopState);
-        goto('/wacht');
+        // Re-empurra o estado para o popup poder funcionar (precisa de entry no history)
+        history.pushState({ pawsBackGuard: true }, '', window.location.pathname + window.location.search);
+        exitPopup?.triggerBackExit();
       };
       window.addEventListener('popstate', handlePopState);
     }
@@ -84,6 +87,8 @@
     const el = document.getElementById('donations');
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+
+  let exitPopup: ReturnType<typeof import('$lib/components/ExitIntentPopup.svelte')['default']> | null = $state(null);
 
   let descExpanded = $state(false);
   let donationOpen = $state(false);
@@ -595,4 +600,4 @@
 <div class="toast" class:show={toastVisible}>{toastMessage}</div>
 
 <!-- Exit intent popup (desktop: cursor sai pelo topo após 8s) -->
-<ExitIntentPopup onDonate={openDonation} />
+<ExitIntentPopup bind:this={exitPopup} onDonate={openDonation} onBack={() => goto('/wacht')} />
