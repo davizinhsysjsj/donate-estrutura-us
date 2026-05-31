@@ -1204,8 +1204,8 @@
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Horário UTC</th>
-                  <th>Horário Brussels</th>
+                  <th>São Paulo</th>
+                  <th>Brussels</th>
                   <th>Valor</th>
                 </tr>
               </thead>
@@ -1213,8 +1213,8 @@
                 {#each snap.purchaseList as p, i}
                   <tr>
                     <td class="muted small">{i + 1}</td>
-                    <td style="font-family:monospace">{new Date(p.purchaseAt).toISOString().replace('T',' ').slice(0,19)}</td>
-                    <td style="font-family:monospace">{new Date(p.purchaseAt).toLocaleString('pt-BR', { timeZone: 'Europe/Brussels', hour12: false }).slice(0,19)}</td>
+                    <td style="font-family:monospace">{new Date(p.purchaseAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', hour12: false, year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
+                    <td style="font-family:monospace;color:#888">{new Date(p.purchaseAt).toLocaleString('pt-BR', { timeZone: 'Europe/Brussels', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
                     <td style="font-family:monospace;color:#f9d65b">{fmtEur(p.amount)}</td>
                   </tr>
                 {/each}
