@@ -142,10 +142,18 @@
   }
 
   // ── Refresh manual ──
+  let flashing = $state(false);
+
   async function refresh() {
     if (refreshing) return;
+    // Dados já frescos (< 10s): só pisca os KPIs e volta
+    if (updateAgoSec < 10) {
+      flashing = true;
+      setTimeout(() => (flashing = false), 500);
+      return;
+    }
     refreshing = true;
-    await pull();
+    await Promise.all([pull(), pullFbAds()]);
     refreshing = false;
   }
 
@@ -583,21 +591,20 @@
           <span></span><span></span><span></span>
         </button>
         <div class="topbar-title-block">
-          <h1 class="page-title">{activeTab[0].toUpperCase() + activeTab.slice(1)}</h1>
-          <div class="update-row">
-            <span class="status">
-              <span class="status-dot" class:on={updateAgoSec < 6}></span>
-              <span class="status-text">
-                {updateAgoSec < 6 ? 'live' : 'Atualizado há ' + fmtAgo(updateAgoSec)}
-              </span>
+          <h1 class="page-title">Dashboard</h1>
+        </div>
+        <div class="update-row">
+          <span class="status">
+            <span class="status-dot" class:on={updateAgoSec < 6}></span>
+            <span class="status-text">
+              {updateAgoSec < 6 ? 'live' : 'Atualizado há ' + fmtAgo(updateAgoSec)}
             </span>
-            <button
-              class="btn-update"
-              class:spinning={refreshing}
-              onclick={refresh}
-              disabled={refreshing}
-            >{refreshing ? '↻' : 'Atualizar'}</button>
-          </div>
+          </span>
+          <button
+            class="btn-update"
+            onclick={refresh}
+            disabled={refreshing}
+          >{refreshing ? 'Atualizando' : 'Atualizar'}</button>
         </div>
         <button class="filters-toggle" aria-label="filtros" onclick={() => (mobileFiltersOpen = !mobileFiltersOpen)}>
           {mobileFiltersOpen ? '✕' : '⌥'}
@@ -693,7 +700,7 @@
         {/if}
 
         <!-- KPIs (drag para reordenar) -->
-        <section class="kpi-grid">
+        <section class="kpi-grid" class:flash={flashing}>
           {#each cardOrder.filter(id => visibleCards.has(id)) as cardId (cardId)}
             <div
               class="kpi"
@@ -1142,7 +1149,7 @@
       {/if}
 
       {#if activeTab === 'revenue'}
-        <section class="kpi-grid">
+        <section class="kpi-grid" class:flash={flashing}>
           <div class="kpi">
             <div class="kpi-label">Receita</div>
             <div class="kpi-value">{fmtEur(snap.kpis.revenue)}</div>
@@ -1227,7 +1234,7 @@
       {/if}
 
       {#if activeTab === 'tech'}
-        <section class="kpi-grid">
+        <section class="kpi-grid" class:flash={flashing}>
           <div class="kpi">
             <div class="kpi-label">LCP <span class="vital-grade {vitalGrade('lcp', snap.vitalsKpis.lcpP75)}"></span></div>
             <div class="kpi-value">{fmtMs(snap.vitalsKpis.lcpP75)}</div>
@@ -1293,7 +1300,7 @@
           <div class="loading"><div class="spinner"></div><span>Carregando anúncios…</span></div>
         {:else}
           <!-- KPIs Meta -->
-          <section class="kpi-grid">
+          <section class="kpi-grid" class:flash={flashing}>
             <div class="kpi kpi-spend">
               <div class="kpi-label">Gasto</div>
               <div class="kpi-value">{fmtBrl(adSpendBrl)}</div>
@@ -1801,13 +1808,21 @@
     display: flex; align-items: center; gap: 12px;
   }
   .btn-update {
-    background: #1a7fe8; color: #fff; border: none;
-    padding: 5px 14px; border-radius: 8px; font-size: 0.8125rem; font-weight: 600;
-    font-family: inherit; cursor: pointer; transition: background 0.15s; white-space: nowrap;
+    background: #02a95c; color: #fff; border: none;
+    padding: 5px 16px; border-radius: 8px; font-size: 0.8125rem; font-weight: 600;
+    font-family: inherit; cursor: pointer; transition: background 0.15s, opacity 0.15s;
+    white-space: nowrap;
   }
-  .btn-update:hover:not(:disabled) { background: #1569c7; }
-  .btn-update:disabled { opacity: 0.5; cursor: not-allowed; }
-  .btn-update.spinning { animation: spin 0.6s linear infinite; }
+  .btn-update:hover:not(:disabled) { background: #019e55; }
+  .btn-update:disabled { opacity: 0.65; cursor: default; }
+
+  /* ── Flash dos KPIs quando dados já estão frescos ── */
+  @keyframes kpi-flash {
+    0%, 100% { opacity: 1; }
+    20%, 60% { opacity: 0.25; }
+    40%, 80% { opacity: 0.8; }
+  }
+  .kpi-grid.flash .kpi { animation: kpi-flash 0.45s ease; }
   @keyframes pulse {
     0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(2,169,92,0.6); }
     50% { opacity:.6; box-shadow:0 0 0 8px rgba(2,169,92,0); }
@@ -2184,22 +2199,28 @@
       background: linear-gradient(180deg, #0a0d12 75%, rgba(10,13,18,0));
       padding-top: 8px; margin-top: -8px;
     }
+    /* Topbar mobile: título na 1ª linha (centralizado), ações na 2ª */
     .topbar-left {
-      display: flex; align-items: center; gap: 12px; width: 100%;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px; width: 100%;
     }
+    /* Linha 1 — título centralizado, ocupa toda a largura */
     .topbar-title-block {
-      flex: 1; min-width: 0; flex-direction: column;
-      align-items: flex-start; gap: 6px;
+      order: 1; width: 100%;
+      display: flex; justify-content: center; align-items: center;
+      flex-direction: row;
     }
-    .page-title { font-size: 1.125rem; }
+    .page-title { font-size: 1.125rem; text-align: center; }
+    /* Linha 2 — ☰ + update-row + ⌥ */
+    .hamburger { order: 2; }
     .update-row {
-      width: 100%; justify-content: space-between;
+      order: 3; flex: 1; justify-content: space-between;
       background: #11161d; border: 1px solid #1f2630;
       padding: 7px 12px; border-radius: 10px;
     }
+    .filters-toggle { order: 4; }
     .status { font-size: 0.75rem; }
     .status-text { white-space: nowrap; }
-    .btn-update { padding: 5px 16px; font-size: 0.8125rem; }
+    .btn-update { padding: 5px 14px; font-size: 0.8125rem; }
 
     .hamburger {
       display: inline-flex; flex-direction: column; justify-content: center;
