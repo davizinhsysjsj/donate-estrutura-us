@@ -43,7 +43,7 @@ function parseInsight(d: any) {
   return {
     spend:         parseFloat(d.spend        || '0'),
     impressions:   parseInt  (d.impressions  || '0'),
-    clicks:        parseInt  (d.clicks       || '0'),
+    clicks:        parseInt  (d.inline_link_clicks || '0'),
     reach:         parseInt  (d.reach        || '0'),
     cpm:           parseFloat(d.cpm          || '0'),
     cpc:           parseFloat(d.cpc          || '0'),
@@ -83,7 +83,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
   try {
     const fields = [
-      'spend','impressions','clicks','reach',
+      'spend','impressions','inline_link_clicks','reach',
       'cpm','cpc','ctr','actions','action_values',
     ].join(',');
 
@@ -105,7 +105,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
       let campaigns: any[] = [];
       if (withCampaigns) {
-        const camFields = 'campaign_name,spend,impressions,clicks,ctr,cpm,cpc';
+        const camFields = 'campaign_name,spend,impressions,inline_link_clicks,ctr,cpm,cpc';
         const [tcb, ycb] = await Promise.all([
           fbFetch(`${FB_ACCT}/insights?fields=${camFields}&date_preset=today&level=campaign&access_token=${FB_TOKEN}`),
           fbFetch(`${FB_ACCT}/insights?fields=${camFields}&date_preset=yesterday&level=campaign&access_token=${FB_TOKEN}`),
@@ -118,7 +118,7 @@ export const GET: RequestHandler = async ({ url }) => {
             const ex = map.get(key);
             const newSpend = ex.spend + parseFloat(c.spend || '0');
             const newImpr  = ex.impressions + parseInt(c.impressions || '0');
-            const newClicks = ex.clicks + parseInt(c.clicks || '0');
+            const newClicks = ex.clicks + parseInt(c.inline_link_clicks || '0');
             map.set(key, {
               ...ex,
               spend: newSpend,
@@ -133,7 +133,7 @@ export const GET: RequestHandler = async ({ url }) => {
               name: c.campaign_name,
               spend: parseFloat(c.spend || '0'),
               impressions: parseInt(c.impressions || '0'),
-              clicks: parseInt(c.clicks || '0'),
+              clicks: parseInt(c.inline_link_clicks || '0'),
               ctr: parseFloat(c.ctr || '0'),
               cpm: parseFloat(c.cpm || '0'),
               cpc: parseFloat(c.cpc || '0'),
@@ -162,9 +162,9 @@ export const GET: RequestHandler = async ({ url }) => {
       );
       campaigns = (cb.data || []).map((c: any) => ({
         name:        c.campaign_name,
-        spend:       parseFloat(c.spend        || '0'),
-        impressions: parseInt  (c.impressions  || '0'),
-        clicks:      parseInt  (c.clicks       || '0'),
+        spend:       parseFloat(c.spend               || '0'),
+        impressions: parseInt  (c.impressions          || '0'),
+        clicks:      parseInt  (c.inline_link_clicks   || '0'),
         ctr:         parseFloat(c.ctr          || '0'),
         cpm:         parseFloat(c.cpm          || '0'),
         cpc:         parseFloat(c.cpc          || '0'),
