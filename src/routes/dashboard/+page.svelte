@@ -1190,6 +1190,44 @@
             <path d={sparkPath(snap.timeSeries, 'revenue')} stroke="#f9d65b" stroke-width="2" fill="none" />
           </svg>
         </section>
+
+        <section class="card card-wide">
+          <h2>Compras rastreadas na janela</h2>
+          <div class="kpi-sub muted" style="margin-bottom:8px">
+            Janela: {new Date(snap.sinceTs).toISOString().replace('T',' ').slice(0,19)} UTC
+            → {new Date(snap.untilTs).toISOString().replace('T',' ').slice(0,19)} UTC
+          </div>
+          {#if !snap.purchaseList?.length}
+            <p class="muted">Nenhuma compra rastreada na janela.</p>
+          {:else}
+            <table class="camp-utmfy" style="width:100%">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Horário UTC</th>
+                  <th>Horário Brussels</th>
+                  <th>Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each snap.purchaseList as p, i}
+                  <tr>
+                    <td class="muted small">{i + 1}</td>
+                    <td style="font-family:monospace">{new Date(p.purchaseAt).toISOString().replace('T',' ').slice(0,19)}</td>
+                    <td style="font-family:monospace">{new Date(p.purchaseAt).toLocaleString('pt-BR', { timeZone: 'Europe/Brussels', hour12: false }).slice(0,19)}</td>
+                    <td style="font-family:monospace;color:#f9d65b">{fmtEur(p.amount)}</td>
+                  </tr>
+                {/each}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="3" style="font-weight:600">Total ({snap.purchaseList.length} pedidos)</td>
+                  <td style="font-family:monospace;color:#f9d65b;font-weight:600">{fmtEur(snap.purchaseList.reduce((a,p) => a + p.amount, 0))}</td>
+                </tr>
+              </tfoot>
+            </table>
+          {/if}
+        </section>
       {/if}
 
       {#if activeTab === 'tech'}

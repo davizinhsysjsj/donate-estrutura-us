@@ -572,18 +572,22 @@ export function snapshot(opts: SnapshotOpts) {
   let purchasedCount = 0;
   const revenueBySource = new Map<string, { revenue: number; count: number }>();
 
+  const purchaseList: { amount: number; purchaseAt: number; sid: string }[] = [];
+
   for (const s of sessions.values()) {
     if (!matchSession(s)) continue;
     if (!s.purchaseAmount || !s.purchaseAt) continue;
     if (s.purchaseAt < since || s.purchaseAt >= until) continue;
     revenue += s.purchaseAmount;
     purchasedCount++;
+    purchaseList.push({ amount: s.purchaseAmount, purchaseAt: s.purchaseAt, sid: s.sid });
     const key = s.utm_source || '(direct)';
     const cur = revenueBySource.get(key) ?? { revenue: 0, count: 0 };
     cur.revenue += s.purchaseAmount;
     cur.count++;
     revenueBySource.set(key, cur);
   }
+  purchaseList.sort((a, b) => a.purchaseAt - b.purchaseAt);
   const purchased = purchasedCount;
   const avgTicket = purchased ? revenue / purchased : 0;
 
@@ -846,6 +850,9 @@ export function snapshot(opts: SnapshotOpts) {
       medianDonateToAmountMs: median(timesDonateToAmount),
       medianAmountToBccMs: median(timesAmountToBcc)
     },
+    purchaseList,
+    sinceTs: since,
+    untilTs: until,
     revenueBySource: [...revenueBySource.entries()]
       .map(([source, v]) => ({ source, revenue: v.revenue, count: v.count }))
       .sort((a, b) => b.revenue - a.revenue),
