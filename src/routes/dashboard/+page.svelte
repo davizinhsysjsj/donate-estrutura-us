@@ -438,6 +438,7 @@
     {:else}
 
       {#if activeTab === 'overview'}
+      <div class="tab-content">
         <!-- Customize button -->
         <div class="customize-bar">
           <button class="btn-customize" onclick={() => (customizeOpen = !customizeOpen)}>
@@ -531,8 +532,8 @@
           {#if visibleCards.has('spend')}
           <div class="kpi kpi-spend">
             <div class="kpi-label">Gasto Meta (hoje)</div>
-            <div class="kpi-value">{fbAds ? fmtUsd(fbAds.spend) : '—'}</div>
-            <div class="kpi-sub">{fbAds ? fmtEur(fbAds.spend / (taxConfig.eurToUsd || 1.08)) + ' estimado' : 'carregando…'}</div>
+            <div class="kpi-value">{fbAds ? fmtEur(fbAds.spend / (taxConfig.eurToUsd || 1.08)) : '—'}</div>
+            <div class="kpi-sub">{fbAds ? fmtUsd(fbAds.spend) + ' USD' : 'carregando…'}</div>
           </div>
           {/if}
           {#if visibleCards.has('profit')}
@@ -651,6 +652,7 @@
             {/if}
           </section>
         </div>
+      </div><!-- /tab-content overview -->
       {/if}
 
       {#if activeTab === 'live'}
@@ -994,6 +996,7 @@
       {/if}
 
       {#if activeTab === 'ads'}
+      <div class="tab-content">
         <!-- Seletor de período dos anúncios -->
         <div class="ads-topbar">
           <select bind:value={fbWin} class="select" onchange={pullFbAds}>
@@ -1019,18 +1022,18 @@
           <section class="kpi-grid">
             <div class="kpi kpi-spend">
               <div class="kpi-label">Gasto</div>
-              <div class="kpi-value">{fmtUsd(fbAds.spend)}</div>
-              <div class="kpi-sub">{fmtEur(fbAds.spend / (taxConfig.eurToUsd || 1.08))} ≈ em EUR</div>
+              <div class="kpi-value">{fmtEur(fbAds.spend / (taxConfig.eurToUsd || 1.08))}</div>
+              <div class="kpi-sub kpi-usd">{fmtUsd(fbAds.spend)} USD</div>
             </div>
             <div class="kpi">
               <div class="kpi-label">Impressões</div>
               <div class="kpi-value">{fmtNum(fbAds.impressions)}</div>
-              <div class="kpi-sub">CPM {fmtUsd(fbAds.cpm)}</div>
+              <div class="kpi-sub">CPM {fmtEur(fbAds.cpm / (taxConfig.eurToUsd || 1.08))}</div>
             </div>
             <div class="kpi">
               <div class="kpi-label">Cliques</div>
               <div class="kpi-value">{fmtNum(fbAds.clicks)}</div>
-              <div class="kpi-sub">CPC {fmtUsd(fbAds.cpc)}</div>
+              <div class="kpi-sub">CPC {fmtEur(fbAds.cpc / (taxConfig.eurToUsd || 1.08))}</div>
             </div>
             <div class="kpi">
               <div class="kpi-label">Alcance</div>
@@ -1103,6 +1106,7 @@
           </section>
           {/if}
         {/if}
+      </div><!-- /tab-content ads -->
       {/if}
 
       {#if activeTab === 'taxas'}
@@ -1400,15 +1404,16 @@
 
   /* ── KPIs ── */
   .kpi-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 14px; margin-bottom: 20px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 16px; margin-bottom: 16px; align-items: stretch;
   }
   .kpi {
     background: #11161d; border: 1px solid #1a1f28; padding: 18px 20px;
     border-radius: 12px; position: relative; overflow: hidden;
     transition: transform 0.15s, border-color 0.15s;
+    display: flex; flex-direction: column;
   }
-  .kpi:hover { border-color: #1f2630; transform: translateY(-1px); }
+  .kpi:hover { border-color: #2a3340; transform: translateY(-1px); }
   .kpi-live::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
     background: linear-gradient(90deg, transparent, #02a95c, transparent);
@@ -1456,7 +1461,7 @@
   /* ── Cards ── */
   .card {
     background: #11161d; border: 1px solid #1a1f28; padding: 20px;
-    border-radius: 12px; margin-bottom: 16px;
+    border-radius: 12px; margin-bottom: 0;
   }
   .card.card-wide { width: 100%; }
   .card h2 {
@@ -1468,7 +1473,7 @@
   .card-head h2 { margin: 0; }
 
   .two-col {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 0;
   }
   @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
 
@@ -1781,7 +1786,7 @@
     .kpi-sub { font-size: 0.6875rem; margin-top: 4px; }
 
     /* Cards */
-    .card { padding: 14px; margin-bottom: 12px; border-radius: 10px; }
+    .card { padding: 14px; border-radius: 10px; }
     .card h2 { font-size: 0.875rem; margin-bottom: 12px; }
     .card-head { flex-direction: column; align-items: flex-start; gap: 4px; }
 
@@ -1916,7 +1921,7 @@
 
   /* ── Personalizar ── */
   .customize-bar {
-    display: flex; justify-content: flex-end; margin-bottom: 12px;
+    display: flex; justify-content: flex-end;
   }
   .btn-customize {
     background: transparent; border: 1px solid #1f2630; color: #8b94a4;
@@ -1926,7 +1931,7 @@
   .btn-customize:hover { border-color: #02a95c; color: #02a95c; }
   .customize-panel {
     background: #11161d; border: 1px solid #1f2630; border-radius: 12px;
-    padding: 16px; margin-bottom: 16px;
+    padding: 16px;
   }
   .card-toggles {
     display: flex; flex-wrap: wrap; gap: 8px;
@@ -1951,10 +1956,18 @@
   .kpi-profit-neg { border-color: rgba(255,91,91,0.3); }
   .kpi-profit-neg .kpi-value { color: #ff5b5b; }
 
+  /* ── Tab content wrapper ── */
+  .tab-content {
+    display: flex; flex-direction: column; gap: 16px;
+  }
+
+  /* ── USD sub-label ── */
+  .kpi-usd { font-size: 0.7rem; color: #6b7787; font-family: 'JetBrains Mono', monospace; }
+
   /* ── Ads topbar ── */
   .ads-topbar {
     display: flex; align-items: center; gap: 10px;
-    margin-bottom: 20px; flex-wrap: wrap;
+    flex-wrap: wrap;
   }
   .btn-refresh {
     background: transparent; border: 1px solid #1f2630; color: #8b94a4;
