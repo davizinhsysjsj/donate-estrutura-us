@@ -4,7 +4,7 @@
   let { data } = $props();
 
   // ── State ──
-  type Tab = 'overview' | 'live' | 'funnel' | 'vsl' | 'heatmap' | 'sessions' | 'revenue' | 'tech';
+  type Tab = 'overview' | 'live' | 'funnel' | 'vsl' | 'heatmap' | 'sessions' | 'revenue' | 'tech' | 'ads' | 'taxas';
   let activeTab = $state<Tab>('overview');
   let win = $state<'2m' | '15m' | '1h' | '6h' | '24h' | '7d'>('24h');
   let pathFilter = $state<'' | '/' | '/donate' | '/vsl'>('');
@@ -199,6 +199,103 @@
       : []
   );
 
+  // ── FB Ads ──
+  type FbAdWin = 'today' | 'yesterday' | 'last_7_d' | 'last_14_d' | 'last_30_d' | 'this_month';
+  let fbWin = $state<FbAdWin>('today');
+  let fbAds = $state<any>(null);
+  let fbLoading = $state(false);
+
+  async function pullFbAds() {
+    fbLoading = true;
+    try {
+      const r = await fetch(`/api/fb-ads?window=${fbWin}`, { cache: 'no-store' });
+      if (r.ok) fbAds = await r.json();
+    } catch {}
+    fbLoading = false;
+  }
+
+  $effect(() => {
+    if (!data.authed) return;
+    const _w = fbWin;
+    pullFbAds();
+  });
+
+  // ── Tax Config ──
+  interface TaxConfig {
+    shopifyPct:   number;  // % da receita
+    gatewayPct:   number;  // % da receita
+    shopifyFixed: number;  // € fixo (ex: mensalidade)
+    otherFixed:   number;  // outros custos € fixos
+    eurToUsd:     number;  // taxa EUR→USD
+  }
+  const DEFAULT_TAX: TaxConfig = {
+    shopifyPct: 2, gatewayPct: 2.9,
+    shopifyFixed: 0, otherFixed: 0, eurToUsd: 1.08,
+  };
+  let taxConfig = $state<TaxConfig>({ ...DEFAULT_TAX });
+  let taxSaved = $state(false);
+
+  // Visible cards na overview
+  type CardId = 'online' | 'sessions' | 'pageviews' | 'revenue' | 'conversion' | 'duration' | 'spend' | 'profit' | 'roas';
+  const ALL_CARD_DEFS: { id: CardId; label: string }[] = [
+    { id: 'online',      label: 'Online agora' },
+    { id: 'sessions',    label: 'Sessões' },
+    { id: 'pageviews',   label: 'Pageviews' },
+    { id: 'revenue',     label: 'Receita' },
+    { id: 'conversion',  label: 'Conversão' },
+    { id: 'duration',    label: 'Tempo médio' },
+    { id: 'spend',       label: 'Gasto Meta' },
+    { id: 'profit',      label: 'Lucro' },
+    { id: 'roas',        label: 'ROAS' },
+  ];
+  let visibleCards = $state<Set<CardId>>(new Set(['online','sessions','pageviews','revenue','conversion','duration','spend','profit','roas']));
+  let customizeOpen = $state(false);
+
+  onMount(() => {
+    if (!data.authed) return;
+    // Carrega taxConfig do localStorage
+    try {
+      const saved = localStorage.getItem('vitrack_tax');
+      if (saved) taxConfig = { ...DEFAULT_TAX, ...JSON.parse(saved) };
+    } catch {}
+    // Carrega visibleCards
+    try {
+      const sc = localStorage.getItem('vitrack_cards');
+      if (sc) visibleCards = new Set(JSON.parse(sc) as CardId[]);
+    } catch {}
+  });
+
+  function saveTax() {
+    localStorage.setItem('vitrack_tax', JSON.stringify(taxConfig));
+    taxSaved = true;
+    setTimeout(() => (taxSaved = false), 2500);
+  }
+
+  function toggleCard(id: CardId) {
+    const next = new Set(visibleCards);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    visibleCards = next;
+    localStorage.setItem('vitrack_cards', JSON.stringify([...next]));
+  }
+
+  // Cálculo de lucro
+  const adSpendEur = $derived(fbAds?.spend ? fbAds.spend / (taxConfig.eurToUsd || 1.08) : 0);
+  const totalTaxEur = $derived((rev: number) =>
+    rev * (taxConfig.shopifyPct / 100) +
+    rev * (taxConfig.gatewayPct  / 100) +
+    taxConfig.shopifyFixed +
+    taxConfig.otherFixed
+  );
+  const profitEur = $derived(
+    snap ? snap.kpis.revenue - adSpendEur - totalTaxEur(snap.kpis.revenue) : 0
+  );
+  const roasCalc = $derived(
+    adSpendEur > 0 && snap ? (snap.kpis.revenue / adSpendEur) : 0
+  );
+
+  const fmtUsd = (n: number) => '$' + n.toFixed(2).replace('.', ',');
+  const fmtPct2 = (n: number) => n.toFixed(2) + '%';
+
   let updateAgoSec = $state(0);
   let agoTimer: ReturnType<typeof setInterval> | null = null;
   onMount(() => {
@@ -257,6 +354,8 @@
         { id: 'overview', label: 'Visão geral', icon: '◐' },
         { id: 'live', label: 'Live', icon: '●' },
         { id: 'funnel', label: 'Funil', icon: '⊞' },
+        { id: 'ads', label: 'Anúncios', icon: '◎' },
+        { id: 'taxas', label: 'Taxas', icon: '⊕' },
         { id: 'vsl', label: 'VSL', icon: '▶' },
         { id: 'heatmap', label: 'Heatmap', icon: '◉' },
         { id: 'sessions', label: 'Sessões', icon: '☰' },
@@ -339,8 +438,30 @@
     {:else}
 
       {#if activeTab === 'overview'}
+        <!-- Customize button -->
+        <div class="customize-bar">
+          <button class="btn-customize" onclick={() => (customizeOpen = !customizeOpen)}>
+            {customizeOpen ? '✕ Fechar' : '⊙ Personalizar'}
+          </button>
+        </div>
+
+        {#if customizeOpen}
+          <div class="customize-panel">
+            <p class="muted small" style="margin:0 0 10px">Escolha quais cards aparecem na visão geral:</p>
+            <div class="card-toggles">
+              {#each ALL_CARD_DEFS as def}
+                <label class="card-toggle-item" class:active={visibleCards.has(def.id)}>
+                  <input type="checkbox" checked={visibleCards.has(def.id)} onchange={() => toggleCard(def.id)} />
+                  {def.label}
+                </label>
+              {/each}
+            </div>
+          </div>
+        {/if}
+
         <!-- KPIs -->
         <section class="kpi-grid">
+          {#if visibleCards.has('online')}
           <div class="kpi kpi-live">
             <div class="kpi-label">Online agora</div>
             <div class="kpi-value">{snap.kpis.online}</div>
@@ -363,6 +484,8 @@
               </span>
             </div>
           </div>
+          {/if}
+          {#if visibleCards.has('sessions')}
           <div class="kpi">
             <div class="kpi-label">Sessões na janela</div>
             <div class="kpi-value">{fmtNum(snap.kpis.totalSessions)}</div>
@@ -370,6 +493,8 @@
               {fmtDelta(snap.compare.sessions.delta)} vs período anterior
             </div>
           </div>
+          {/if}
+          {#if visibleCards.has('pageviews')}
           <div class="kpi">
             <div class="kpi-label">Pageviews</div>
             <div class="kpi-value">{fmtNum(snap.kpis.pageviews)}</div>
@@ -377,6 +502,8 @@
               {fmtDelta(snap.compare.pageviews.delta)}
             </div>
           </div>
+          {/if}
+          {#if visibleCards.has('revenue')}
           <div class="kpi">
             <div class="kpi-label">Receita</div>
             <div class="kpi-value">{fmtEur(snap.kpis.revenue)}</div>
@@ -384,6 +511,8 @@
               {fmtDelta(snap.compare.revenue.delta)} · {snap.kpis.purchased} pedidos
             </div>
           </div>
+          {/if}
+          {#if visibleCards.has('conversion')}
           <div class="kpi">
             <div class="kpi-label">Conversão</div>
             <div class="kpi-value">{fmtPct(snap.kpis.conversionRate)}</div>
@@ -391,11 +520,35 @@
               {fmtDelta(snap.compare.conversion.delta)} · sessões → Bancontact
             </div>
           </div>
+          {/if}
+          {#if visibleCards.has('duration')}
           <div class="kpi">
             <div class="kpi-label">Tempo médio</div>
             <div class="kpi-value">{fmtDuration(snap.kpis.avgSessionDurationSec)}</div>
             <div class="kpi-sub">duração da sessão</div>
           </div>
+          {/if}
+          {#if visibleCards.has('spend')}
+          <div class="kpi kpi-spend">
+            <div class="kpi-label">Gasto Meta (hoje)</div>
+            <div class="kpi-value">{fbAds ? fmtUsd(fbAds.spend) : '—'}</div>
+            <div class="kpi-sub">{fbAds ? fmtEur(fbAds.spend / (taxConfig.eurToUsd || 1.08)) + ' estimado' : 'carregando…'}</div>
+          </div>
+          {/if}
+          {#if visibleCards.has('profit')}
+          <div class="kpi" class:kpi-profit-pos={profitEur > 0} class:kpi-profit-neg={profitEur < 0}>
+            <div class="kpi-label">Lucro estimado</div>
+            <div class="kpi-value">{fmtEur(profitEur)}</div>
+            <div class="kpi-sub">receita − anúncios − taxas</div>
+          </div>
+          {/if}
+          {#if visibleCards.has('roas')}
+          <div class="kpi">
+            <div class="kpi-label">ROAS</div>
+            <div class="kpi-value">{roasCalc > 0 ? roasCalc.toFixed(2) + '×' : '—'}</div>
+            <div class="kpi-sub">receita / gasto em €</div>
+          </div>
+          {/if}
         </section>
 
         <!-- Time series -->
@@ -837,6 +990,190 @@
               <div class="bar-val">{p.count}</div>
             </div>
           {/each}
+        </section>
+      {/if}
+
+      {#if activeTab === 'ads'}
+        <!-- Seletor de período dos anúncios -->
+        <div class="ads-topbar">
+          <select bind:value={fbWin} class="select" onchange={pullFbAds}>
+            <option value="today">Hoje</option>
+            <option value="yesterday">Ontem</option>
+            <option value="last_7_d">Últimos 7 dias</option>
+            <option value="last_14_d">Últimos 14 dias</option>
+            <option value="last_30_d">Últimos 30 dias</option>
+            <option value="this_month">Este mês</option>
+          </select>
+          <button class="btn-refresh" onclick={pullFbAds} disabled={fbLoading}>
+            {fbLoading ? '…' : '↺ Atualizar'}
+          </button>
+          <span class="muted small">Cache 5 min · conta USD 2</span>
+        </div>
+
+        {#if fbAds?.error}
+          <div class="ads-error">⚠ {fbAds.error}</div>
+        {:else if !fbAds || fbLoading}
+          <div class="loading"><div class="spinner"></div><span>Carregando anúncios…</span></div>
+        {:else}
+          <!-- KPIs Meta -->
+          <section class="kpi-grid">
+            <div class="kpi kpi-spend">
+              <div class="kpi-label">Gasto</div>
+              <div class="kpi-value">{fmtUsd(fbAds.spend)}</div>
+              <div class="kpi-sub">{fmtEur(fbAds.spend / (taxConfig.eurToUsd || 1.08))} ≈ em EUR</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Impressões</div>
+              <div class="kpi-value">{fmtNum(fbAds.impressions)}</div>
+              <div class="kpi-sub">CPM {fmtUsd(fbAds.cpm)}</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Cliques</div>
+              <div class="kpi-value">{fmtNum(fbAds.clicks)}</div>
+              <div class="kpi-sub">CPC {fmtUsd(fbAds.cpc)}</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Alcance</div>
+              <div class="kpi-value">{fmtNum(fbAds.reach)}</div>
+              <div class="kpi-sub">usuários únicos atingidos</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">CTR</div>
+              <div class="kpi-value">{fmtPct2(fbAds.ctr)}</div>
+              <div class="kpi-sub">taxa de clique</div>
+            </div>
+            {#if snap}
+            <div class="kpi" class:kpi-profit-pos={profitEur > 0} class:kpi-profit-neg={profitEur < 0}>
+              <div class="kpi-label">Lucro estimado</div>
+              <div class="kpi-value">{fmtEur(profitEur)}</div>
+              <div class="kpi-sub">receita − ads − taxas</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">ROAS</div>
+              <div class="kpi-value">{roasCalc > 0 ? roasCalc.toFixed(2) + '×' : '—'}</div>
+              <div class="kpi-sub">receita EUR / gasto EUR</div>
+            </div>
+            {/if}
+          </section>
+
+          <!-- Breakdown financeiro -->
+          {#if snap}
+          <section class="card card-wide">
+            <h2>Breakdown financeiro</h2>
+            <div class="finance-grid">
+              <div class="finance-row">
+                <span class="finance-label">Receita bruta</span>
+                <span class="finance-val finance-green">+{fmtEur(snap.kpis.revenue)}</span>
+              </div>
+              <div class="finance-row">
+                <span class="finance-label">Gasto Meta Ads</span>
+                <span class="finance-val finance-red">−{fmtEur(adSpendEur)}</span>
+              </div>
+              <div class="finance-row">
+                <span class="finance-label">Taxa Shopify ({taxConfig.shopifyPct}%)</span>
+                <span class="finance-val finance-red">−{fmtEur(snap.kpis.revenue * taxConfig.shopifyPct / 100)}</span>
+              </div>
+              <div class="finance-row">
+                <span class="finance-label">Taxa gateway ({taxConfig.gatewayPct}%)</span>
+                <span class="finance-val finance-red">−{fmtEur(snap.kpis.revenue * taxConfig.gatewayPct / 100)}</span>
+              </div>
+              {#if taxConfig.shopifyFixed > 0}
+              <div class="finance-row">
+                <span class="finance-label">Shopify fixo</span>
+                <span class="finance-val finance-red">−{fmtEur(taxConfig.shopifyFixed)}</span>
+              </div>
+              {/if}
+              {#if taxConfig.otherFixed > 0}
+              <div class="finance-row">
+                <span class="finance-label">Outros custos</span>
+                <span class="finance-val finance-red">−{fmtEur(taxConfig.otherFixed)}</span>
+              </div>
+              {/if}
+              <div class="finance-row finance-total">
+                <span class="finance-label">Lucro líquido</span>
+                <span class="finance-val" class:finance-green={profitEur > 0} class:finance-red={profitEur < 0}>
+                  {profitEur >= 0 ? '+' : ''}{fmtEur(profitEur)}
+                </span>
+              </div>
+            </div>
+            <p class="muted small" style="margin-top:12px">
+              ⓘ Câmbio EUR→USD: {taxConfig.eurToUsd}. Ajuste na aba Taxas.
+              Receita usa janela do dashboard ({win}); anúncios usam {fbWin}.
+            </p>
+          </section>
+          {/if}
+        {/if}
+      {/if}
+
+      {#if activeTab === 'taxas'}
+        <section class="card" style="max-width: 560px;">
+          <h2>⊕ Configuração de Taxas</h2>
+          <p class="muted small" style="margin-bottom:20px">
+            Essas taxas são usadas para calcular o lucro líquido na visão geral e na aba Anúncios.
+            Salvas localmente no seu browser.
+          </p>
+
+          <div class="tax-form">
+            <div class="tax-field">
+              <label>Taxa Shopify (%)</label>
+              <input type="number" min="0" max="100" step="0.1"
+                bind:value={taxConfig.shopifyPct} class="tax-input" />
+              <span class="tax-hint">% cobrada por transação pelo Shopify</span>
+            </div>
+            <div class="tax-field">
+              <label>Taxa Gateway de Pagamento (%)</label>
+              <input type="number" min="0" max="100" step="0.1"
+                bind:value={taxConfig.gatewayPct} class="tax-input" />
+              <span class="tax-hint">ex: Bancontact, Stripe, Mollie</span>
+            </div>
+            <div class="tax-field">
+              <label>Custo fixo Shopify (€)</label>
+              <input type="number" min="0" step="0.01"
+                bind:value={taxConfig.shopifyFixed} class="tax-input" />
+              <span class="tax-hint">mensalidade ou custo fixo de período</span>
+            </div>
+            <div class="tax-field">
+              <label>Outros custos fixos (€)</label>
+              <input type="number" min="0" step="0.01"
+                bind:value={taxConfig.otherFixed} class="tax-input" />
+              <span class="tax-hint">ferramentas, apps, criativos, etc.</span>
+            </div>
+            <div class="tax-field">
+              <label>Taxa USD → EUR</label>
+              <input type="number" min="0.5" max="2" step="0.001"
+                bind:value={taxConfig.eurToUsd} class="tax-input" />
+              <span class="tax-hint">ex: 1.08 = 1 EUR = 1.08 USD</span>
+            </div>
+
+            <button class="btn-save-tax" onclick={saveTax}>
+              {taxSaved ? '✓ Salvo!' : 'Salvar configurações'}
+            </button>
+          </div>
+
+          <!-- Preview do cálculo -->
+          <div class="tax-preview">
+            <h3>Preview para €{(100).toFixed(0)} de receita</h3>
+            <div class="finance-grid">
+              <div class="finance-row">
+                <span class="finance-label">Receita</span>
+                <span class="finance-val finance-green">+€100,00</span>
+              </div>
+              <div class="finance-row">
+                <span class="finance-label">Taxa Shopify ({taxConfig.shopifyPct}%)</span>
+                <span class="finance-val finance-red">−{fmtEur(100 * taxConfig.shopifyPct / 100)}</span>
+              </div>
+              <div class="finance-row">
+                <span class="finance-label">Taxa Gateway ({taxConfig.gatewayPct}%)</span>
+                <span class="finance-val finance-red">−{fmtEur(100 * taxConfig.gatewayPct / 100)}</span>
+              </div>
+              <div class="finance-row finance-total">
+                <span class="finance-label">Líquido (sem ads/fixos)</span>
+                <span class="finance-val finance-green">
+                  {fmtEur(100 - 100 * taxConfig.shopifyPct / 100 - 100 * taxConfig.gatewayPct / 100)}
+                </span>
+              </div>
+            </div>
+          </div>
         </section>
       {/if}
 
@@ -1576,4 +1913,102 @@
   .feed::-webkit-scrollbar, .timeline::-webkit-scrollbar { width: 6px; }
   .feed::-webkit-scrollbar-thumb, .timeline::-webkit-scrollbar-thumb { background: #1f2630; border-radius: 3px; }
   .feed::-webkit-scrollbar-track, .timeline::-webkit-scrollbar-track { background: transparent; }
+
+  /* ── Personalizar ── */
+  .customize-bar {
+    display: flex; justify-content: flex-end; margin-bottom: 12px;
+  }
+  .btn-customize {
+    background: transparent; border: 1px solid #1f2630; color: #8b94a4;
+    padding: 6px 14px; border-radius: 8px; font-size: 0.8125rem; font-weight: 500;
+    font-family: inherit; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-customize:hover { border-color: #02a95c; color: #02a95c; }
+  .customize-panel {
+    background: #11161d; border: 1px solid #1f2630; border-radius: 12px;
+    padding: 16px; margin-bottom: 16px;
+  }
+  .card-toggles {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .card-toggle-item {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #0a0d12; border: 1px solid #1f2630;
+    padding: 8px 14px; border-radius: 8px; font-size: 0.8125rem;
+    cursor: pointer; color: #8b94a4; transition: all 0.12s;
+  }
+  .card-toggle-item.active {
+    border-color: #02a95c; color: #02a95c;
+    background: rgba(2,169,92,0.08);
+  }
+  .card-toggle-item input { display: none; }
+
+  /* ── Ads KPI extras ── */
+  .kpi-spend { border-color: rgba(255,170,0,0.3); }
+  .kpi-spend .kpi-value { color: #ffaa00; }
+  .kpi-profit-pos { border-color: rgba(2,169,92,0.3); }
+  .kpi-profit-pos .kpi-value { color: #02a95c; }
+  .kpi-profit-neg { border-color: rgba(255,91,91,0.3); }
+  .kpi-profit-neg .kpi-value { color: #ff5b5b; }
+
+  /* ── Ads topbar ── */
+  .ads-topbar {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .btn-refresh {
+    background: transparent; border: 1px solid #1f2630; color: #8b94a4;
+    padding: 8px 14px; border-radius: 8px; font-size: 0.8125rem; font-weight: 500;
+    font-family: inherit; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-refresh:hover:not(:disabled) { border-color: #02a95c; color: #02a95c; }
+  .btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
+  .ads-error {
+    background: rgba(255,91,91,0.1); border: 1px solid rgba(255,91,91,0.3);
+    color: #ff5b5b; padding: 12px 16px; border-radius: 10px;
+    font-size: 0.875rem; margin-bottom: 16px;
+  }
+
+  /* ── Finance breakdown ── */
+  .finance-grid { display: flex; flex-direction: column; gap: 0; }
+  .finance-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid #1a1f28; font-size: 0.875rem;
+  }
+  .finance-row:last-child { border-bottom: none; }
+  .finance-label { color: #8b94a4; }
+  .finance-val { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 0.9375rem; }
+  .finance-green { color: #02a95c; }
+  .finance-red   { color: #ff5b5b; }
+  .finance-total { margin-top: 4px; }
+  .finance-total .finance-label { color: #d6dae3; font-weight: 600; }
+  .finance-total .finance-val { font-size: 1.125rem; }
+
+  /* ── Taxas form ── */
+  .tax-form { display: flex; flex-direction: column; gap: 18px; }
+  .tax-field { display: flex; flex-direction: column; gap: 4px; }
+  .tax-field label {
+    font-size: 0.8125rem; font-weight: 600; color: #d6dae3; letter-spacing: -0.01em;
+  }
+  .tax-input {
+    background: #0a0d12; border: 1px solid #2a3340; color: #e6e9ef;
+    padding: 10px 12px; border-radius: 8px; font-size: 0.9375rem;
+    font-family: 'JetBrains Mono', monospace; width: 100%; transition: border-color 0.15s;
+  }
+  .tax-input:focus { outline: none; border-color: #02a95c; }
+  .tax-hint { font-size: 0.75rem; color: #8b94a4; }
+  .btn-save-tax {
+    background: linear-gradient(180deg, #02b864 0%, #02a95c 100%);
+    color: #fff; border: none; padding: 12px; border-radius: 10px;
+    font-weight: 600; cursor: pointer; font-family: inherit; font-size: 0.9375rem;
+    box-shadow: 0 4px 12px rgba(2,169,92,0.3); transition: opacity 0.15s; margin-top: 4px;
+  }
+  .btn-save-tax:hover { opacity: 0.9; }
+  .tax-preview {
+    margin-top: 24px; background: #0a0d12; border: 1px solid #1a1f28;
+    border-radius: 10px; padding: 16px;
+  }
+  .tax-preview h3 {
+    margin: 0 0 14px; font-size: 0.875rem; color: #8b94a4; font-weight: 500;
+  }
 </style>
