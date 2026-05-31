@@ -1,10 +1,36 @@
 import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
+import fs from 'node:fs';
+import path from 'node:path';
 
 // Cache em memória por chave
 const _cache: Record<string, { data: any; ts: number }> = {};
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+
+// Persistência em disco — sobrevive a restarts do Railway
+const DISK_CACHE_PATH = '/data/fb-ads-cache.json';
+
+function loadDiskCache(): void {
+  try {
+    if (fs.existsSync(DISK_CACHE_PATH)) {
+      const raw = fs.readFileSync(DISK_CACHE_PATH, 'utf8');
+      const saved = JSON.parse(raw) as Record<string, { data: any; ts: number }>;
+      // Carrega tudo — mesmo entradas antigas servem como fallback se FB API falhar
+      Object.assign(_cache, saved);
+    }
+  } catch { /* ignora */ }
+}
+
+function saveDiskCache(): void {
+  try {
+    fs.mkdirSync(path.dirname(DISK_CACHE_PATH), { recursive: true });
+    fs.writeFileSync(DISK_CACHE_PATH, JSON.stringify(_cache), 'utf8');
+  } catch { /* ignora */ }
+}
+
+// Carrega na inicialização
+loadDiskCache();
 
 // Mapeia janela do dashboard para date_preset da FB API
 const PRESET_MAP: Record<string, string> = {
@@ -145,6 +171,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
       const result = { ...combined, currency: 'USD', datePreset: 'hoje_ontem', campaigns };
       _cache[cacheKey] = { data: result, ts: Date.now() };
+      saveDiskCache();
       return json(result);
     }
 
@@ -178,6 +205,7 @@ export const GET: RequestHandler = async ({ url }) => {
         currency: 'USD', datePreset: preset, campaigns,
       };
       _cache[cacheKey] = { data: empty, ts: Date.now() };
+      saveDiskCache();
       return json(empty);
     }
 
@@ -189,10 +217,17 @@ export const GET: RequestHandler = async ({ url }) => {
     };
 
     _cache[cacheKey] = { data: result, ts: Date.now() };
+    saveDiskCache();
     return json(result);
 
   } catch (e: any) {
     console.error('[fb-ads]', e);
+    // Fallback: retorna último dado salvo em disco (evita zerar o spend no dashboard)
+    const stale = _cache[cacheKey];
+    if (stale) {
+      console.warn('[fb-ads] retornando dado stale do cache (FB API falhou)');
+      return json({ ...stale.data, _stale: true, _error: e.message });
+    }
     return json({ error: e.message, spend: 0 }, { status: 500 });
   }
 };
