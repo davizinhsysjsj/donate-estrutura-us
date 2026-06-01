@@ -88,8 +88,17 @@
     if (deviceFilter) params.set('device', deviceFilter);
     if (countryFilter) params.set('country', countryFilter);
     if (includeBots) params.set('bots', '1');
+    // Cache-buster: iOS Safari ignora cache:'no-store' as vezes;
+    // adicionar param unico forca request fresh.
+    params.set('_t', String(Date.now()));
     try {
-      const r = await fetch(`/api/analytics?${params}`, { cache: 'no-store' });
+      const r = await fetch(`/api/analytics?${params}`, {
+        cache: 'no-store',
+        headers: {
+          'cache-control': 'no-cache, no-store, must-revalidate',
+          'pragma': 'no-cache'
+        }
+      });
       if (!r.ok) return;
       snap = await r.json();
       lastUpdate = Date.now();
@@ -146,15 +155,31 @@
 
   async function refresh() {
     if (refreshing) return;
-    // Dados já frescos (< 10s): só pisca os KPIs e volta
-    if (updateAgoSec < 10) {
-      flashing = true;
-      setTimeout(() => (flashing = false), 500);
-      return;
-    }
     refreshing = true;
-    await Promise.all([pull(), pullFbAds()]);
-    refreshing = false;
+    try {
+      // Força busca de analytics + FB Ads (igual ao F5, mas sem recarregar a página)
+      // Cada call tem cache-buster, garante dados fresh mesmo no iOS Safari.
+      await Promise.all([pull(), pullFbAds()]);
+    } catch (e) {
+      console.warn('[dashboard] refresh failed', e);
+    } finally {
+      // Sempre solta o estado, mesmo se algum fetch falhou.
+      refreshing = false;
+    }
+    // Pisca KPIs para dar feedback visual de que os dados chegaram
+    flashing = true;
+    setTimeout(() => (flashing = false), 450);
+  }
+
+  // Re-puxa quando a aba volta a ficar visivel (volta do background no mobile).
+  // Evita o caso "fecho e abro o app, ai sim atualiza".
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && data.authed) {
+        pull();
+        pullFbAds();
+      }
+    });
   }
 
   // ── Helpers ──
@@ -413,6 +438,72 @@
   function dragEnd() {
     dragSrc = null;
     localStorage.setItem('vitrack_card_order', JSON.stringify(cardOrder));
+  }
+
+  // ── Touch/Pointer drag (mobile): HTML5 drag nao dispara em touch.
+  // Usa Pointer Events. Press-and-hold de 200ms ativa o modo "arrastar"
+  // pra nao interferir com scroll normal.
+  let pointerDragId: CardId | null = null;
+  let pointerStartX = 0;
+  let pointerStartY = 0;
+  let pointerHoldTimer: ReturnType<typeof setTimeout> | null = null;
+  const TOUCH_HOLD_MS = 200;
+  const TOUCH_MOVE_TOLERANCE = 8; // px antes do hold cancelar
+
+  function findCardIdFromPoint(x: number, y: number): CardId | null {
+    const el = document.elementFromPoint(x, y);
+    if (!el) return null;
+    const card = (el as Element).closest('[data-card-id]') as HTMLElement | null;
+    return (card?.dataset.cardId as CardId) || null;
+  }
+
+  function pointerDownCard(e: PointerEvent, id: CardId) {
+    // So pra touch/pen — mouse usa o drag nativo HTML5 que ja funciona
+    if (e.pointerType === 'mouse') return;
+    pointerStartX = e.clientX;
+    pointerStartY = e.clientY;
+    pointerHoldTimer = setTimeout(() => {
+      pointerDragId = id;
+      dragSrc = id;
+      // Vibra (se suportado) pra feedback de "agarrou"
+      if (navigator.vibrate) navigator.vibrate(15);
+    }, TOUCH_HOLD_MS);
+  }
+
+  function pointerMoveCard(e: PointerEvent) {
+    if (pointerHoldTimer && !pointerDragId) {
+      // Ainda no periodo de hold — se mexer demais, cancela (libera scroll)
+      const dx = Math.abs(e.clientX - pointerStartX);
+      const dy = Math.abs(e.clientY - pointerStartY);
+      if (dx > TOUCH_MOVE_TOLERANCE || dy > TOUCH_MOVE_TOLERANCE) {
+        clearTimeout(pointerHoldTimer);
+        pointerHoldTimer = null;
+      }
+      return;
+    }
+    if (!pointerDragId) return;
+    e.preventDefault(); // bloqueia scroll durante o arraste
+    const overId = findCardIdFromPoint(e.clientX, e.clientY);
+    if (!overId || overId === pointerDragId) return;
+    const next = [...cardOrder];
+    const from = next.indexOf(pointerDragId);
+    const to = next.indexOf(overId);
+    if (from === -1 || to === -1) return;
+    next.splice(from, 1);
+    next.splice(to, 0, pointerDragId);
+    cardOrder = next;
+  }
+
+  function pointerUpCard() {
+    if (pointerHoldTimer) {
+      clearTimeout(pointerHoldTimer);
+      pointerHoldTimer = null;
+    }
+    if (pointerDragId) {
+      pointerDragId = null;
+      dragSrc = null;
+      localStorage.setItem('vitrack_card_order', JSON.stringify(cardOrder));
+    }
   }
 
   function saveTax() {
@@ -709,10 +800,16 @@
               class:kpi-profit-pos={cardId === 'profit' && profitBrl > 0}
               class:kpi-profit-neg={cardId === 'profit' && profitBrl < 0}
               class:kpi-dragging={dragSrc === cardId}
+              data-card-id={cardId}
               draggable="true"
               ondragstart={() => dragStart(cardId)}
               ondragover={(e) => dragOverCard(e, cardId)}
               ondragend={dragEnd}
+              onpointerdown={(e) => pointerDownCard(e, cardId)}
+              onpointermove={pointerMoveCard}
+              onpointerup={pointerUpCard}
+              onpointercancel={pointerUpCard}
+              style:touch-action={pointerDragId === cardId ? 'none' : 'auto'}
             >
               {#if cardId === 'online'}
                 <div class="kpi-label">Online agora <span class="drag-hint">⠿</span></div>
