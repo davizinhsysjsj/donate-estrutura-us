@@ -543,11 +543,11 @@
     }
   }
 
-  // ── Resize: drag horizontal na alca direita pra alternar small/large ──
+  // ── Resize: drag VERTICAL na alca inferior pra alternar small/large altura ──
   let resizeCardId: CardId | null = null;
-  let resizeStartX = 0;
+  let resizeStartY = 0;
   let resizeStartSize: CardSize = 'small';
-  const RESIZE_THRESHOLD = 40; // px de drag pra ativar mudanca
+  const RESIZE_THRESHOLD = 30; // px de drag pra ativar mudanca
 
   function handleResizeDown(e: PointerEvent, id: CardId) {
     e.preventDefault();
@@ -555,25 +555,25 @@
     const target = e.currentTarget as HTMLElement;
     try { target.setPointerCapture(e.pointerId); } catch {}
     resizeCardId = id;
-    resizeStartX = e.clientX;
+    resizeStartY = e.clientY;
     resizeStartSize = getCardSize(id);
   }
 
   function handleResizeMove(e: PointerEvent) {
     if (!resizeCardId) return;
     e.preventDefault();
-    const dx = e.clientX - resizeStartX;
-    // dx > threshold pra direita = vira large; dx < -threshold = vira small
-    if (resizeStartSize === 'small' && dx > RESIZE_THRESHOLD) {
+    const dy = e.clientY - resizeStartY;
+    // dy > threshold pra baixo = aumenta altura (large); dy < -threshold = diminui (small)
+    if (resizeStartSize === 'small' && dy > RESIZE_THRESHOLD) {
       setCardSize(resizeCardId, 'large');
       if (navigator.vibrate) navigator.vibrate(10);
       resizeStartSize = 'large';
-      resizeStartX = e.clientX;
-    } else if (resizeStartSize === 'large' && dx < -RESIZE_THRESHOLD) {
+      resizeStartY = e.clientY;
+    } else if (resizeStartSize === 'large' && dy < -RESIZE_THRESHOLD) {
       setCardSize(resizeCardId, 'small');
       if (navigator.vibrate) navigator.vibrate(10);
       resizeStartSize = 'small';
-      resizeStartX = e.clientX;
+      resizeStartY = e.clientY;
     }
   }
 
@@ -582,8 +582,8 @@
     try { target.releasePointerCapture(e.pointerId); } catch {}
     // Click simples sem drag: alterna o tamanho
     if (resizeCardId) {
-      const dx = Math.abs(e.clientX - resizeStartX);
-      if (dx < 5 && resizeStartSize === getCardSize(resizeCardId)) {
+      const dy = Math.abs(e.clientY - resizeStartY);
+      if (dy < 5 && resizeStartSize === getCardSize(resizeCardId)) {
         const next: CardSize = resizeStartSize === 'small' ? 'large' : 'small';
         setCardSize(resizeCardId, next);
       }
@@ -911,13 +911,13 @@
                 <button
                   type="button"
                   class="kpi-resize-handle"
-                  aria-label="Redimensionar card"
-                  title={getCardSize(cardId) === 'large' ? 'Diminuir' : 'Aumentar'}
+                  aria-label="Redimensionar altura do card"
+                  title={getCardSize(cardId) === 'large' ? 'Diminuir altura' : 'Aumentar altura'}
                   onpointerdown={(e) => handleResizeDown(e, cardId)}
                   onpointermove={handleResizeMove}
                   onpointerup={handleResizeUp}
                   onpointercancel={handleResizeUp}
-                >{getCardSize(cardId) === 'large' ? '↤' : '↦'}</button>
+                >↕</button>
               {/if}
               {#if cardId === 'online'}
                 <div class="kpi-label">Online agora</div>
@@ -2494,25 +2494,31 @@
     .country-input { width: 100%; }
     .toggle { justify-content: space-between; }
 
-    /* KPIs mobile — grid 2 colunas com dense flow (preenche buracos
-       automaticamente) e suporte a card "large" (ocupa 2 colunas). */
+    /* KPIs mobile — grid 2 colunas, ALTURA FIXA por linha.
+       Todos os cards small tem mesma altura (= linhas batem perfeitamente).
+       Card large (resize vertical) ocupa 2 linhas (linha inteira tipo iOS). */
     .kpi-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
+      grid-auto-rows: 110px;
       grid-auto-flow: dense;
       gap: 10px;
-      align-items: start;
+      align-items: stretch;
     }
     .kpi-grid > .kpi {
       margin: 0;
       display: flex;
       flex-direction: column;
+      justify-content: center;
       width: auto;
-      grid-column: span 1;
+      grid-row: span 1;
+      overflow: hidden;
     }
     .kpi-grid > .kpi.kpi-large {
-      grid-column: span 2;
+      grid-row: span 2;
     }
+    /* Card Online Agora precisa de mais espaco por padrao (numero hero + chips) */
+    .kpi-grid > .kpi.kpi-live { grid-row: span 2; }
     /* Mobile: esconde TODO sub-texto embaixo do valor
        (descricoes, conversoes EUR/USD, deltas). So fica label + valor. */
     .kpi-grid > .kpi .kpi-sub { display: none; }
@@ -2818,27 +2824,31 @@
   }
   .kpi-drag-handle:active { cursor: grabbing; background: rgba(2,169,92,0.15); color: #02a95c; }
 
-  /* Alca de redimensionar — borda direita do card no modo edit */
+  /* Alca de redimensionar — borda INFERIOR do card no modo edit.
+     Drag vertical pra cima/baixo controla altura (small/large). */
   .kpi-resize-handle {
-    position: absolute; top: 50%; right: -2px; transform: translateY(-50%);
-    width: 22px; height: 56px;
+    position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+    width: 48px; height: 18px;
     display: inline-flex; align-items: center; justify-content: center;
-    background: rgba(2,169,92,0.15); border: 1px solid rgba(2,169,92,0.45);
-    color: #02a95c; font-size: 0.95rem; line-height: 1;
-    cursor: ew-resize; user-select: none;
+    background: rgba(2,169,92,0.18); border: 1px solid rgba(2,169,92,0.5);
+    color: #02a95c; font-size: 0.85rem; line-height: 1;
+    cursor: ns-resize; user-select: none;
     touch-action: none;
     -webkit-tap-highlight-color: transparent;
-    border-radius: 8px;
+    border-radius: 9px;
     transition: background 0.15s;
     z-index: 3;
   }
   .kpi-resize-handle:hover, .kpi-resize-handle:active {
-    background: rgba(2,169,92,0.3);
+    background: rgba(2,169,92,0.35);
   }
   @media (max-width: 640px) {
     .kpi-resize-handle {
-      width: 26px; height: 60px; font-size: 1.05rem;
+      width: 54px; height: 20px; font-size: 0.95rem;
+      bottom: 5px;
     }
+    /* Espaco extra no rodape do card pra alca nao tampar conteudo */
+    .kpi-grid.edit-mode > .kpi { padding-bottom: 28px; }
   }
   @media (max-width: 640px) {
     /* Mobile: handle escondido por padrao, so aparece em edit-mode.
