@@ -73,27 +73,37 @@ export const POST: RequestHandler = async ({ request }) => {
 	const eventIdAttr = readNoteAttr(noteAttrs, 'event_id');
 	const bpSid = readNoteAttr(noteAttrs, 'bp_sid');
 
-	// Analytics interno: grava purchase atrelado a sessao
-	if (bpSid) {
-		try {
-			const orderValue = parseFloat(order.total_price || '0');
-			const ua = order.client_details?.user_agent || '';
-			ingestAnalytics({
-				ts: Date.now(),
-				sid: bpSid,
-				ev: 'purchase',
-				path: '/checkout/success',
-				ua,
-				device: parseDevice(ua),
-				data: {
-					amount: orderValue,
-					currency: order.currency || 'EUR',
-					order_id: order.id
-				}
-			});
-		} catch (e) {
-			console.warn('[shopify-purchase] analytics ingest failed', e);
+	// Analytics interno (Vitrack): grava purchase SEMPRE — mesmo sem bp_sid.
+	// Se nao tem bp_sid, gera sid sintetico baseado no orderId (sessao isolada
+	// so pra esse purchase). Garante que toda venda do webhook conta no Vitrack.
+	try {
+		const orderValue = parseFloat(order.total_price || '0');
+		const ua = order.client_details?.user_agent || '';
+		const sid = bpSid || `shopify_${orderId}`;
+		ingestAnalytics({
+			ts: Date.now(),
+			sid,
+			ev: 'purchase',
+			path: '/checkout/success',
+			ua,
+			device: parseDevice(ua),
+			utm_source: readNoteAttr(noteAttrs, 'utm_source'),
+			utm_medium: readNoteAttr(noteAttrs, 'utm_medium'),
+			utm_campaign: readNoteAttr(noteAttrs, 'utm_campaign'),
+			utm_content: readNoteAttr(noteAttrs, 'utm_content'),
+			utm_term: readNoteAttr(noteAttrs, 'utm_term'),
+			data: {
+				amount: orderValue,
+				currency: order.currency || 'EUR',
+				order_id: order.id,
+				synthetic_sid: !bpSid
+			}
+		});
+		if (!bpSid) {
+			console.log('[shopify-purchase] analytics ingest (synthetic sid)', { orderId, sid });
 		}
+	} catch (e) {
+		console.warn('[shopify-purchase] analytics ingest failed', e);
 	}
 
 	const eventId = eventIdAttr || `shopify_${orderId}`;
