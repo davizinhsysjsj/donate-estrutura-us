@@ -733,11 +733,11 @@
     </div>
     <nav class="nav">
       {#each [
-        { id: 'overview', label: 'Visão geral', icon: '◐' },
-        { id: 'live', label: 'Live', icon: '●' },
-        { id: 'funnel', label: 'Funil', icon: '⊞' },
-        { id: 'campanhas', label: 'Campanhas', icon: '⊞' },
-        { id: 'taxas', label: 'Taxas', icon: '⊕' },
+        { id: 'overview', label: 'Visão geral', icon: '⌂' },
+        { id: 'live', label: 'Live', icon: '⚡' },
+        { id: 'funnel', label: 'Funil', icon: '▽' },
+        { id: 'campanhas', label: 'Campanhas', icon: '✦' },
+        { id: 'taxas', label: 'Taxas', icon: '%' },
         { id: 'vsl', label: 'VSL', icon: '▶' },
         { id: 'sessions', label: 'Sessões', icon: '☰' },
         { id: 'revenue', label: 'Receita', icon: '€' },
