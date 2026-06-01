@@ -2414,9 +2414,10 @@
     }
     .kpi-grid .kpi {
       margin-bottom: 0;
-      /* Distribui conteudo verticalmente pra nao concentrar tudo no topo
-         quando o card eh esticado pra acompanhar o par mais alto. */
-      justify-content: space-between;
+      /* Centraliza conteudo verticalmente: cards pequenos esticados
+         pelo grid ficam com tudo agrupado no centro, sem gaps gigantes
+         espalhando label/valor/sub pelas pontas. */
+      justify-content: center;
     }
     .kpi { padding: 14px 14px; }
     .kpi-label { font-size: 0.625rem; }
