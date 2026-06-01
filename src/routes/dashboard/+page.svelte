@@ -656,11 +656,9 @@
         { id: 'overview', label: 'Visão geral', icon: '◐' },
         { id: 'live', label: 'Live', icon: '●' },
         { id: 'funnel', label: 'Funil', icon: '⊞' },
-        { id: 'ads', label: 'Anúncios', icon: '◎' },
         { id: 'campanhas', label: 'Campanhas', icon: '⊞' },
         { id: 'taxas', label: 'Taxas', icon: '⊕' },
         { id: 'vsl', label: 'VSL', icon: '▶' },
-        { id: 'heatmap', label: 'Heatmap', icon: '◉' },
         { id: 'sessions', label: 'Sessões', icon: '☰' },
         { id: 'revenue', label: 'Receita', icon: '€' },
         { id: 'tech', label: 'Performance', icon: '⏱' }
