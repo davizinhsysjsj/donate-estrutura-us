@@ -440,15 +440,11 @@
     localStorage.setItem('vitrack_card_order', JSON.stringify(cardOrder));
   }
 
-  // ── Touch/Pointer drag (mobile): HTML5 drag nao dispara em touch.
-  // Usa Pointer Events. Press-and-hold de 200ms ativa o modo "arrastar"
-  // pra nao interferir com scroll normal.
+  // ── Drag via alca (handle) — funciona em touch + mouse.
+  // Estrategia: cada card tem um <button class="kpi-drag-handle"> com
+  // touch-action:none. Touch nele = drag direto, sem hold. Touch no
+  // resto do card = scroll normal.
   let pointerDragId: CardId | null = null;
-  let pointerStartX = 0;
-  let pointerStartY = 0;
-  let pointerHoldTimer: ReturnType<typeof setTimeout> | null = null;
-  const TOUCH_HOLD_MS = 200;
-  const TOUCH_MOVE_TOLERANCE = 8; // px antes do hold cancelar
 
   function findCardIdFromPoint(x: number, y: number): CardId | null {
     const el = document.elementFromPoint(x, y);
@@ -457,32 +453,19 @@
     return (card?.dataset.cardId as CardId) || null;
   }
 
-  function pointerDownCard(e: PointerEvent, id: CardId) {
-    // So pra touch/pen — mouse usa o drag nativo HTML5 que ja funciona
-    if (e.pointerType === 'mouse') return;
-    pointerStartX = e.clientX;
-    pointerStartY = e.clientY;
-    pointerHoldTimer = setTimeout(() => {
-      pointerDragId = id;
-      dragSrc = id;
-      // Vibra (se suportado) pra feedback de "agarrou"
-      if (navigator.vibrate) navigator.vibrate(15);
-    }, TOUCH_HOLD_MS);
+  function handlePointerDown(e: PointerEvent, id: CardId) {
+    e.preventDefault();
+    e.stopPropagation();
+    const target = e.currentTarget as HTMLElement;
+    try { target.setPointerCapture(e.pointerId); } catch {}
+    pointerDragId = id;
+    dragSrc = id;
+    if (navigator.vibrate) navigator.vibrate(15);
   }
 
-  function pointerMoveCard(e: PointerEvent) {
-    if (pointerHoldTimer && !pointerDragId) {
-      // Ainda no periodo de hold — se mexer demais, cancela (libera scroll)
-      const dx = Math.abs(e.clientX - pointerStartX);
-      const dy = Math.abs(e.clientY - pointerStartY);
-      if (dx > TOUCH_MOVE_TOLERANCE || dy > TOUCH_MOVE_TOLERANCE) {
-        clearTimeout(pointerHoldTimer);
-        pointerHoldTimer = null;
-      }
-      return;
-    }
+  function handlePointerMove(e: PointerEvent) {
     if (!pointerDragId) return;
-    e.preventDefault(); // bloqueia scroll durante o arraste
+    e.preventDefault();
     const overId = findCardIdFromPoint(e.clientX, e.clientY);
     if (!overId || overId === pointerDragId) return;
     const next = [...cardOrder];
@@ -494,11 +477,9 @@
     cardOrder = next;
   }
 
-  function pointerUpCard() {
-    if (pointerHoldTimer) {
-      clearTimeout(pointerHoldTimer);
-      pointerHoldTimer = null;
-    }
+  function handlePointerUp(e: PointerEvent) {
+    const target = e.currentTarget as HTMLElement;
+    try { target.releasePointerCapture(e.pointerId); } catch {}
     if (pointerDragId) {
       pointerDragId = null;
       dragSrc = null;
@@ -805,14 +786,18 @@
               ondragstart={() => dragStart(cardId)}
               ondragover={(e) => dragOverCard(e, cardId)}
               ondragend={dragEnd}
-              onpointerdown={(e) => pointerDownCard(e, cardId)}
-              onpointermove={pointerMoveCard}
-              onpointerup={pointerUpCard}
-              onpointercancel={pointerUpCard}
-              style:touch-action={pointerDragId === cardId ? 'none' : 'auto'}
             >
+              <button
+                type="button"
+                class="kpi-drag-handle"
+                aria-label="Arrastar card"
+                onpointerdown={(e) => handlePointerDown(e, cardId)}
+                onpointermove={handlePointerMove}
+                onpointerup={handlePointerUp}
+                onpointercancel={handlePointerUp}
+              >⠿</button>
               {#if cardId === 'online'}
-                <div class="kpi-label">Online agora <span class="drag-hint">⠿</span></div>
+                <div class="kpi-label">Online agora</div>
                 <div class="kpi-value">{snap.kpis.online}</div>
                 <div class="kpi-sub">visitantes ativos · últimos 2 min</div>
                 <div class="kpi-breakdown">
@@ -833,62 +818,62 @@
                   </span>
                 </div>
               {:else if cardId === 'sessions'}
-                <div class="kpi-label">Sessões <span class="drag-hint">⠿</span></div>
+                <div class="kpi-label">Sessões</div>
                 <div class="kpi-value">{fmtNum(snap.kpis.totalSessions)}</div>
                 <div class="kpi-sub kpi-delta {deltaClass(snap.compare.sessions.delta)}">
                   {fmtDelta(snap.compare.sessions.delta)} vs período anterior
                 </div>
               {:else if cardId === 'pageviews'}
-                <div class="kpi-label">Pageviews <span class="drag-hint">⠿</span></div>
+                <div class="kpi-label">Pageviews</div>
                 <div class="kpi-value">{fmtNum(snap.kpis.pageviews)}</div>
                 <div class="kpi-sub kpi-delta {deltaClass(snap.compare.pageviews.delta)}">
                   {fmtDelta(snap.compare.pageviews.delta)}
                 </div>
               {:else if cardId === 'revenue'}
-                <div class="kpi-label">Receita <span class="drag-hint">⠿</span></div>
+                <div class="kpi-label">Receita</div>
                 <div class="kpi-value">{fmtBrl(revenueBrl)}</div>
                 <div class="kpi-sub kpi-secondary">{fmtEur(snap.kpis.revenue)} · {fmtUsd(snap.kpis.revenue * (taxConfig.eurToUsd || 1.08))}</div>
                 <div class="kpi-sub kpi-delta {deltaClass(snap.compare.revenue.delta)}">
                   {fmtDelta(snap.compare.revenue.delta)} · {snap.kpis.purchased} pedidos
                 </div>
               {:else if cardId === 'conversion'}
-                <div class="kpi-label">Conversão <span class="drag-hint">⠿</span></div>
+                <div class="kpi-label">Conversão</div>
                 <div class="kpi-value">{fmtPct(snap.kpis.conversionRate)}</div>
                 <div class="kpi-sub kpi-delta {deltaClass(snap.compare.conversion.delta)}">
                   {fmtDelta(snap.compare.conversion.delta)} · sessões → Bancontact
                 </div>
               {:else if cardId === 'duration'}
-                <div class="kpi-label">Tempo médio <span class="drag-hint">⠿</span></div>
+                <div class="kpi-label">Tempo médio</div>
                 <div class="kpi-value">{fmtDuration(snap.kpis.avgSessionDurationSec)}</div>
                 <div class="kpi-sub">duração da sessão</div>
               {:else if cardId === 'spend'}
-                <div class="kpi-label">Gasto Meta <span class="drag-hint">⠿</span></div>
+                <div class="kpi-label">Gasto Meta</div>
                 <div class="kpi-value">{fbAds ? fmtBrl(adSpendBrl) : '—'}</div>
                 <div class="kpi-sub kpi-secondary">{fbAds ? fmtEur(adSpendEur) + ' · ' + fmtUsd(fbAds.spend) : 'carregando…'}</div>
               {:else if cardId === 'profit'}
-                <div class="kpi-label">Lucro <span class="drag-hint">⠿</span></div>
+                <div class="kpi-label">Lucro</div>
                 <div class="kpi-value">{snap ? fmtBrl(lucroUtmBrl) : '—'}</div>
                 <div class="kpi-sub kpi-secondary">{snap ? fmtEur(lucroUtmBrl / eurToBrl) : ''}</div>
                 <div class="kpi-sub">faturamento líq − gasto</div>
               {:else if cardId === 'roas'}
-                <div class="kpi-label">ROAS <span class="drag-hint">⠿</span></div>
+                <div class="kpi-label">ROAS</div>
                 <div class="kpi-value kpi-green">{roasUtm > 0 ? roasUtm.toFixed(2) : '—'}</div>
                 <div class="kpi-sub">receita bruta / gasto</div>
               {:else if cardId === 'faturamento'}
-                <div class="kpi-label">Faturamento Líquido <span class="drag-hint">⠿</span></div>
+                <div class="kpi-label">Faturamento Líquido</div>
                 <div class="kpi-value">{snap ? fmtBrl(faturamentoLiqBrl) : '—'}</div>
                 <div class="kpi-sub kpi-secondary">{snap ? fmtEur(snap.kpis.revenue * (1 - taxConfig.shopifyPct / 100)) : ''}</div>
                 <div class="kpi-sub">receita − {taxConfig.shopifyPct}% Shopify</div>
               {:else if cardId === 'roi'}
-                <div class="kpi-label">ROI <span class="drag-hint">⠿</span></div>
+                <div class="kpi-label">ROI</div>
                 <div class="kpi-value kpi-green">{roiUtm > 0 ? roiUtm.toFixed(2) : '—'}</div>
                 <div class="kpi-sub">faturamento líq / gasto</div>
               {:else if cardId === 'margem'}
-                <div class="kpi-label">Margem <span class="drag-hint">⠿</span></div>
+                <div class="kpi-label">Margem</div>
                 <div class="kpi-value {margemPct > 0 ? 'kpi-green' : margemPct < 0 ? 'kpi-red' : ''}">{margemPct !== 0 ? margemPct.toFixed(1) + '%' : '—'}</div>
                 <div class="kpi-sub">lucro / faturamento líq</div>
               {:else if cardId === 'taxas_card'}
-                <div class="kpi-label">Taxas ({taxConfig.shopifyPct}%) <span class="drag-hint">⠿</span></div>
+                <div class="kpi-label">Taxas ({taxConfig.shopifyPct}%)</div>
                 <div class="kpi-value">{snap ? fmtBrl(taxasBrl) : '—'}</div>
                 <div class="kpi-sub kpi-secondary">{snap ? fmtEur(snap.kpis.revenue * taxConfig.shopifyPct / 100) : ''}</div>
                 <div class="kpi-sub">Shopify sobre receita bruta</div>
@@ -2617,9 +2602,30 @@
   .kpi[draggable="true"] { cursor: grab; }
   .kpi[draggable="true"]:active { cursor: grabbing; }
   .kpi.kpi-dragging { opacity: 0.45; border-style: dashed; }
-  .drag-hint {
-    font-size: 0.65rem; color: #3a4455; margin-left: 4px;
-    user-select: none; vertical-align: middle;
+  .kpi-drag-handle {
+    position: absolute; top: 6px; right: 6px;
+    width: 28px; height: 28px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: transparent; border: none; padding: 0; margin: 0;
+    color: #475064; font-size: 1.1rem; line-height: 1;
+    cursor: grab; user-select: none;
+    touch-action: none; /* CRUCIAL: bloqueia scroll do iOS so na alca */
+    -webkit-tap-highlight-color: transparent;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+    z-index: 2;
+  }
+  .kpi-drag-handle:hover, .kpi-drag-handle:focus-visible {
+    background: rgba(255,255,255,0.06); color: #02a95c; outline: none;
+  }
+  .kpi-drag-handle:active { cursor: grabbing; background: rgba(2,169,92,0.15); color: #02a95c; }
+  @media (max-width: 640px) {
+    /* Mobile: alca maior pra facilitar toque */
+    .kpi-drag-handle {
+      width: 36px; height: 36px; font-size: 1.25rem;
+      top: 4px; right: 4px;
+      background: rgba(255,255,255,0.04);
+    }
   }
 
   /* ── Campanhas table ── */
