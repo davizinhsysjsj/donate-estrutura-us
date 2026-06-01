@@ -2113,35 +2113,38 @@
   }
   .kpi-live .kpi-value { color: #02a95c; }
 
-  /* Card Online Agora — layout hero centralizado */
+  /* Card Online Agora (PC) — compacto pra bater altura dos outros cards */
   .kpi-online-hero {
     position: relative;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    margin: 14px 0 8px;
-    padding: 18px 8px 12px;
+    margin: 4px 0 2px;
+    padding: 4px 0 0;
   }
   .kpi-online-number {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 3rem; font-weight: 700; letter-spacing: -0.04em;
+    font-size: 2rem; font-weight: 700; letter-spacing: -0.03em;
     color: #02a95c;
     line-height: 1;
     /* Glow puro no numero — sem container box visivel */
     text-shadow:
-      0 0 12px rgba(2,169,92,0.6),
-      0 0 32px rgba(2,169,92,0.35),
-      0 0 60px rgba(2,169,92,0.18);
+      0 0 10px rgba(2,169,92,0.55),
+      0 0 24px rgba(2,169,92,0.3),
+      0 0 48px rgba(2,169,92,0.15);
   }
   .kpi-online-caption {
-    color: #8b94a4; font-size: 0.7rem; margin-top: 10px;
+    color: #8b94a4; font-size: 0.65rem; margin-top: 4px;
     text-align: center; letter-spacing: 0.02em;
   }
   .kpi-breakdown-online {
-    justify-content: center; gap: 8px; margin-top: 6px;
+    justify-content: center; gap: 6px; margin-top: 6px;
+    flex-wrap: wrap;
   }
   .kpi-breakdown-online .kpi-chip {
-    padding: 5px 10px;
+    padding: 3px 7px;
+    font-size: 0.7rem;
     background: linear-gradient(180deg, #11161d 0%, #0a0d12 100%);
   }
+  .kpi-breakdown-online .kpi-chip strong { font-size: 0.7rem; }
 
   .kpi-breakdown {
     display: flex; flex-wrap: wrap; gap: 6px;
