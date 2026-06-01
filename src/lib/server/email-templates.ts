@@ -11,7 +11,7 @@
 
 const SITE_URL = 'https://belgianpawshelter.help';
 const DONATE_URL = `${SITE_URL}/`;
-const UPSELL_DONATE_URL = `${SITE_URL}/donate`;
+const UPSELL_DONATE_URL = `${SITE_URL}/donate?utm_source=email&utm_medium=recompra&utm_campaign=48h`;
 const HERO_IMAGE = `${SITE_URL}/email/feeding-dogs.jpg`;
 const UPSELL_HERO_IMAGE = `${SITE_URL}/email/rescued-dogs.jpg`;
 const LOGO_IMAGE = `${SITE_URL}/email/logo.png`;
