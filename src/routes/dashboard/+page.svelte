@@ -1988,7 +1988,7 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     margin: 14px 0 8px;
     padding: 18px 8px 12px;
-    background: radial-gradient(circle at 50% 35%, rgba(2,169,92,0.10) 0%, rgba(2,169,92,0.02) 55%, transparent 80%);
+    background: radial-gradient(ellipse 90% 110% at 50% 50%, rgba(2,169,92,0.12) 0%, rgba(2,169,92,0.05) 40%, rgba(2,169,92,0.015) 70%, transparent 100%);
     border-radius: 10px;
   }
   .kpi-online-number {
