@@ -2022,15 +2022,17 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     margin: 14px 0 8px;
     padding: 18px 8px 12px;
-    background: radial-gradient(ellipse 90% 110% at 50% 50%, rgba(2,169,92,0.12) 0%, rgba(2,169,92,0.05) 40%, rgba(2,169,92,0.015) 70%, transparent 100%);
-    border-radius: 10px;
   }
   .kpi-online-number {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 3rem; font-weight: 700; letter-spacing: -0.04em;
     color: #02a95c;
     line-height: 1;
-    text-shadow: 0 0 24px rgba(2,169,92,0.35);
+    /* Glow puro no numero — sem container box visivel */
+    text-shadow:
+      0 0 12px rgba(2,169,92,0.6),
+      0 0 32px rgba(2,169,92,0.35),
+      0 0 60px rgba(2,169,92,0.18);
   }
   .kpi-online-caption {
     color: #8b94a4; font-size: 0.7rem; margin-top: 10px;
