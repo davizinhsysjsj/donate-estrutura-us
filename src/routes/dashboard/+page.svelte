@@ -798,9 +798,12 @@
               >⠿</button>
               {#if cardId === 'online'}
                 <div class="kpi-label">Online agora</div>
-                <div class="kpi-value">{snap.kpis.online}</div>
-                <div class="kpi-sub">visitantes ativos · últimos 2 min</div>
-                <div class="kpi-breakdown">
+                <div class="kpi-online-hero">
+                  <div class="kpi-online-pulse" aria-hidden="true"></div>
+                  <div class="kpi-online-number">{snap.kpis.online}</div>
+                  <div class="kpi-online-caption">visitantes ativos · últimos 2 min</div>
+                </div>
+                <div class="kpi-breakdown kpi-breakdown-online">
                   <span class="kpi-chip" title="Visitantes em / (LP)">
                     <span class="kpi-chip-dot" style="background:#02a95c"></span>
                     <span class="kpi-chip-label">LP</span>
@@ -1979,6 +1982,41 @@
     font-size: 2rem; font-weight: 600; margin-top: 8px; letter-spacing: -0.03em;
   }
   .kpi-live .kpi-value { color: #02a95c; }
+
+  /* Card Online Agora — layout hero centralizado */
+  .kpi-online-hero {
+    position: relative;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    margin: 14px 0 8px;
+    padding: 18px 8px 12px;
+    background: radial-gradient(circle at 50% 35%, rgba(2,169,92,0.10) 0%, rgba(2,169,92,0.02) 55%, transparent 80%);
+    border-radius: 10px;
+  }
+  .kpi-online-pulse {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #02a95c; box-shadow: 0 0 0 0 rgba(2,169,92,0.55);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  .kpi-online-number {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 3rem; font-weight: 700; letter-spacing: -0.04em;
+    color: #02a95c;
+    line-height: 1; margin-top: 12px;
+    text-shadow: 0 0 24px rgba(2,169,92,0.35);
+  }
+  .kpi-online-caption {
+    color: #8b94a4; font-size: 0.7rem; margin-top: 10px;
+    text-align: center; letter-spacing: 0.02em;
+  }
+  .kpi-breakdown-online {
+    justify-content: center; gap: 8px; margin-top: 6px;
+  }
+  .kpi-breakdown-online .kpi-chip {
+    padding: 5px 10px;
+    background: linear-gradient(180deg, #11161d 0%, #0a0d12 100%);
+  }
+
   .kpi-breakdown {
     display: flex; flex-wrap: wrap; gap: 6px;
     margin-top: 10px;
@@ -2345,6 +2383,12 @@
     .kpi-label { font-size: 0.625rem; }
     .kpi-value { font-size: 1.5rem; margin-top: 4px; }
     .kpi-sub { font-size: 0.6875rem; margin-top: 4px; }
+    /* Online Agora — mobile */
+    .kpi-online-hero { margin: 10px 0 6px; padding: 16px 4px 10px; }
+    .kpi-online-number { font-size: 2.5rem; }
+    .kpi-online-caption { font-size: 0.65rem; }
+    .kpi-breakdown-online { gap: 6px; }
+    .kpi-breakdown-online .kpi-chip { padding: 4px 8px; font-size: 0.7rem; }
 
     /* Cards */
     .card { padding: 14px; border-radius: 10px; }
