@@ -799,7 +799,6 @@
               {#if cardId === 'online'}
                 <div class="kpi-label">Online agora</div>
                 <div class="kpi-online-hero">
-                  <div class="kpi-online-pulse" aria-hidden="true"></div>
                   <div class="kpi-online-number">{snap.kpis.online}</div>
                   <div class="kpi-online-caption">visitantes ativos · últimos 2 min</div>
                 </div>
@@ -1992,17 +1991,11 @@
     background: radial-gradient(circle at 50% 35%, rgba(2,169,92,0.10) 0%, rgba(2,169,92,0.02) 55%, transparent 80%);
     border-radius: 10px;
   }
-  .kpi-online-pulse {
-    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
-    width: 8px; height: 8px; border-radius: 50%;
-    background: #02a95c; box-shadow: 0 0 0 0 rgba(2,169,92,0.55);
-    animation: pulse 1.8s ease-in-out infinite;
-  }
   .kpi-online-number {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 3rem; font-weight: 700; letter-spacing: -0.04em;
     color: #02a95c;
-    line-height: 1; margin-top: 12px;
+    line-height: 1;
     text-shadow: 0 0 24px rgba(2,169,92,0.35);
   }
   .kpi-online-caption {
