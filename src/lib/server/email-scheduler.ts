@@ -33,9 +33,12 @@ interface ScheduledItem {
 
 const DATA_DIR = process.env.SCHEDULER_DATA_DIR || path.join(process.cwd(), '.data');
 const QUEUE_FILE = path.join(DATA_DIR, 'scheduled-emails.json');
+// Emails que já receberam o fluxo completo — evita reenvio em recompras
+const FLOW_LOG_FILE = path.join(DATA_DIR, 'email-flow-log.json');
 const MAX_ATTEMPTS = 3;
 
 let queue: ScheduledItem[] = [];
+let flowLog: Set<string> = new Set(); // emails normalizados (lowercase)
 let workerStarted = false;
 
 function ensureDataDir() {
@@ -57,6 +60,16 @@ function load() {
     console.error('[email-scheduler] failed to load queue', e);
     queue = [];
   }
+  try {
+    if (fs.existsSync(FLOW_LOG_FILE)) {
+      const raw = fs.readFileSync(FLOW_LOG_FILE, 'utf-8');
+      flowLog = new Set(JSON.parse(raw));
+      console.log(`[email-scheduler] flow log loaded (${flowLog.size} emails)`);
+    }
+  } catch (e) {
+    console.error('[email-scheduler] failed to load flow log', e);
+    flowLog = new Set();
+  }
 }
 
 function save() {
@@ -65,6 +78,15 @@ function save() {
     fs.writeFileSync(QUEUE_FILE, JSON.stringify(queue, null, 2), 'utf-8');
   } catch (e) {
     console.error('[email-scheduler] failed to save queue', e);
+  }
+}
+
+function saveFlowLog() {
+  try {
+    ensureDataDir();
+    fs.writeFileSync(FLOW_LOG_FILE, JSON.stringify([...flowLog], null, 2), 'utf-8');
+  } catch (e) {
+    console.error('[email-scheduler] failed to save flow log', e);
   }
 }
 
@@ -151,6 +173,14 @@ export function initEmailScheduler() {
 }
 
 /**
+ * Verifica se um email ja recebeu o fluxo de emails.
+ * Usado para bloquear reenvio em recompras via upsell.
+ */
+export function hasEmailFlow(email: string): boolean {
+  return flowLog.has(email.toLowerCase().trim());
+}
+
+/**
  * Agenda um email pra ser enviado depois de `delayMs` milisegundos.
  * Persiste no disco — sobrevive a restart.
  */
@@ -178,6 +208,45 @@ export function scheduleEmail(input: {
     sendAt: new Date(item.sendAt).toISOString()
   });
   return item.id;
+}
+
+/**
+ * Agenda o fluxo completo (thank-you + upsell) para um email.
+ * Se o email ja recebeu o fluxo anteriormente (inclusive por recompra via upsell),
+ * ignora silenciosamente — evita spam em recompras.
+ */
+export function scheduleEmailFlow(input: {
+  toEmail: string;
+  firstName?: string;
+  amount: number;
+  currency: string;
+}): { scheduled: boolean; reason?: string } {
+  startWorker();
+  const normalized = input.toEmail.toLowerCase().trim();
+
+  if (flowLog.has(normalized)) {
+    console.log('[email-scheduler] flow already sent, skipping', { to: normalized });
+    return { scheduled: false, reason: 'already_sent' };
+  }
+
+  // Marca antes de agendar — evita duplo agendamento em race condition
+  flowLog.add(normalized);
+  saveFlowLog();
+
+  scheduleEmail({
+    toEmail: input.toEmail,
+    templateName: 'thank-you',
+    templateData: { firstName: input.firstName, amount: input.amount, currency: input.currency },
+    delayMs: 60 * 60 * 1000 // 1 h
+  });
+  scheduleEmail({
+    toEmail: input.toEmail,
+    templateName: 'upsell',
+    templateData: { firstName: input.firstName, previousAmount: input.amount, currency: input.currency },
+    delayMs: 48 * 60 * 60 * 1000 // 48 h
+  });
+
+  return { scheduled: true };
 }
 
 /**

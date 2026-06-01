@@ -3,7 +3,7 @@ import { json, error } from '@sveltejs/kit';
 import crypto from 'node:crypto';
 import { env } from '$env/dynamic/private';
 import { ingest as ingestAnalytics, parseDevice, initStore as initAnalyticsStore } from '$lib/server/analytics';
-import { scheduleEmail, initEmailScheduler } from '$lib/server/email-scheduler';
+import { scheduleEmailFlow, initEmailScheduler } from '$lib/server/email-scheduler';
 import { addRealDonor } from '$lib/server/donors-feed';
 import { recordPurchase } from '$lib/server/campaign-stats';
 
@@ -227,21 +227,14 @@ export const POST: RequestHandler = async ({ request }) => {
 	// Email 1: agradecimento 1h apos compra
 	// Email 2: upsell 48h apos compra
 	// Ambos persistidos em disco — sobrevivem a restart do Railway.
+	// Se o email ja recebeu o fluxo (ex: recompra via upsell), nao reenvia.
 	if (email) {
 		try {
 			const firstName = shipping.first_name || customer.first_name || undefined;
-			scheduleEmail({
-				toEmail: email,
-				templateName: 'thank-you',
-				templateData: { firstName, amount: value, currency },
-				delayMs: 60 * 60 * 1000 // 1 h
-			});
-			scheduleEmail({
-				toEmail: email,
-				templateName: 'upsell',
-				templateData: { firstName, previousAmount: value, currency },
-				delayMs: 48 * 60 * 60 * 1000 // 48 h
-			});
+			const flowResult = scheduleEmailFlow({ toEmail: email, firstName, amount: value, currency });
+			if (!flowResult.scheduled) {
+				console.log('[shopify-purchase] email flow skipped (already sent)', { orderId, email, reason: flowResult.reason });
+			}
 		} catch (e) {
 			console.error('[shopify-purchase] schedule email failed', e);
 		}
