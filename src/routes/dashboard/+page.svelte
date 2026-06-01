@@ -14,21 +14,17 @@
   let deviceFilter = $state<'' | 'mobile' | 'desktop' | 'tablet'>('');
   let countryFilter = $state('');
 
-  // ── País / Moeda ──
+  // ── Moeda de exibicao (BRL | USD | EUR) ──
   type DisplayCurrency = 'BRL' | 'EUR' | 'USD';
   let displayCurrency = $state<DisplayCurrency>('BRL');
-  const COUNTRY_OPTIONS = [
-    { code: '',   flag: '🌍', label: 'Todos',   currency: 'BRL' as DisplayCurrency },
-    { code: 'BR', flag: '🇧🇷', label: 'Brasil',  currency: 'BRL' as DisplayCurrency },
-    { code: 'BE', flag: '🇧🇪', label: 'Bélgica', currency: 'EUR' as DisplayCurrency },
-    { code: 'NL', flag: '🇳🇱', label: 'Holanda', currency: 'EUR' as DisplayCurrency },
-    { code: 'US', flag: '🇺🇸', label: 'EUA',     currency: 'USD' as DisplayCurrency },
+  const CURRENCY_OPTIONS: { code: DisplayCurrency; symbol: string; label: string }[] = [
+    { code: 'BRL', symbol: 'R$', label: 'Real' },
+    { code: 'USD', symbol: '$',  label: 'Dólar' },
+    { code: 'EUR', symbol: '€',  label: 'Euro' }
   ];
-  let selectedCountryOpt = $state(COUNTRY_OPTIONS[0]);
-  function selectCountry(opt: typeof COUNTRY_OPTIONS[number]) {
-    selectedCountryOpt = opt;
-    countryFilter = opt.code;
-    displayCurrency = opt.currency;
+  function selectCurrency(code: DisplayCurrency) {
+    displayCurrency = code;
+    try { localStorage.setItem('vitrack_currency', code); } catch {}
   }
 
   // ── Período colapsável ──
@@ -196,8 +192,24 @@
   }
   const fmtPct = (n: number) => (n * 100).toFixed(1) + '%';
   const fmtDelta = (n: number) => (n >= 0 ? '+' : '') + (n * 100).toFixed(1) + '%';
-  const fmtEur = (n: number) => '€' + n.toFixed(2).replace('.', ',');
-  const fmtBrl = (n: number) => 'R$ ' + n.toFixed(2).replace('.', ',');
+  // Formatadores base por moeda
+  const fmtEurRaw = (n: number) => '€' + n.toFixed(2).replace('.', ',');
+  const fmtUsdRaw = (n: number) => '$' + n.toFixed(2);
+  const fmtBrlRaw = (n: number) => 'R$ ' + n.toFixed(2).replace('.', ',');
+  // fmtBrl converte valor em BRL pra moeda selecionada (BRL/USD/EUR).
+  // Reativo via displayCurrency — toda chamada dentro de derived/template
+  // recalcula quando user troca a moeda.
+  function fmtBrl(brl: number): string {
+    if (displayCurrency === 'USD') return fmtUsdRaw(brl / activeUsdToBrl);
+    if (displayCurrency === 'EUR') return fmtEurRaw(brl / activeEurToBrl);
+    return fmtBrlRaw(brl);
+  }
+  // fmtEur converte valor em EUR pra moeda selecionada.
+  function fmtEur(eur: number): string {
+    if (displayCurrency === 'USD') return fmtUsdRaw(eur * (activeEurToBrl / activeUsdToBrl));
+    if (displayCurrency === 'BRL') return fmtBrlRaw(eur * activeEurToBrl);
+    return fmtEurRaw(eur);
+  }
   function fmtDuration(sec: number): string {
     if (sec < 60) return `${sec}s`;
     const m = Math.floor(sec / 60);
@@ -424,6 +436,11 @@
 
   onMount(() => {
     if (!data.authed) return;
+    // Carrega moeda preferida
+    try {
+      const cur = localStorage.getItem('vitrack_currency') as DisplayCurrency | null;
+      if (cur === 'BRL' || cur === 'USD' || cur === 'EUR') displayCurrency = cur;
+    } catch {}
     // Carrega taxConfig do localStorage
     try {
       const saved = localStorage.getItem('vitrack_tax');
@@ -735,23 +752,20 @@
           <option value="desktop">Desktop</option>
           <option value="tablet">Tablet</option>
         </select>
-        <!-- Seletor de país / moeda com bandeira -->
-        <div class="country-select-wrap">
-          <select
-            class="select select-flag"
-            value={selectedCountryOpt.code}
-            onchange={(e) => {
-              const opt = COUNTRY_OPTIONS.find(o => o.code === (e.target as HTMLSelectElement).value);
-              if (opt) selectCountry(opt);
-            }}
-          >
-            {#each COUNTRY_OPTIONS as opt}
-              <option value={opt.code}>{opt.flag} {opt.label}</option>
-            {/each}
-          </select>
-          <span class="currency-badge currency-{displayCurrency.toLowerCase()}">
-            {displayCurrency}
-          </span>
+        <!-- Seletor de moeda: BRL | USD | EUR -->
+        <div class="currency-switch" role="group" aria-label="Moeda de exibição">
+          {#each CURRENCY_OPTIONS as opt}
+            <button
+              type="button"
+              class="currency-pill"
+              class:active={displayCurrency === opt.code}
+              onclick={() => selectCurrency(opt.code)}
+              aria-pressed={displayCurrency === opt.code}
+            >
+              <span class="currency-pill-symbol">{opt.symbol}</span>
+              <span class="currency-pill-label">{opt.code}</span>
+            </button>
+          {/each}
         </div>
         <button class="btn-reset" onclick={resetData} disabled={resetting} title="Zerar todos os dados">
           {resetting ? '…' : 'Reset'}
@@ -2422,12 +2436,9 @@
       width: 100%;
     }
     .kpi-grid > .kpi.kpi-live { display: block; }
-    /* Esconde textos descritivos embaixo do valor (ex: "receita bruta / gasto",
-       "receita - 17% Shopify"). Mantem .kpi-secondary (conversao EUR/USD)
-       e .kpi-delta (variacao %). */
-    .kpi-grid > .kpi .kpi-sub:not(.kpi-secondary):not(.kpi-delta) {
-      display: none;
-    }
+    /* Mobile: esconde TODO sub-texto embaixo do valor
+       (descricoes, conversoes EUR/USD, deltas). So fica label + valor. */
+    .kpi-grid > .kpi .kpi-sub { display: none; }
     .kpi { padding: 14px 14px; }
     .kpi-label { font-size: 0.625rem; }
     .kpi-value { font-size: 1.5rem; margin-top: 4px; }
@@ -2766,25 +2777,30 @@
   .period-chevron.open { transform: rotate(180deg); }
   .period-label-icon { font-size: 0.875rem; }
 
-  /* ── Country / Moeda ── */
-  .country-select-wrap {
-    display: inline-flex; align-items: center; gap: 0;
-    border: 1px solid #1f2630; border-radius: 8px; overflow: hidden;
-    background: #11161d;
+  /* ── Seletor de Moeda (BRL | USD | EUR) ── */
+  .currency-switch {
+    display: inline-flex; align-items: stretch; gap: 0;
+    border: 1px solid #1f2630; border-radius: 10px; overflow: hidden;
+    background: #11161d; padding: 3px;
   }
-  .select-flag {
-    border: none !important; border-radius: 0 !important; background: transparent !important;
-    padding: 7px 10px; font-size: 0.8125rem; min-width: 130px;
+  .currency-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 12px;
+    background: transparent; border: none;
+    color: #8b94a4; font-family: inherit; font-size: 0.75rem; font-weight: 600;
+    cursor: pointer; border-radius: 7px;
+    transition: background 0.15s, color 0.15s;
+    -webkit-tap-highlight-color: transparent;
   }
-  .currency-badge {
-    padding: 0 10px; font-size: 0.6875rem; font-weight: 700;
-    border-left: 1px solid #1a1f28; height: 100%;
-    display: flex; align-items: center; white-space: nowrap;
-    font-family: 'JetBrains Mono', monospace;
+  .currency-pill:hover { color: #d6dae3; }
+  .currency-pill.active {
+    background: rgba(2,169,92,0.14);
+    color: #02a95c;
   }
-  .currency-brl { color: #1de9b6; background: rgba(29,233,182,0.08); }
-  .currency-eur { color: #4dd0e1; background: rgba(77,208,225,0.08); }
-  .currency-usd { color: #f9d65b; background: rgba(249,214,91,0.08); }
+  .currency-pill-symbol {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.875rem; font-weight: 700;
+  }
+  .currency-pill-label { letter-spacing: 0.04em; }
   .select-sm { font-size: 0.75rem; padding: 6px 10px; }
 
   /* ── Filterbar campanhas (UTMfy style) ── */
@@ -2904,7 +2920,8 @@
     .camp-utmfy th.th-num:nth-child(n+5),
     .camp-tr td.td-num:nth-child(n+5) { display: none; }
     .period-label-btn { font-size: 0.75rem; padding: 6px 10px; }
-    .country-select-wrap { flex: 1 1 140px; }
+    .currency-switch { flex: 1 1 auto; }
+    .currency-pill { padding: 6px 8px; font-size: 0.6875rem; }
   }
 
   /* ── Taxas form ── */
