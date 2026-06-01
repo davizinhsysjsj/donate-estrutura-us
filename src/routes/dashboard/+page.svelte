@@ -383,6 +383,30 @@
   let cardOrder = $state<CardId[]>([...DEFAULT_ORDER]);
   let dragSrc = $state<CardId | null>(null);
   let customizeOpen = $state(false);
+  // Modo edicao (mobile): long-press num card ativa, mostra handles + painel personalizar
+  let editMode = $state(false);
+  let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+  const LONG_PRESS_MS = 500;
+
+  function startLongPress(e: PointerEvent) {
+    if (e.pointerType === 'mouse') return; // so touch/pen
+    if (editMode) return; // ja em edit, ignora
+    // ignora se o toque foi na alca (handle ja gerencia)
+    if ((e.target as HTMLElement).closest('.kpi-drag-handle')) return;
+    if (longPressTimer) clearTimeout(longPressTimer);
+    longPressTimer = setTimeout(() => {
+      editMode = true;
+      customizeOpen = true;
+      if (navigator.vibrate) navigator.vibrate(25);
+    }, LONG_PRESS_MS);
+  }
+  function cancelLongPress() {
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+  }
+  function exitEditMode() {
+    editMode = false;
+    customizeOpen = false;
+  }
 
   // ── Taxa de câmbio ao vivo ──
   let liveRate = $state<{ usdToBrl: number; eurToBrl: number; eurToUsd: number; source: string; updatedAt: number } | null>(null);
@@ -750,11 +774,17 @@
 
       {#if activeTab === 'overview'}
       <div class="tab-content">
-        <!-- Customize button -->
-        <div class="customize-bar">
-          <button class="btn-customize" onclick={() => (customizeOpen = !customizeOpen)}>
-            {customizeOpen ? '✕ Fechar' : '⊙ Personalizar'}
-          </button>
+        <!-- Customize button (so desktop / sempre visivel; mobile usa long-press) -->
+        <div class="customize-bar" class:edit-mode={editMode}>
+          {#if editMode}
+            <button class="btn-customize btn-customize-exit" onclick={exitEditMode}>
+              ✓ Concluir edição
+            </button>
+          {:else}
+            <button class="btn-customize btn-customize-desktop" onclick={() => (customizeOpen = !customizeOpen)}>
+              {customizeOpen ? '✕ Fechar' : '⊙ Personalizar'}
+            </button>
+          {/if}
         </div>
 
         {#if customizeOpen}
@@ -771,8 +801,8 @@
           </div>
         {/if}
 
-        <!-- KPIs (drag para reordenar) -->
-        <section class="kpi-grid" class:flash={flashing}>
+        <!-- KPIs (drag para reordenar; mobile: long-press ativa edit mode) -->
+        <section class="kpi-grid" class:flash={flashing} class:edit-mode={editMode}>
           {#each cardOrder.filter(id => visibleCards.has(id)) as cardId (cardId)}
             <div
               class="kpi"
@@ -786,6 +816,11 @@
               ondragstart={() => dragStart(cardId)}
               ondragover={(e) => dragOverCard(e, cardId)}
               ondragend={dragEnd}
+              onpointerdown={startLongPress}
+              onpointerup={cancelLongPress}
+              onpointercancel={cancelLongPress}
+              onpointermove={cancelLongPress}
+              onpointerleave={cancelLongPress}
             >
               <button
                 type="button"
@@ -856,7 +891,6 @@
                 <div class="kpi-label">Lucro</div>
                 <div class="kpi-value">{snap ? fmtBrl(lucroUtmBrl) : '—'}</div>
                 <div class="kpi-sub kpi-secondary">{snap ? fmtEur(lucroUtmBrl / eurToBrl) : ''}</div>
-                <div class="kpi-sub">faturamento líq − gasto</div>
               {:else if cardId === 'roas'}
                 <div class="kpi-label">ROAS</div>
                 <div class="kpi-value kpi-green">{roasUtm > 0 ? roasUtm.toFixed(2) : '—'}</div>
@@ -2527,9 +2561,28 @@
     font-family: inherit; cursor: pointer; transition: all 0.15s;
   }
   .btn-customize:hover { border-color: #02a95c; color: #02a95c; }
+  .btn-customize-exit {
+    border-color: #02a95c; color: #02a95c;
+    background: rgba(2,169,92,0.08);
+  }
   .customize-panel {
     background: #11161d; border: 1px solid #1f2630; border-radius: 12px;
     padding: 16px;
+  }
+  /* Mobile: esconde botao Personalizar (so long-press ativa); handles so em edit mode */
+  @media (max-width: 640px) {
+    .btn-customize-desktop { display: none; }
+    .kpi-drag-handle { display: none; }
+    .kpi-grid.edit-mode .kpi-drag-handle { display: inline-flex; }
+    .kpi-grid.edit-mode .kpi {
+      animation: kpi-wiggle 0.5s ease-in-out infinite;
+      -webkit-user-select: none; user-select: none;
+      -webkit-touch-callout: none;
+    }
+    @keyframes kpi-wiggle {
+      0%, 100% { transform: rotate(-0.4deg); }
+      50% { transform: rotate(0.4deg); }
+    }
   }
   .card-toggles {
     display: flex; flex-wrap: wrap; gap: 8px;
