@@ -2404,27 +2404,20 @@
     .country-input { width: 100%; }
     .toggle { justify-content: space-between; }
 
-    /* KPIs — grid 2 colunas no mobile com altura uniforme por linha
-       (linhas horizontais entre cards batem perfeitamente) */
+    /* KPIs mobile — cada card altura natural pelo conteudo.
+       SEM stretch: card pequeno fica baixo, card alto fica alto.
+       Resultado: zero espaco sobrando dentro de qualquer card. */
     .kpi-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      align-items: stretch;
+      align-items: start;
     }
     .kpi-grid > .kpi {
       margin-bottom: 0;
-      /* Centraliza conteudo verticalmente: cards pequenos esticados
-         pelo grid ficam com tudo agrupado no centro, sem gaps gigantes
-         espalhando label/valor/sub pelas pontas. */
-      justify-content: center !important;
-      align-content: center;
-      gap: 4px;
+      height: auto;
+      align-self: start;
     }
-    /* Remove os margin-top que separavam label/value/sub — agora o gap
-       da flexbox controla espacamento uniforme. */
-    .kpi-grid > .kpi .kpi-value { margin-top: 0; }
-    .kpi-grid > .kpi .kpi-sub { margin-top: 0; }
     .kpi { padding: 14px 14px; }
     .kpi-label { font-size: 0.625rem; }
     .kpi-value { font-size: 1.5rem; margin-top: 4px; }
