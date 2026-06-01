@@ -2412,13 +2412,19 @@
       gap: 10px;
       align-items: stretch;
     }
-    .kpi-grid .kpi {
+    .kpi-grid > .kpi {
       margin-bottom: 0;
       /* Centraliza conteudo verticalmente: cards pequenos esticados
          pelo grid ficam com tudo agrupado no centro, sem gaps gigantes
          espalhando label/valor/sub pelas pontas. */
-      justify-content: center;
+      justify-content: center !important;
+      align-content: center;
+      gap: 4px;
     }
+    /* Remove os margin-top que separavam label/value/sub — agora o gap
+       da flexbox controla espacamento uniforme. */
+    .kpi-grid > .kpi .kpi-value { margin-top: 0; }
+    .kpi-grid > .kpi .kpi-sub { margin-top: 0; }
     .kpi { padding: 14px 14px; }
     .kpi-label { font-size: 0.625rem; }
     .kpi-value { font-size: 1.5rem; margin-top: 4px; }
