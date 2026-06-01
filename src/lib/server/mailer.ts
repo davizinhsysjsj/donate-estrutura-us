@@ -7,7 +7,6 @@
  * Config via env vars (Railway):
  *  - RESEND_API_KEY        (formato: re_...)
  *  - RESEND_MAIL_FROM      (ex: "Belgian Paws Helper <contact@belgianpaws.help>")
- *  - RESEND_MAIL_BCC       (opcional, ex: contact@belgianpaws.help)
  *
  * Limites Resend Free: 3000 emails/mes, 100/dia.
  * Domain belgianpaws.help ja verificado na regiao eu-west-1.
@@ -34,8 +33,6 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
   const from =
     process.env.RESEND_MAIL_FROM ||
     'Belgian Paws Helper <contact@belgianpaws.help>';
-  const bcc = process.env.RESEND_MAIL_BCC;
-
   if (!apiKey) {
     return { ok: false, error: 'RESEND_API_KEY nao configurado' };
   }
@@ -49,7 +46,6 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
       text: input.text ?? input.html.replace(/<[^>]+>/g, '')
     };
     if (input.replyTo) body.reply_to = input.replyTo;
-    if (bcc) body.bcc = [bcc];
 
     const res = await fetch(RESEND_API, {
       method: 'POST',
