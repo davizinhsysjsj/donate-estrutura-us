@@ -395,6 +395,16 @@
   let cardOrder = $state<CardId[]>([...DEFAULT_ORDER]);
   let dragSrc = $state<CardId | null>(null);
   let customizeOpen = $state(false);
+  // Tamanho dos cards: 'small' (1 col) ou 'large' (2 cols / linha inteira no mobile)
+  type CardSize = 'small' | 'large';
+  let cardSizes = $state<Record<string, CardSize>>({});
+  function getCardSize(id: CardId): CardSize {
+    return cardSizes[id] || 'small';
+  }
+  function setCardSize(id: CardId, size: CardSize) {
+    cardSizes = { ...cardSizes, [id]: size };
+    try { localStorage.setItem('vitrack_card_sizes', JSON.stringify(cardSizes)); } catch {}
+  }
   // Modo edicao (mobile): long-press num card ativa, mostra handles + painel personalizar
   let editMode = $state(false);
   let longPressTimer: ReturnType<typeof setTimeout> | null = null;
@@ -440,6 +450,11 @@
     try {
       const cur = localStorage.getItem('vitrack_currency') as DisplayCurrency | null;
       if (cur === 'BRL' || cur === 'USD' || cur === 'EUR') displayCurrency = cur;
+    } catch {}
+    // Carrega tamanho dos cards
+    try {
+      const sizes = localStorage.getItem('vitrack_card_sizes');
+      if (sizes) cardSizes = JSON.parse(sizes);
     } catch {}
     // Carrega taxConfig do localStorage
     try {
@@ -526,6 +541,54 @@
       dragSrc = null;
       localStorage.setItem('vitrack_card_order', JSON.stringify(cardOrder));
     }
+  }
+
+  // ── Resize: drag horizontal na alca direita pra alternar small/large ──
+  let resizeCardId: CardId | null = null;
+  let resizeStartX = 0;
+  let resizeStartSize: CardSize = 'small';
+  const RESIZE_THRESHOLD = 40; // px de drag pra ativar mudanca
+
+  function handleResizeDown(e: PointerEvent, id: CardId) {
+    e.preventDefault();
+    e.stopPropagation();
+    const target = e.currentTarget as HTMLElement;
+    try { target.setPointerCapture(e.pointerId); } catch {}
+    resizeCardId = id;
+    resizeStartX = e.clientX;
+    resizeStartSize = getCardSize(id);
+  }
+
+  function handleResizeMove(e: PointerEvent) {
+    if (!resizeCardId) return;
+    e.preventDefault();
+    const dx = e.clientX - resizeStartX;
+    // dx > threshold pra direita = vira large; dx < -threshold = vira small
+    if (resizeStartSize === 'small' && dx > RESIZE_THRESHOLD) {
+      setCardSize(resizeCardId, 'large');
+      if (navigator.vibrate) navigator.vibrate(10);
+      resizeStartSize = 'large';
+      resizeStartX = e.clientX;
+    } else if (resizeStartSize === 'large' && dx < -RESIZE_THRESHOLD) {
+      setCardSize(resizeCardId, 'small');
+      if (navigator.vibrate) navigator.vibrate(10);
+      resizeStartSize = 'small';
+      resizeStartX = e.clientX;
+    }
+  }
+
+  function handleResizeUp(e: PointerEvent) {
+    const target = e.currentTarget as HTMLElement;
+    try { target.releasePointerCapture(e.pointerId); } catch {}
+    // Click simples sem drag: alterna o tamanho
+    if (resizeCardId) {
+      const dx = Math.abs(e.clientX - resizeStartX);
+      if (dx < 5 && resizeStartSize === getCardSize(resizeCardId)) {
+        const next: CardSize = resizeStartSize === 'small' ? 'large' : 'small';
+        setCardSize(resizeCardId, next);
+      }
+    }
+    resizeCardId = null;
   }
 
   function saveTax() {
@@ -823,6 +886,7 @@
               class:kpi-profit-pos={cardId === 'profit' && profitBrl > 0}
               class:kpi-profit-neg={cardId === 'profit' && profitBrl < 0}
               class:kpi-dragging={dragSrc === cardId}
+              class:kpi-large={getCardSize(cardId) === 'large'}
               data-card-id={cardId}
               draggable="true"
               ondragstart={() => dragStart(cardId)}
@@ -843,6 +907,18 @@
                 onpointerup={handlePointerUp}
                 onpointercancel={handlePointerUp}
               >⠿</button>
+              {#if editMode}
+                <button
+                  type="button"
+                  class="kpi-resize-handle"
+                  aria-label="Redimensionar card"
+                  title={getCardSize(cardId) === 'large' ? 'Diminuir' : 'Aumentar'}
+                  onpointerdown={(e) => handleResizeDown(e, cardId)}
+                  onpointermove={handleResizeMove}
+                  onpointerup={handleResizeUp}
+                  onpointercancel={handleResizeUp}
+                >{getCardSize(cardId) === 'large' ? '↤' : '↦'}</button>
+              {/if}
               {#if cardId === 'online'}
                 <div class="kpi-label">Online agora</div>
                 <div class="kpi-online-hero">
@@ -2418,24 +2494,25 @@
     .country-input { width: 100%; }
     .toggle { justify-content: space-between; }
 
-    /* KPIs mobile — layout masonry (CSS multi-column).
-       Cada coluna flui independente: cards de alturas diferentes
-       se encaixam sem buracos verticais entre eles. */
+    /* KPIs mobile — grid 2 colunas com dense flow (preenche buracos
+       automaticamente) e suporte a card "large" (ocupa 2 colunas). */
     .kpi-grid {
-      display: block;
-      column-count: 2;
-      column-gap: 10px;
-      align-items: initial;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-auto-flow: dense;
+      gap: 10px;
+      align-items: start;
     }
     .kpi-grid > .kpi {
-      break-inside: avoid;
-      -webkit-column-break-inside: avoid;
-      page-break-inside: avoid;
-      margin: 0 0 10px;
-      display: block;
-      width: 100%;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      width: auto;
+      grid-column: span 1;
     }
-    .kpi-grid > .kpi.kpi-live { display: block; }
+    .kpi-grid > .kpi.kpi-large {
+      grid-column: span 2;
+    }
     /* Mobile: esconde TODO sub-texto embaixo do valor
        (descricoes, conversoes EUR/USD, deltas). So fica label + valor. */
     .kpi-grid > .kpi .kpi-sub { display: none; }
@@ -2740,6 +2817,29 @@
     background: rgba(255,255,255,0.06); color: #02a95c; outline: none;
   }
   .kpi-drag-handle:active { cursor: grabbing; background: rgba(2,169,92,0.15); color: #02a95c; }
+
+  /* Alca de redimensionar — borda direita do card no modo edit */
+  .kpi-resize-handle {
+    position: absolute; top: 50%; right: -2px; transform: translateY(-50%);
+    width: 22px; height: 56px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(2,169,92,0.15); border: 1px solid rgba(2,169,92,0.45);
+    color: #02a95c; font-size: 0.95rem; line-height: 1;
+    cursor: ew-resize; user-select: none;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    border-radius: 8px;
+    transition: background 0.15s;
+    z-index: 3;
+  }
+  .kpi-resize-handle:hover, .kpi-resize-handle:active {
+    background: rgba(2,169,92,0.3);
+  }
+  @media (max-width: 640px) {
+    .kpi-resize-handle {
+      width: 26px; height: 60px; font-size: 1.05rem;
+    }
+  }
   @media (max-width: 640px) {
     /* Mobile: handle escondido por padrao, so aparece em edit-mode.
        Alca maior pra facilitar toque quando visivel. */
