@@ -2404,19 +2404,19 @@
     .country-input { width: 100%; }
     .toggle { justify-content: space-between; }
 
-    /* KPIs — layout masonry no mobile (cards de alturas diferentes
-       fluem em 2 colunas, sem buracos entre eles) */
+    /* KPIs — grid 2 colunas no mobile com altura uniforme por linha
+       (linhas horizontais entre cards batem perfeitamente) */
     .kpi-grid {
-      display: block;
-      column-count: 2;
-      column-gap: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      align-items: stretch;
     }
     .kpi-grid .kpi {
-      break-inside: avoid;
-      -webkit-column-break-inside: avoid;
-      page-break-inside: avoid;
-      margin-bottom: 10px;
-      display: block;
+      margin-bottom: 0;
+      /* Distribui conteudo verticalmente pra nao concentrar tudo no topo
+         quando o card eh esticado pra acompanhar o par mais alto. */
+      justify-content: space-between;
     }
     .kpi { padding: 14px 14px; }
     .kpi-label { font-size: 0.625rem; }
@@ -2540,8 +2540,7 @@
   /* ─────────────── RESPONSIVE — TELEFONE PEQUENO ≤ 420px ─────────────── */
   @media (max-width: 420px) {
     .main { padding: 12px 10px; padding-top: calc(12px + env(safe-area-inset-top)); }
-    .kpi-grid { column-gap: 8px; }
-    .kpi-grid .kpi { margin-bottom: 8px; }
+    .kpi-grid { gap: 8px; }
     .kpi { padding: 12px 10px; }
     .kpi-value { font-size: 1.25rem; }
     .lt-row { grid-template-columns: 1fr; padding: 10px; }
