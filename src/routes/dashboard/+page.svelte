@@ -2406,8 +2406,20 @@
     .country-input { width: 100%; }
     .toggle { justify-content: space-between; }
 
-    /* KPIs */
-    .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    /* KPIs — layout masonry no mobile (cards de alturas diferentes
+       fluem em 2 colunas, sem buracos entre eles) */
+    .kpi-grid {
+      display: block;
+      column-count: 2;
+      column-gap: 10px;
+    }
+    .kpi-grid .kpi {
+      break-inside: avoid;
+      -webkit-column-break-inside: avoid;
+      page-break-inside: avoid;
+      margin-bottom: 10px;
+      display: block;
+    }
     .kpi { padding: 14px 14px; }
     .kpi-label { font-size: 0.625rem; }
     .kpi-value { font-size: 1.5rem; margin-top: 4px; }
@@ -2530,7 +2542,8 @@
   /* ─────────────── RESPONSIVE — TELEFONE PEQUENO ≤ 420px ─────────────── */
   @media (max-width: 420px) {
     .main { padding: 12px 10px; padding-top: calc(12px + env(safe-area-inset-top)); }
-    .kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .kpi-grid { column-gap: 8px; }
+    .kpi-grid .kpi { margin-bottom: 8px; }
     .kpi { padding: 12px 10px; }
     .kpi-value { font-size: 1.25rem; }
     .lt-row { grid-template-columns: 1fr; padding: 10px; }
@@ -2571,11 +2584,9 @@
     background: #11161d; border: 1px solid #1f2630; border-radius: 12px;
     padding: 16px;
   }
-  /* Mobile: esconde botao Personalizar (so long-press ativa); handles so em edit mode */
+  /* Mobile: esconde botao Personalizar (so long-press ativa) */
   @media (max-width: 640px) {
     .btn-customize-desktop { display: none; }
-    .kpi-drag-handle { display: none; }
-    .kpi-grid.edit-mode .kpi-drag-handle { display: inline-flex; }
     .kpi-grid.edit-mode .kpi {
       animation: kpi-wiggle 0.5s ease-in-out infinite;
       -webkit-user-select: none; user-select: none;
@@ -2712,11 +2723,16 @@
   }
   .kpi-drag-handle:active { cursor: grabbing; background: rgba(2,169,92,0.15); color: #02a95c; }
   @media (max-width: 640px) {
-    /* Mobile: alca maior pra facilitar toque */
+    /* Mobile: handle escondido por padrao, so aparece em edit-mode.
+       Alca maior pra facilitar toque quando visivel. */
     .kpi-drag-handle {
       width: 36px; height: 36px; font-size: 1.25rem;
       top: 4px; right: 4px;
       background: rgba(255,255,255,0.04);
+      display: none;
+    }
+    .kpi-grid.edit-mode .kpi-drag-handle {
+      display: inline-flex;
     }
   }
 
