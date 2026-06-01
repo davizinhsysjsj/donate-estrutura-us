@@ -734,16 +734,16 @@
     <nav class="nav">
       {#each [
         { id: 'overview', label: 'Visão geral', icon: '⌂' },
-        { id: 'live', label: 'Live', icon: '⚡' },
+        { id: 'live', label: 'Live', icon: '⚡︎' },
         { id: 'funnel', label: 'Funil', icon: '▽' },
-        { id: 'campanhas', label: 'Campanhas', icon: '✦' },
+        { id: 'campanhas', label: 'Campanhas', icon: 'f' },
         { id: 'taxas', label: 'Taxas', icon: '%' },
         { id: 'vsl', label: 'VSL', icon: '▶' },
         { id: 'sessions', label: 'Sessões', icon: '☰' },
-        { id: 'revenue', label: 'Receita', icon: '€' },
-        { id: 'tech', label: 'Performance', icon: '⏱' }
+        { id: 'revenue', label: 'Receita', icon: '$' },
+        { id: 'tech', label: 'Performance', icon: '⏱︎' }
       ] as item}
-        <button class="nav-item" class:active={activeTab === item.id} onclick={() => { activeTab = item.id as Tab; mobileMenuOpen = false; }}>
+        <button class="nav-item" data-tab={item.id} class:active={activeTab === item.id} onclick={() => { activeTab = item.id as Tab; mobileMenuOpen = false; }}>
           <span class="nav-icon">{item.icon}</span>
           <span class="nav-label" class:hidden-collapsed={!sidebarOpen}>{item.label}</span>
         </button>
@@ -1983,7 +1983,16 @@
     color: #02a95c;
     box-shadow: inset 2px 0 0 #02a95c;
   }
-  .nav-icon { font-size: 1rem; width: 18px; text-align: center; }
+  .nav-icon {
+    font-size: 1rem; width: 18px; text-align: center;
+    font-variant-emoji: text; /* forca modo texto = monocromatico */
+  }
+  /* Icone "f" de facebook em campanhas — bold italic/serif (vira tipo logo) */
+  .nav-item[data-tab="campanhas"] .nav-icon {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 700; font-style: italic;
+    font-size: 1.1rem;
+  }
   .sidebar-foot { padding: 12px; border-top: 1px solid #1a1f28; }
   .collapse-btn {
     background: transparent; border: 1px solid #1f2630; color: #8b94a4;
