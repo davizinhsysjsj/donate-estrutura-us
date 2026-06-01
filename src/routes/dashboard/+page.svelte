@@ -2819,11 +2819,13 @@
   .kpi-drag-handle:active { cursor: grabbing; background: rgba(2,169,92,0.15); color: #02a95c; }
 
   /* Alca de redimensionar — borda direita do card no modo edit */
+  /* Alca de resize horizontal — borda direita INFERIOR do card
+     pra nao conflitar visualmente com a alca de drag (canto superior). */
   .kpi-resize-handle {
-    position: absolute; top: 50%; right: -2px; transform: translateY(-50%);
-    width: 22px; height: 56px;
+    position: absolute; bottom: 6px; right: 6px;
+    width: 28px; height: 28px;
     display: inline-flex; align-items: center; justify-content: center;
-    background: rgba(2,169,92,0.15); border: 1px solid rgba(2,169,92,0.45);
+    background: rgba(2,169,92,0.18); border: 1px solid rgba(2,169,92,0.5);
     color: #02a95c; font-size: 0.95rem; line-height: 1;
     cursor: ew-resize; user-select: none;
     touch-action: none;
@@ -2833,11 +2835,12 @@
     z-index: 3;
   }
   .kpi-resize-handle:hover, .kpi-resize-handle:active {
-    background: rgba(2,169,92,0.3);
+    background: rgba(2,169,92,0.35);
   }
   @media (max-width: 640px) {
     .kpi-resize-handle {
-      width: 26px; height: 60px; font-size: 1.05rem;
+      width: 34px; height: 34px; font-size: 1.05rem;
+      bottom: 6px; right: 6px;
     }
   }
   @media (max-width: 640px) {
