@@ -2404,20 +2404,26 @@
     .country-input { width: 100%; }
     .toggle { justify-content: space-between; }
 
-    /* KPIs mobile — cada card altura natural pelo conteudo.
-       SEM stretch: card pequeno fica baixo, card alto fica alto.
-       Resultado: zero espaco sobrando dentro de qualquer card. */
+    /* KPIs mobile — layout masonry (CSS multi-column).
+       Cada coluna flui independente: cards de alturas diferentes
+       se encaixam sem buracos verticais entre eles.
+       Trade-off: linhas horizontais entre as 2 colunas nao batem. */
     .kpi-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      align-items: start;
+      display: block;
+      column-count: 2;
+      column-gap: 10px;
+      align-items: initial;
     }
     .kpi-grid > .kpi {
-      margin-bottom: 0;
-      height: auto;
-      align-self: start;
+      break-inside: avoid;
+      -webkit-column-break-inside: avoid;
+      page-break-inside: avoid;
+      margin: 0 0 10px;
+      display: block;
+      width: 100%;
     }
+    /* Padrao do .kpi eh flex-column; reativa dentro pro layout interno */
+    .kpi-grid > .kpi.kpi-live { display: block; }
     .kpi { padding: 14px 14px; }
     .kpi-label { font-size: 0.625rem; }
     .kpi-value { font-size: 1.5rem; margin-top: 4px; }
