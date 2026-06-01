@@ -767,24 +767,35 @@
         <div class="topbar-title-block">
           <h1 class="page-title">Dashboard</h1>
         </div>
-        <div class="update-row">
-          <span class="status">
-            <span class="status-dot" class:on={updateAgoSec < 6}></span>
-            <span class="status-text">
-              {updateAgoSec < 6 ? 'live' : 'Atualizado há ' + fmtAgo(updateAgoSec)}
-            </span>
+        <span class="status status-inline">
+          <span class="status-dot" class:on={updateAgoSec < 6}></span>
+          <span class="status-text">
+            {updateAgoSec < 6 ? 'live' : 'Atualizado há ' + fmtAgo(updateAgoSec)}
           </span>
-          <button
-            class="btn-update"
-            onclick={refresh}
-            disabled={refreshing}
-          >{refreshing ? 'Atualizando' : 'Atualizar'}</button>
-        </div>
+        </span>
         <button class="filters-toggle" aria-label="filtros" onclick={() => (mobileFiltersOpen = !mobileFiltersOpen)}>
           {mobileFiltersOpen ? '✕' : '⌥'}
         </button>
       </div>
       <div class="topbar-right" class:mobile-open={mobileFiltersOpen}>
+        <!-- Personalizar / Concluir edicao (so desktop; mobile usa long-press) -->
+        {#if activeTab === 'overview'}
+          {#if editMode}
+            <button class="btn-customize btn-customize-exit topbar-customize" onclick={exitEditMode}>
+              ✓ Concluir
+            </button>
+          {:else}
+            <button class="btn-customize btn-customize-desktop topbar-customize" onclick={() => (customizeOpen = !customizeOpen)}>
+              {customizeOpen ? '✕ Fechar' : '⊙ Personalizar'}
+            </button>
+          {/if}
+        {/if}
+        <!-- Atualizar -->
+        <button
+          class="btn-update topbar-update"
+          onclick={refresh}
+          disabled={refreshing}
+        >{refreshing ? 'Atualizando' : '↻ Atualizar'}</button>
         <!-- Período de visualização colapsável -->
         <button class="period-label-btn" onclick={() => (periodOpen = !periodOpen)}>
           <span class="period-label-icon">📅</span>
@@ -849,19 +860,6 @@
 
       {#if activeTab === 'overview'}
       <div class="tab-content">
-        <!-- Customize button (so desktop / sempre visivel; mobile usa long-press) -->
-        <div class="customize-bar" class:edit-mode={editMode}>
-          {#if editMode}
-            <button class="btn-customize btn-customize-exit" onclick={exitEditMode}>
-              ✓ Concluir edição
-            </button>
-          {:else}
-            <button class="btn-customize btn-customize-desktop" onclick={() => (customizeOpen = !customizeOpen)}>
-              {customizeOpen ? '✕ Fechar' : '⊙ Personalizar'}
-            </button>
-          {/if}
-        </div>
-
         {#if customizeOpen}
           <div class="customize-panel">
             <p class="muted small" style="margin:0 0 10px">Escolha quais cards aparecem na visão geral:</p>
@@ -2024,9 +2022,15 @@
   }
   .btn-update {
     background: #02a95c; color: #fff; border: none;
-    padding: 5px 16px; border-radius: 8px; font-size: 0.8125rem; font-weight: 600;
+    padding: 6px 16px; border-radius: 8px; font-size: 0.8125rem; font-weight: 600;
     font-family: inherit; cursor: pointer; transition: background 0.15s, opacity 0.15s;
     white-space: nowrap;
+  }
+  /* Status inline na topbar-left (sem o botao Atualizar) */
+  .status-inline { display: inline-flex; align-items: center; gap: 6px; }
+  /* Botoes que vivem dentro do topbar-right */
+  .topbar-customize, .topbar-update {
+    flex-shrink: 0;
   }
   .btn-update:hover:not(:disabled) { background: #019e55; }
   .btn-update:disabled { opacity: 0.65; cursor: default; }
