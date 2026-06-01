@@ -2406,8 +2406,7 @@
 
     /* KPIs mobile — layout masonry (CSS multi-column).
        Cada coluna flui independente: cards de alturas diferentes
-       se encaixam sem buracos verticais entre eles.
-       Trade-off: linhas horizontais entre as 2 colunas nao batem. */
+       se encaixam sem buracos verticais entre eles. */
     .kpi-grid {
       display: block;
       column-count: 2;
@@ -2422,8 +2421,13 @@
       display: block;
       width: 100%;
     }
-    /* Padrao do .kpi eh flex-column; reativa dentro pro layout interno */
     .kpi-grid > .kpi.kpi-live { display: block; }
+    /* Esconde textos descritivos embaixo do valor (ex: "receita bruta / gasto",
+       "receita - 17% Shopify"). Mantem .kpi-secondary (conversao EUR/USD)
+       e .kpi-delta (variacao %). */
+    .kpi-grid > .kpi .kpi-sub:not(.kpi-secondary):not(.kpi-delta) {
+      display: none;
+    }
     .kpi { padding: 14px 14px; }
     .kpi-label { font-size: 0.625rem; }
     .kpi-value { font-size: 1.5rem; margin-top: 4px; }
