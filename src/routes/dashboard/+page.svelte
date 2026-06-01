@@ -2087,7 +2087,7 @@
   /* ── KPIs ── */
   .kpi-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-    gap: 16px; margin-bottom: 16px; align-items: start;
+    gap: 16px; margin-bottom: 16px; align-items: stretch;
   }
   .kpi {
     background: #11161d; border: 1px solid #1a1f28; padding: 18px 20px;
