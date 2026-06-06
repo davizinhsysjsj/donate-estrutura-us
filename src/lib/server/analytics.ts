@@ -453,6 +453,19 @@ export function reset(): { events: number; sessions: number; heat: number } {
   return cleared;
 }
 
+export function removeSession(sid: string): { removed: boolean; events: number } {
+  const existed = sessions.delete(sid);
+  let removedEvents = 0;
+  for (let i = events.length - 1; i >= 0; i--) {
+    if (events[i].sid === sid) {
+      events.splice(i, 1);
+      removedEvents++;
+    }
+  }
+  if (existed || removedEvents > 0) saveSnapshot();
+  return { removed: existed, events: removedEvents };
+}
+
 // ─── Snapshot agregado ───
 
 function p(arr: number[], pct: number): number {
