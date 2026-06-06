@@ -427,13 +427,16 @@ export function ingest(evt: IngestInput) {
       if (Number.isFinite(amt) && amt > 0) {
         s.purchaseAmount = amt;
         s.purchaseAt = evt.ts;
+        s.isBot = false;
+        s.botReasons = [];
       }
       break;
     }
   }
 
   // Sinal heuristico de bot: sem mouse_move depois de 2 pageviews
-  if (s.pageViews >= 2 && !s.hasMouseMove && !s.isBot) {
+  // Nunca aplicar se a sessao ja registrou purchase (venda real >> heuristica)
+  if (s.pageViews >= 2 && !s.hasMouseMove && !s.isBot && !s.purchaseAmount) {
     s.isBot = true;
     s.botReasons.push('no-mouse');
   }
@@ -490,7 +493,8 @@ export function snapshot(opts: SnapshotOpts) {
   const matchSession = (s: Session) => {
     if (opts.device && s.device !== opts.device) return false;
     if (opts.countryCode && s.countryCode !== opts.countryCode) return false;
-    if (!opts.includeBots && s.isBot) return false;
+    // Sessoes com purchase nunca sao filtradas como bot — venda real prevalece
+    if (!opts.includeBots && s.isBot && !s.purchaseAmount) return false;
     return true;
   };
 
