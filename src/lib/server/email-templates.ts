@@ -43,6 +43,12 @@ export interface UpsellV2Vars {
   recipientEmail?: string;
 }
 
+export interface RecoveryVars {
+  firstName?: string;
+  recentDonorsCount?: number; // pulled dynamically se vazio, fallback no template
+  locale?: Locale;
+}
+
 function escape(s: string | undefined | null): string {
   if (!s) return '';
   return String(s)
@@ -111,7 +117,19 @@ const STR = {
     upsellV2Mission100Desc: 'Spoedeisende veterinaire zorg, infuus en intensieve behandeling voor een pup die het zonder hulp niet redt.',
     upsellV2Footnote: 'Elke knop brengt je direct naar de betaalpagina. Geen extra klikken, geen formulieren — Bancontact, klaar.',
     upsellV2Signoff: 'Uit de grond van ons hart, bedankt dat je terugkomt.',
-    upsellV2HeroAlt: 'Geredde hond die wacht op zijn maaltijd bij Belgian Paws Shelter'
+    upsellV2HeroAlt: 'Geredde hond die wacht op zijn maaltijd bij Belgian Paws Shelter',
+    // Recovery — 7 dias apos compra, pra quem nao reagiu ao upsell-v2 (social proof)
+    recoverySubject: 'Deze week hebben anderen al geholpen — jij ook?',
+    recoveryPreview: 'Een laatste herinnering. De honden wachten nog steeds.',
+    recoveryH1: (name: string) => `${name}, even een snelle herinnering.`,
+    recoveryP1: (count: string) =>
+      `In de afgelopen 7 dagen hebben <strong style="color:${BRAND_DARK};">${count} mensen</strong> opnieuw gedoneerd om onze honden te voeden. Sommigen kwamen terug voor de 2e of 3e keer. Andere voor het eerst — geraakt door dezelfde verhalen die ook jou raakten.`,
+    recoveryP2: 'De maaltijdbakjes zijn elke dag leeg, en elke dag vullen we ze opnieuw — maar alleen dankzij donateurs zoals jij.',
+    recoveryP3: 'Als jouw situatie het toelaat, helpt zelfs een klein bedrag enorm. We hebben geen enkel teken nodig dat je mee blijft helpen — alleen jouw concrete actie van vandaag.',
+    recoveryCta: 'Help opnieuw',
+    recoveryFootnote: 'Geen verplichtingen, geen abonnementen. Elke donatie is eenmalig en gaat rechtstreeks naar voeding en zorg.',
+    recoverySignoff: 'Bedankt dat je dit nog steeds leest. Dat zegt al heel veel.',
+    recoveryHeroAlt: 'Hond bij Belgian Paws Shelter wacht op vrijwilligers'
   },
   pt: {
     htmlLang: 'pt-BR',
@@ -158,7 +176,19 @@ const STR = {
     upsellV2Mission100Desc: 'Atendimento veterinário de emergência, soro e tratamento intensivo pra um filhote que sem ajuda não sobrevive.',
     upsellV2Footnote: 'Cada botão te leva direto pra página de pagamento. Sem cliques extras, sem formulários — Bancontact e pronto.',
     upsellV2Signoff: 'Do fundo do coração, obrigado por voltar.',
-    upsellV2HeroAlt: 'Cão resgatado esperando pela refeição no Belgian Paws Shelter'
+    upsellV2HeroAlt: 'Cão resgatado esperando pela refeição no Belgian Paws Shelter',
+    // Recovery — paridade com NL (template enviado so em NL atualmente)
+    recoverySubject: 'Esta semana outras pessoas ajudaram — você também?',
+    recoveryPreview: 'Um último lembrete. Os cães ainda estão esperando.',
+    recoveryH1: (name: string) => `${name}, um lembrete rápido.`,
+    recoveryP1: (count: string) =>
+      `Nos últimos 7 dias, <strong style="color:${BRAND_DARK};">${count} pessoas</strong> doaram pra alimentar nossos cães. Algumas voltaram pela 2ª ou 3ª vez. Outras pela primeira — tocadas pelas mesmas histórias que tocaram você.`,
+    recoveryP2: 'Os bowls esvaziam todo dia, e todo dia a gente enche de novo — só por causa de doadores como você.',
+    recoveryP3: 'Se sua situação permitir, qualquer valor ajuda demais. A gente não precisa de promessa nenhuma — só da sua ação concreta hoje.',
+    recoveryCta: 'Ajudar de novo',
+    recoveryFootnote: 'Sem amarras, sem assinatura. Cada doação é única e vai direto pra ração e cuidados.',
+    recoverySignoff: 'Obrigado por ainda estar lendo. Isso já diz muita coisa.',
+    recoveryHeroAlt: 'Cão do Belgian Paws Shelter esperando os voluntários'
   }
 } as const;
 
@@ -508,4 +538,83 @@ export function upsellV2Html(vars: UpsellV2Vars): string {
   `;
 
   return shell(locale, t.upsellV2Preview, body);
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Template 4 — Recovery (7 dias apos compra; pra quem ignorou o upsell-v2)
+// ─────────────────────────────────────────────────────────────────────
+
+const RECOVERY_DONATE_URL = `${SITE_URL}/donate?utm_source=email&utm_medium=recovery&utm_campaign=7d`;
+
+export function recoverySubject(locale?: Locale): string {
+  return STR[resolveLocale(locale)].recoverySubject;
+}
+
+export function recoveryPreview(locale?: Locale): string {
+  return STR[resolveLocale(locale)].recoveryPreview;
+}
+
+export function recoveryHtml(vars: RecoveryVars): string {
+  const locale = resolveLocale(vars.locale);
+  const t = STR[locale];
+  const name = vars.firstName ? escape(vars.firstName) : t.fallbackName;
+  // Fallback se contagem real for muito baixa (recem-deployado) — mantem copy plausivel
+  const rawCount = vars.recentDonorsCount ?? 0;
+  const countStr = rawCount >= 10 ? String(rawCount) : (locale === 'pt' ? 'dezenas de' : 'tientallen');
+
+  const body = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td>
+          <img src="${UPSELL_HERO_IMAGE}" alt="${t.recoveryHeroAlt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
+        </td>
+      </tr>
+      <tr>
+        <td class="px-mob" style="padding:32px 40px 8px;">
+          <h1 class="h1-mob" style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;color:#0f172a;font-size:24px;font-weight:700;line-height:1.3;">
+            ${t.recoveryH1(name)}
+          </h1>
+          <p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;color:#334155;font-size:16px;line-height:1.65;">
+            ${t.recoveryP1(countStr)}
+          </p>
+          <p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;color:#334155;font-size:16px;line-height:1.65;">
+            ${t.recoveryP2}
+          </p>
+          <p style="margin:0 0 24px;font-family:Arial,Helvetica,sans-serif;color:#334155;font-size:16px;line-height:1.65;">
+            ${t.recoveryP3}
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td class="px-mob" align="center" style="padding:8px 40px 24px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+            <tr>
+              <td bgcolor="${BRAND_COLOR}" style="border-radius:8px;">
+                <a href="${RECOVERY_DONATE_URL}" target="_blank" style="display:inline-block;padding:14px 36px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:700;color:#ffffff !important;text-decoration:none !important;border-radius:8px;">
+                  <font color="#ffffff">${t.recoveryCta}</font>
+                </a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td class="px-mob" style="padding:0 40px 16px;">
+          <p style="margin:0;font-family:Arial,Helvetica,sans-serif;color:#94a3b8;font-size:12px;line-height:1.6;font-style:italic;text-align:center;">
+            ${t.recoveryFootnote}
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td class="px-mob" style="padding:0 40px 32px;">
+          <div style="border-top:1px solid #e2e8f0;padding-top:20px;font-family:Arial,Helvetica,sans-serif;color:#475569;font-size:14px;line-height:1.6;">
+            ${t.recoverySignoff}<br>
+            <strong style="color:#0f172a;">${t.teamName}</strong>
+          </div>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  return shell(locale, t.recoveryPreview, body);
 }

@@ -115,6 +115,17 @@ function formatAgo(diffMs: number, locale: 'nl' | 'pt' = 'nl'): string {
 }
 
 /**
+ * Conta quantos doadores reais existem nos ultimos N dias.
+ * Limitado a MAX_STORED (100) — se houver mais, subestima.
+ * Usado em social proof de emails (ex: recovery 7d).
+ */
+export function getDonorsCountLastDays(days: number): number {
+	const arr = load();
+	const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+	return arr.filter((d) => d.ts >= cutoff).length;
+}
+
+/**
  * Retorna doadores reais das ultimas 24h, ja formatados pra UI.
  */
 export function getRecentRealDonors(): FeedDonor[] {

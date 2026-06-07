@@ -17,10 +17,12 @@ import {
   thankYouSubject, thankYouHtml,
   upsellSubject, upsellHtml,
   upsellV2Subject, upsellV2Html,
-  type ThankYouVars, type UpsellVars, type UpsellV2Vars, type Locale
+  recoverySubject, recoveryHtml,
+  type ThankYouVars, type UpsellVars, type UpsellV2Vars, type RecoveryVars, type Locale
 } from './email-templates';
+import { getDonorsCountLastDays } from './donors-feed';
 
-type TemplateName = 'thank-you' | 'upsell' | 'upsell-v2';
+type TemplateName = 'thank-you' | 'upsell' | 'upsell-v2' | 'recovery';
 
 interface ScheduledItem {
   id: string;
@@ -115,6 +117,14 @@ function renderTemplate(name: TemplateName, data: any): { subject: string; html:
       html: upsellV2Html(data as UpsellV2Vars)
     };
   }
+  if (name === 'recovery') {
+    // Injeta contagem real de doadores dos ultimos 7d (social proof dinamico)
+    const recentDonorsCount = getDonorsCountLastDays(7);
+    return {
+      subject: recoverySubject(locale),
+      html: recoveryHtml({ ...(data as RecoveryVars), recentDonorsCount })
+    };
+  }
   return null;
 }
 
@@ -194,7 +204,7 @@ export function hasEmailFlow(email: string): boolean {
 export function scheduleEmail(input: {
   toEmail: string;
   templateName: TemplateName;
-  templateData: ThankYouVars | UpsellVars | UpsellV2Vars;
+  templateData: ThankYouVars | UpsellVars | UpsellV2Vars | RecoveryVars;
   delayMs: number;
 }): string {
   startWorker(); // garante worker rodando
@@ -257,8 +267,33 @@ export function scheduleEmailFlow(input: {
     },
     delayMs: 48 * 60 * 60 * 1000 // 48 h
   });
+  // Recovery em 7d: se ainda nao reagiu ao v2 (cancelado automaticamente
+  // se houver nova compra do mesmo email — ver cancelPendingRecoveryForEmail)
+  scheduleEmail({
+    toEmail: input.toEmail,
+    templateName: 'recovery',
+    templateData: { firstName: input.firstName },
+    delayMs: 7 * 24 * 60 * 60 * 1000 // 7 d
+  });
 
   return { scheduled: true };
+}
+
+/**
+ * Cancela qualquer 'recovery' pendente pra um email — chamado pelo webhook
+ * shopify-purchase quando o user faz nova compra (ex: converteu pelo upsell-v2).
+ * Evita mandar recovery 7d depois pra quem ja voltou.
+ */
+export function cancelPendingRecoveryForEmail(email: string): number {
+  const target = email.toLowerCase().trim();
+  const before = queue.length;
+  queue = queue.filter((i) => !(i.templateName === 'recovery' && i.toEmail.toLowerCase().trim() === target));
+  const removed = before - queue.length;
+  if (removed > 0) {
+    save();
+    console.log('[email-scheduler] cancelled pending recovery', { email: target, removed });
+  }
+  return removed;
 }
 
 /**
@@ -268,7 +303,7 @@ export function scheduleEmailFlow(input: {
 export async function sendNow(input: {
   toEmail: string;
   templateName: TemplateName;
-  templateData: ThankYouVars | UpsellVars | UpsellV2Vars;
+  templateData: ThankYouVars | UpsellVars | UpsellV2Vars | RecoveryVars;
 }): Promise<{ ok: boolean; messageId?: string; error?: string }> {
   const rendered = renderTemplate(input.templateName, input.templateData);
   if (!rendered) return { ok: false, error: `unknown template: ${input.templateName}` };
