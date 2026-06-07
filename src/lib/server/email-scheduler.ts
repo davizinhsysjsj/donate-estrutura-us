@@ -16,10 +16,11 @@ import { sendMail } from './mailer';
 import {
   thankYouSubject, thankYouHtml,
   upsellSubject, upsellHtml,
-  type ThankYouVars, type UpsellVars, type Locale
+  upsellV2Subject, upsellV2Html,
+  type ThankYouVars, type UpsellVars, type UpsellV2Vars, type Locale
 } from './email-templates';
 
-type TemplateName = 'thank-you' | 'upsell';
+type TemplateName = 'thank-you' | 'upsell' | 'upsell-v2';
 
 interface ScheduledItem {
   id: string;
@@ -108,6 +109,12 @@ function renderTemplate(name: TemplateName, data: any): { subject: string; html:
       html: upsellHtml(data as UpsellVars)
     };
   }
+  if (name === 'upsell-v2') {
+    return {
+      subject: upsellV2Subject(locale),
+      html: upsellV2Html(data as UpsellV2Vars)
+    };
+  }
   return null;
 }
 
@@ -187,7 +194,7 @@ export function hasEmailFlow(email: string): boolean {
 export function scheduleEmail(input: {
   toEmail: string;
   templateName: TemplateName;
-  templateData: ThankYouVars | UpsellVars;
+  templateData: ThankYouVars | UpsellVars | UpsellV2Vars;
   delayMs: number;
 }): string {
   startWorker(); // garante worker rodando
@@ -241,7 +248,7 @@ export function scheduleEmailFlow(input: {
   });
   scheduleEmail({
     toEmail: input.toEmail,
-    templateName: 'upsell',
+    templateName: 'upsell-v2',
     templateData: { firstName: input.firstName, previousAmount: input.amount, currency: input.currency },
     delayMs: 48 * 60 * 60 * 1000 // 48 h
   });
@@ -256,7 +263,7 @@ export function scheduleEmailFlow(input: {
 export async function sendNow(input: {
   toEmail: string;
   templateName: TemplateName;
-  templateData: ThankYouVars | UpsellVars;
+  templateData: ThankYouVars | UpsellVars | UpsellV2Vars;
 }): Promise<{ ok: boolean; messageId?: string; error?: string }> {
   const rendered = renderTemplate(input.templateName, input.templateData);
   if (!rendered) return { ok: false, error: `unknown template: ${input.templateName}` };
@@ -267,4 +274,37 @@ export async function sendNow(input: {
     html: rendered.html,
     replyTo: process.env.RESEND_REPLY_TO || 'contact@belgianpaws.help'
   });
+}
+
+/**
+ * Retorna todos os 'upsell' (ou 'upsell-v2') agendados — usado no endpoint admin de blast.
+ */
+export function listPendingUpsells(): Array<{
+  id: string;
+  toEmail: string;
+  templateName: TemplateName;
+  templateData: any;
+  sendAt: number;
+}> {
+  startWorker();
+  return queue
+    .filter((i) => i.templateName === 'upsell' || i.templateName === 'upsell-v2')
+    .map((i) => ({
+      id: i.id,
+      toEmail: i.toEmail,
+      templateName: i.templateName,
+      templateData: i.templateData,
+      sendAt: i.sendAt
+    }));
+}
+
+/**
+ * Remove items da queue pelos IDs. Usado apos disparo manual do blast.
+ */
+export function cancelQueuedItems(ids: string[]): number {
+  const before = queue.length;
+  const set = new Set(ids);
+  queue = queue.filter((i) => !set.has(i.id));
+  save();
+  return before - queue.length;
 }

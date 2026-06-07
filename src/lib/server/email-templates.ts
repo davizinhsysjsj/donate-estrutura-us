@@ -35,6 +35,13 @@ export interface UpsellVars {
   locale?: Locale;
 }
 
+export interface UpsellV2Vars {
+  firstName?: string;
+  previousAmount: number;
+  currency: string;
+  locale?: Locale;
+}
+
 function escape(s: string | undefined | null): string {
   if (!s) return '';
   return String(s)
@@ -85,7 +92,25 @@ const STR = {
     upsellP3: 'Als je kunt — al is het maar een klein beetje — zou je ons opnieuw willen helpen? Zonder jou redden ze het niet.',
     upsellCta: 'Ja, ik help nog een hond',
     upsellSignoff: 'Uit de grond van ons hart, bedankt.',
-    upsellHeroAlt: 'Tien uitgehongerde honden net gered door Dog Paws Shelter'
+    upsellHeroAlt: 'Tien uitgehongerde honden net gered door Dog Paws Shelter',
+    // Upsell V2 — 3 botoes ancorados (50/80/100) com missoes tangiveis
+    upsellV2Subject: '7 van de 10 honden wachten nog op een redder 🐾',
+    upsellV2Preview: 'Drie zijn al gered door donateurs zoals jij. Er blijven er 7 over. Kies welke jij vandaag voedt.',
+    upsellV2H1: (name: string) => `${name}, er blijven nog 7 honden over die honger hebben.`,
+    upsellV2P1: (amount: string) =>
+      `Dankzij jouw eerdere donatie van <strong style="color:${BRAND_DARK};">${amount}</strong> hebben we 3 van de 10 ondervoede honden die deze week binnenkwamen al kunnen redden. Maar er blijven er 7 met lege bakjes — en ze kijken naar de deur, wachtend op iemand zoals jij.`,
+    upsellV2P2: 'Vandaag vraag ik je iets concreets te doen: kies <strong>één hond</strong> en geef hem een echte kans. Hieronder zie je wat elk bedrag precies betekent — geen ronde getallen, geen vage beloftes. Echte missies, voor echte honden.',
+    upsellV2MissionsTitle: 'Kies jouw missie',
+    upsellV2Mission50Title: '€50 — Voer 1 hond een hele week',
+    upsellV2Mission50Desc: 'Hoogwaardig herstelvoer, schoon water en een schone slaapplek voor 7 dagen.',
+    upsellV2Mission80Badge: 'MEEST GEKOZEN',
+    upsellV2Mission80Title: '€80 — Voer + vaccinatie voor 1 hond',
+    upsellV2Mission80Desc: '1 week voeding + alle vaccins die nodig zijn om hem te beschermen tegen ziekte.',
+    upsellV2Mission100Title: '€100 — Red een puppy in kritieke staat',
+    upsellV2Mission100Desc: 'Spoedeisende veterinaire zorg, infuus en intensieve behandeling voor een pup die het zonder hulp niet redt.',
+    upsellV2Footnote: 'Elke knop brengt je direct naar de betaalpagina. Geen extra klikken, geen formulieren — Bancontact, klaar.',
+    upsellV2Signoff: 'Uit de grond van ons hart, bedankt dat je terugkomt.',
+    upsellV2HeroAlt: 'Geredde hond die wacht op zijn maaltijd bij Belgian Paws Shelter'
   },
   pt: {
     htmlLang: 'pt-BR',
@@ -114,7 +139,25 @@ const STR = {
     upsellP3: 'Se você puder — nem que seja um pouquinho — topa ajudar de novo? Sem você, eles não conseguem.',
     upsellCta: 'Sim, quero ajudar mais um cão',
     upsellSignoff: 'Do fundo do coração, obrigado.',
-    upsellHeroAlt: 'Dez cães faminto recém resgatados pela Dog Paws Shelter'
+    upsellHeroAlt: 'Dez cães faminto recém resgatados pela Dog Paws Shelter',
+    // Upsell V2 — 3 botoes ancorados (50/80/100) com missoes tangiveis
+    upsellV2Subject: '7 dos 10 cães ainda esperam por um salvador 🐾',
+    upsellV2Preview: 'Três já foram salvos por doadores como você. Restam 7. Escolha qual você alimenta hoje.',
+    upsellV2H1: (name: string) => `${name}, ainda restam 7 cães com fome.`,
+    upsellV2P1: (amount: string) =>
+      `Graças à sua doação anterior de <strong style="color:${BRAND_DARK};">${amount}</strong>, conseguimos resgatar 3 dos 10 cães desnutridos que chegaram esta semana. Mas ainda restam 7 com os potes vazios — e estão olhando pra porta, esperando alguém como você.`,
+    upsellV2P2: 'Hoje vou te pedir algo concreto: escolha <strong>um cão</strong> e dê a ele uma chance real. Abaixo você vê exatamente o que cada valor faz — sem números arredondados, sem promessas vagas. Missões reais, pra cães reais.',
+    upsellV2MissionsTitle: 'Escolha sua missão',
+    upsellV2Mission50Title: '€50 — Alimente 1 cão por uma semana inteira',
+    upsellV2Mission50Desc: 'Ração de recuperação de alta qualidade, água limpa e abrigo seguro por 7 dias.',
+    upsellV2Mission80Badge: 'MAIS ESCOLHIDA',
+    upsellV2Mission80Title: '€80 — Alimentação + vacinação para 1 cão',
+    upsellV2Mission80Desc: '1 semana de ração + todas as vacinas necessárias pra protegê-lo contra doenças.',
+    upsellV2Mission100Title: '€100 — Salve um filhote em estado crítico',
+    upsellV2Mission100Desc: 'Atendimento veterinário de emergência, soro e tratamento intensivo pra um filhote que sem ajuda não sobrevive.',
+    upsellV2Footnote: 'Cada botão te leva direto pra página de pagamento. Sem cliques extras, sem formulários — Bancontact e pronto.',
+    upsellV2Signoff: 'Do fundo do coração, obrigado por voltar.',
+    upsellV2HeroAlt: 'Cão resgatado esperando pela refeição no Belgian Paws Shelter'
   }
 } as const;
 
@@ -160,11 +203,18 @@ function shell(locale: Locale, previewText: string, bodyHtml: string): string {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="x-apple-disable-message-reformatting">
+  <meta name="color-scheme" content="light only">
+  <meta name="supported-color-schemes" content="light only">
   <title>Belgian Paws</title>
   <style>
+    :root { color-scheme: light only; supported-color-schemes: light only; }
     body, table, td { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
     img { -ms-interpolation-mode:bicubic; border:0; outline:none; text-decoration:none; }
     a { color:${BRAND_DARK}; }
+    /* Gmail mobile dark mode override (data-ogsc) — for o highlight botao €80 */
+    u + .body .force-light-text,
+    [data-ogsc] .force-light-text { color:#ffffff !important; }
+    [data-ogsc] .force-light-desc { color:#dcfce7 !important; }
     @media (max-width:600px) {
       .container { width:100% !important; }
       .px-mob { padding-left:20px !important; padding-right:20px !important; }
@@ -172,7 +222,7 @@ function shell(locale: Locale, previewText: string, bodyHtml: string): string {
     }
   </style>
 </head>
-<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
+<body class="body" style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
   <div style="display:none;font-size:1px;color:#f1f5f9;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
     ${escape(previewText)}
     ${'&#847; &zwnj; &nbsp; '.repeat(120)}
@@ -310,4 +360,147 @@ export function upsellHtml(vars: UpsellVars): string {
   `;
 
   return shell(locale, t.upsellPreview, body);
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Template 3 — Upsell V2 (3 botoes ancorados em 50/80/100, checkout direto)
+// ─────────────────────────────────────────────────────────────────────
+
+const SHOPIFY_CART_DOMAIN = 'inigualavelshop.myshopify.com';
+const VARIANT_50 = '49473431208074';   // Hero
+const VARIANT_80 = '49473431240842';   // Champion
+const VARIANT_100 = '49473431273610';  // Protector
+
+function checkoutUrl(variantId: string, missionTag: string): string {
+  const params = new URLSearchParams({
+    utm_source: 'email',
+    utm_medium: 'upsell-v2',
+    utm_campaign: '48h',
+    utm_content: missionTag,
+    'attributes[utm_source]': 'email',
+    'attributes[utm_medium]': 'upsell-v2',
+    'attributes[utm_campaign]': '48h',
+    'attributes[utm_content]': missionTag
+  });
+  return `https://${SHOPIFY_CART_DOMAIN}/cart/${variantId}:1?${params.toString()}`;
+}
+
+export function upsellV2Subject(locale?: Locale): string {
+  return STR[resolveLocale(locale)].upsellV2Subject;
+}
+
+export function upsellV2Preview(locale?: Locale): string {
+  return STR[resolveLocale(locale)].upsellV2Preview;
+}
+
+export function upsellV2Html(vars: UpsellV2Vars): string {
+  const locale = resolveLocale(vars.locale);
+  const t = STR[locale];
+  const name = vars.firstName ? escape(vars.firstName) : t.fallbackName;
+  const previous = formatAmount(vars.previousAmount, vars.currency, locale);
+
+  const url50 = checkoutUrl(VARIANT_50, 'mission-50');
+  const url80 = checkoutUrl(VARIANT_80, 'mission-80');
+  const url100 = checkoutUrl(VARIANT_100, 'mission-100');
+
+  const missionButton = (opts: {
+    href: string;
+    badge?: string;
+    title: string;
+    desc: string;
+    highlight: boolean;
+  }) => {
+    const bg = opts.highlight ? BRAND_COLOR : '#ffffff';
+    const border = opts.highlight ? BRAND_COLOR : '#e2e8f0';
+    const titleColor = opts.highlight ? '#ffffff' : '#0f172a';
+    const descColor = opts.highlight ? '#dcfce7' : '#475569';
+    const badgeBg = opts.highlight ? '#15803d' : BRAND_COLOR;
+    return `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 12px;">
+        <tr>
+          <td bgcolor="${bg}" style="border:2px solid ${border};border-radius:12px;padding:0;">
+            <a href="${opts.href}" target="_blank" style="display:block;padding:18px 20px;text-decoration:none !important;color:${titleColor} !important;font-family:Arial,Helvetica,sans-serif;">
+              ${opts.badge ? `
+                <div style="display:inline-block;background:${badgeBg};color:#ffffff !important;font-size:10px;font-weight:700;letter-spacing:0.08em;padding:3px 9px;border-radius:999px;margin-bottom:8px;">
+                  <font color="#ffffff"><span class="${opts.highlight ? 'force-light-text' : ''}" style="color:#ffffff !important;">${escape(opts.badge)}</span></font>
+                </div>
+              ` : ''}
+              <div style="font-size:17px;font-weight:700;line-height:1.35;margin-bottom:6px;color:${titleColor} !important;">
+                <font color="${titleColor}"><span class="${opts.highlight ? 'force-light-text' : ''}" style="color:${titleColor} !important;">${escape(opts.title)}</span></font>
+              </div>
+              <div style="font-size:13px;line-height:1.5;color:${descColor} !important;">
+                <font color="${descColor}"><span class="${opts.highlight ? 'force-light-desc' : ''}" style="color:${descColor} !important;">${escape(opts.desc)}</span></font>
+              </div>
+            </a>
+          </td>
+        </tr>
+      </table>
+    `;
+  };
+
+  const body = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td>
+          <img src="${UPSELL_HERO_IMAGE}" alt="${t.upsellV2HeroAlt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
+        </td>
+      </tr>
+      <tr>
+        <td class="px-mob" style="padding:32px 40px 8px;">
+          <h1 class="h1-mob" style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;color:#0f172a;font-size:24px;font-weight:700;line-height:1.3;">
+            ${t.upsellV2H1(name)}
+          </h1>
+          <p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;color:#334155;font-size:16px;line-height:1.65;">
+            ${t.upsellV2P1(previous)}
+          </p>
+          <p style="margin:0 0 24px;font-family:Arial,Helvetica,sans-serif;color:#334155;font-size:16px;line-height:1.65;">
+            ${t.upsellV2P2}
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td class="px-mob" style="padding:0 40px 8px;">
+          <div style="font-family:Arial,Helvetica,sans-serif;color:#64748b;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px;">
+            ${t.upsellV2MissionsTitle}
+          </div>
+          ${missionButton({
+            href: url50,
+            title: t.upsellV2Mission50Title,
+            desc: t.upsellV2Mission50Desc,
+            highlight: false
+          })}
+          ${missionButton({
+            href: url80,
+            badge: t.upsellV2Mission80Badge,
+            title: t.upsellV2Mission80Title,
+            desc: t.upsellV2Mission80Desc,
+            highlight: true
+          })}
+          ${missionButton({
+            href: url100,
+            title: t.upsellV2Mission100Title,
+            desc: t.upsellV2Mission100Desc,
+            highlight: false
+          })}
+        </td>
+      </tr>
+      <tr>
+        <td class="px-mob" style="padding:8px 40px 24px;">
+          <p style="margin:0;font-family:Arial,Helvetica,sans-serif;color:#94a3b8;font-size:12px;line-height:1.6;font-style:italic;">
+            ${t.upsellV2Footnote}
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td class="px-mob" style="padding:0 40px 32px;">
+          <div style="border-top:1px solid #e2e8f0;padding-top:20px;font-family:Arial,Helvetica,sans-serif;color:#475569;font-size:14px;line-height:1.6;">
+            ${t.upsellV2Signoff}<br>
+            <strong style="color:#0f172a;">${t.teamName}</strong>
+          </div>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  return shell(locale, t.upsellV2Preview, body);
 }
