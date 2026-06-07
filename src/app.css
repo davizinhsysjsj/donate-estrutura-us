@@ -762,3 +762,59 @@ body {
 .support-word-name { font-size: 0.875rem; font-weight: 600; color: var(--fg); }
 .support-word-meta { font-size: 0.75rem; color: var(--muted-fg); margin-top: 1px; }
 .support-word-msg { font-size: 0.875rem; color: #2D2D2D; margin-top: 6px; line-height: 1.5; }
+
+/* ─── Sticky donate bar mobile (LP + VSL) ─── */
+.sticky-donate-mobile {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
+}
+.sticky-donate-cta {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 52px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: transform 0.12s, background 0.12s;
+  box-shadow: 0 2px 8px rgba(2, 169, 92, 0.25);
+}
+.sticky-donate-cta:hover { background: var(--primary-dark); }
+.sticky-donate-cta:active { transform: scale(0.98); }
+.sticky-donate-icon { font-size: 1.2rem; }
+.sticky-donate-text { font-weight: 700; }
+.sticky-donate-amount {
+  background: rgba(255, 255, 255, 0.22);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+@media (max-width: 768px) {
+  .sticky-donate-mobile { display: block; }
+  /* Espaco no fim do body pra nao cobrir conteudo final */
+  body { padding-bottom: 88px; }
+}
+/* Esconde se algum overlay/sheet estiver aberto */
+body:has(.overlay.open) .sticky-donate-mobile,
+body:has(.dn-overlay) .sticky-donate-mobile {
+  display: none !important;
+}

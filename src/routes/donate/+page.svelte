@@ -63,6 +63,14 @@
     fbc    = tracking.fbc;
     utm    = tracking.utm;
     setTimeout(() => { fbp = getFbp(); }, 500);
+
+    // Auto-seleciona valor se vier de link com ?amount= (sticky bar, abandoned recovery)
+    const params = new URLSearchParams(window.location.search);
+    const presetAmount = Number(params.get('amount'));
+    if (Number.isFinite(presetAmount) && presetAmount > 0) {
+      // Pequeno delay pra UX suave (componente terminou de montar)
+      setTimeout(() => selectAmount(presetAmount), 150);
+    }
   });
 
   function selectAmount(amount: number) {
