@@ -49,6 +49,13 @@ export interface RecoveryVars {
   locale?: Locale;
 }
 
+export interface AbandonedPopupVars {
+  firstName?: string;
+  amount: number; // valor que o user quase doou
+  locale?: Locale;
+  recipientEmail?: string;
+}
+
 function escape(s: string | undefined | null): string {
   if (!s) return '';
   return String(s)
@@ -129,7 +136,18 @@ const STR = {
     recoveryCta: 'Help opnieuw',
     recoveryFootnote: 'Geen verplichtingen, geen abonnementen. Elke donatie is eenmalig en gaat rechtstreeks naar voeding en zorg.',
     recoverySignoff: 'Bedankt dat je dit nog steeds leest. Dat zegt al heel veel.',
-    recoveryHeroAlt: 'Hond bij Belgian Paws Shelter wacht op vrijwilligers'
+    recoveryHeroAlt: 'Hond bij Belgian Paws Shelter wacht op vrijwilligers',
+    // Abandoned popup — disparado 1h apos o popup do donate fechar sem compra
+    abandonedSubject: 'Je was bijna klaar om te helpen 🐾',
+    abandonedPreview: 'Je hebt het bedrag al gekozen. Eén klik en je donatie is rond.',
+    abandonedH1: (name: string) => `${name}, je was er bijna.`,
+    abandonedP1: (amount: string) =>
+      `Je hebt een donatie van <strong style="color:${BRAND_DARK};">${amount}</strong> gekozen, maar de betaling werd niet afgerond. Geen zorgen — alles is bewaard. Eén klik en je sluit het af.`,
+    abandonedP2: 'Elke maaltijd telt voor onze geredde honden. Jouw donatie maakt vandaag het verschil.',
+    abandonedCta: 'Mijn donatie afronden',
+    abandonedFootnote: 'Bancontact, klaar. Geen extra formulieren.',
+    abandonedSignoff: 'We rekenen op je.',
+    abandonedHeroAlt: 'Geredde hond wacht op zijn maaltijd'
   },
   pt: {
     htmlLang: 'pt-BR',
@@ -188,7 +206,18 @@ const STR = {
     recoveryCta: 'Ajudar de novo',
     recoveryFootnote: 'Sem amarras, sem assinatura. Cada doação é única e vai direto pra ração e cuidados.',
     recoverySignoff: 'Obrigado por ainda estar lendo. Isso já diz muita coisa.',
-    recoveryHeroAlt: 'Cão do Belgian Paws Shelter esperando os voluntários'
+    recoveryHeroAlt: 'Cão do Belgian Paws Shelter esperando os voluntários',
+    // Abandoned popup — paridade PT (template enviado so em NL atualmente)
+    abandonedSubject: 'Você estava quase pronto pra ajudar 🐾',
+    abandonedPreview: 'Você já escolheu o valor. Um clique e sua doação tá pronta.',
+    abandonedH1: (name: string) => `${name}, você estava quase lá.`,
+    abandonedP1: (amount: string) =>
+      `Você escolheu uma doação de <strong style="color:${BRAND_DARK};">${amount}</strong>, mas o pagamento não foi concluído. Sem problemas — tá tudo salvo. Um clique e finaliza.`,
+    abandonedP2: 'Cada refeição conta pros nossos cães resgatados. Sua doação faz a diferença hoje.',
+    abandonedCta: 'Finalizar minha doação',
+    abandonedFootnote: 'Bancontact, pronto. Sem formulário extra.',
+    abandonedSignoff: 'Contamos com você.',
+    abandonedHeroAlt: 'Cão resgatado esperando sua refeição'
   }
 } as const;
 
@@ -617,4 +646,88 @@ export function recoveryHtml(vars: RecoveryVars): string {
   `;
 
   return shell(locale, t.recoveryPreview, body);
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Template 5 — Abandoned popup (1h apos popup do /donate sem compra)
+// ─────────────────────────────────────────────────────────────────────
+
+export function abandonedSubject(locale?: Locale): string {
+  return STR[resolveLocale(locale)].abandonedSubject;
+}
+
+export function abandonedPreview(locale?: Locale): string {
+  return STR[resolveLocale(locale)].abandonedPreview;
+}
+
+export function abandonedHtml(vars: AbandonedPopupVars): string {
+  const locale = resolveLocale(vars.locale);
+  const t = STR[locale];
+  const name = vars.firstName ? escape(vars.firstName) : t.fallbackName;
+  const amount = formatAmount(vars.amount, 'EUR', locale);
+
+  // Link direto pro /donate com valor pre-selecionado + email pre-preenchido
+  const params = new URLSearchParams({
+    utm_source: 'email',
+    utm_medium: 'abandoned-popup',
+    utm_campaign: 'recovery-1h',
+    amount: String(vars.amount)
+  });
+  if (vars.recipientEmail && /\S+@\S+\.\S+/.test(vars.recipientEmail)) {
+    params.set('email', vars.recipientEmail);
+  }
+  const url = `${SITE_URL}/donate?${params.toString()}`;
+
+  const body = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td>
+          <img src="${UPSELL_HERO_IMAGE}" alt="${t.abandonedHeroAlt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
+        </td>
+      </tr>
+      <tr>
+        <td class="px-mob" style="padding:32px 40px 8px;">
+          <h1 class="h1-mob" style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;color:#0f172a;font-size:24px;font-weight:700;line-height:1.3;">
+            ${t.abandonedH1(name)}
+          </h1>
+          <p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;color:#334155;font-size:16px;line-height:1.65;">
+            ${t.abandonedP1(amount)}
+          </p>
+          <p style="margin:0 0 24px;font-family:Arial,Helvetica,sans-serif;color:#334155;font-size:16px;line-height:1.65;">
+            ${t.abandonedP2}
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td class="px-mob" align="center" style="padding:8px 40px 24px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+            <tr>
+              <td bgcolor="${BRAND_COLOR}" style="border-radius:8px;">
+                <a href="${url}" target="_blank" style="display:inline-block;padding:14px 36px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:700;color:#ffffff !important;text-decoration:none !important;border-radius:8px;">
+                  <font color="#ffffff">${t.abandonedCta}</font>
+                </a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td class="px-mob" style="padding:0 40px 16px;">
+          <p style="margin:0;font-family:Arial,Helvetica,sans-serif;color:#94a3b8;font-size:12px;line-height:1.6;font-style:italic;text-align:center;">
+            ${t.abandonedFootnote}
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td class="px-mob" style="padding:0 40px 32px;">
+          <div style="border-top:1px solid #e2e8f0;padding-top:20px;font-family:Arial,Helvetica,sans-serif;color:#475569;font-size:14px;line-height:1.6;">
+            ${t.abandonedSignoff}<br>
+            <strong style="color:#0f172a;">${t.teamName}</strong>
+          </div>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  return shell(locale, t.abandonedPreview, body);
 }

@@ -112,6 +112,20 @@
 
     // REMOVIDO: uf('track', 'InitiateCheckout') — UTMify repassava para fbq com event_id diferente,
     // gerando 3ª IC sem dedup. UTMify recebe IC via webhook de compra (shopify-purchase).
+
+    // 3) Abandoned popup tracking — server registra sid + amount pra eventual
+    //    recovery email se nao houver compra (so funciona pra returning donor:
+    //    sid mapeado pra email via past purchase).
+    fetch('/api/track/popup-open', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        bp_sid: getSid(),
+        amount: selectedAmount ?? 0,
+        fbp: fbp ?? undefined,
+        fbclid: fbclid ?? undefined
+      })
+    }).catch(() => { /* silencioso */ });
   }
 
   function closePopup() {

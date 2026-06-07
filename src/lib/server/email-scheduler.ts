@@ -18,11 +18,13 @@ import {
   upsellSubject, upsellHtml,
   upsellV2Subject, upsellV2Html,
   recoverySubject, recoveryHtml,
-  type ThankYouVars, type UpsellVars, type UpsellV2Vars, type RecoveryVars, type Locale
+  abandonedSubject, abandonedHtml,
+  type ThankYouVars, type UpsellVars, type UpsellV2Vars, type RecoveryVars, type AbandonedPopupVars, type Locale
 } from './email-templates';
 import { getDonorsCountLastDays } from './donors-feed';
+import { getStalePopups, markRecoverySent, getEmailForSid } from './abandoned-popups';
 
-type TemplateName = 'thank-you' | 'upsell' | 'upsell-v2' | 'recovery';
+type TemplateName = 'thank-you' | 'upsell' | 'upsell-v2' | 'recovery' | 'abandoned-popup';
 
 interface ScheduledItem {
   id: string;
@@ -125,6 +127,12 @@ function renderTemplate(name: TemplateName, data: any): { subject: string; html:
       html: recoveryHtml({ ...(data as RecoveryVars), recentDonorsCount })
     };
   }
+  if (name === 'abandoned-popup') {
+    return {
+      subject: abandonedSubject(locale),
+      html: abandonedHtml(data as AbandonedPopupVars)
+    };
+  }
   return null;
 }
 
@@ -172,6 +180,41 @@ async function tick() {
   save();
 }
 
+/**
+ * Processa abandoned popups com >1h sem compra. Pra cada um que tem email
+ * mapeado (sid → email via past purchase), agenda 'abandoned-popup' email.
+ * Anonimos sao descartados na proxima rodada (TTL 48h em abandoned-popups.ts).
+ */
+async function tickAbandonedPopups() {
+  const stale = getStalePopups(60 * 60 * 1000); // >1h sem compra
+  if (stale.length === 0) return;
+
+  for (const p of stale) {
+    const email = getEmailForSid(p.sid);
+    if (!email) {
+      // Sem email mapeado — marca como processado pra nao reprocessar
+      markRecoverySent(p.sid);
+      continue;
+    }
+    // Anti-duplicado: nao enviar se ja recebeu fluxo (ex: ja eh doador atual)
+    if (flowLog.has(email)) {
+      markRecoverySent(p.sid);
+      continue;
+    }
+    scheduleEmail({
+      toEmail: email,
+      templateName: 'abandoned-popup',
+      templateData: {
+        amount: p.amount,
+        recipientEmail: email
+      },
+      delayMs: 0
+    });
+    markRecoverySent(p.sid);
+    console.log('[email-scheduler] abandoned-popup recovery queued', { sid: p.sid, email, amount: p.amount });
+  }
+}
+
 function startWorker() {
   if (workerStarted) return;
   workerStarted = true;
@@ -180,8 +223,13 @@ function startWorker() {
   setInterval(() => {
     tick().catch((e) => console.error('[email-scheduler] tick error', e));
   }, 30_000);
+  // Abandoned popups: a cada 5min (menos urgente que envio normal)
+  setInterval(() => {
+    tickAbandonedPopups().catch((e) => console.error('[email-scheduler] abandoned tick error', e));
+  }, 5 * 60_000);
   // Tick imediato pra processar pendentes ao subir
   setTimeout(() => tick().catch(() => {}), 5_000);
+  setTimeout(() => tickAbandonedPopups().catch(() => {}), 10_000);
   console.log('[email-scheduler] worker started');
 }
 
@@ -204,7 +252,7 @@ export function hasEmailFlow(email: string): boolean {
 export function scheduleEmail(input: {
   toEmail: string;
   templateName: TemplateName;
-  templateData: ThankYouVars | UpsellVars | UpsellV2Vars | RecoveryVars;
+  templateData: ThankYouVars | UpsellVars | UpsellV2Vars | RecoveryVars | AbandonedPopupVars;
   delayMs: number;
 }): string {
   startWorker(); // garante worker rodando
@@ -303,7 +351,7 @@ export function cancelPendingRecoveryForEmail(email: string): number {
 export async function sendNow(input: {
   toEmail: string;
   templateName: TemplateName;
-  templateData: ThankYouVars | UpsellVars | UpsellV2Vars | RecoveryVars;
+  templateData: ThankYouVars | UpsellVars | UpsellV2Vars | RecoveryVars | AbandonedPopupVars;
 }): Promise<{ ok: boolean; messageId?: string; error?: string }> {
   const rendered = renderTemplate(input.templateName, input.templateData);
   if (!rendered) return { ok: false, error: `unknown template: ${input.templateName}` };

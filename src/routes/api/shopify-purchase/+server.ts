@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { env } from '$env/dynamic/private';
 import { ingest as ingestAnalytics, parseDevice, initStore as initAnalyticsStore } from '$lib/server/analytics';
 import { scheduleEmailFlow, initEmailScheduler, cancelPendingRecoveryForEmail } from '$lib/server/email-scheduler';
+import { setSidEmail, removePopupBySid } from '$lib/server/abandoned-popups';
 import { addRealDonor } from '$lib/server/donors-feed';
 import { recordPurchase } from '$lib/server/campaign-stats';
 
@@ -105,6 +106,9 @@ export const POST: RequestHandler = async ({ request }) => {
 	} catch (e) {
 		console.warn('[shopify-purchase] analytics ingest failed', e);
 	}
+
+	// Remove abandoned-popup pendente desse sid (converteu — nao manda recovery)
+	if (bpSid) removePopupBySid(bpSid);
 
 	const eventId = eventIdAttr || `shopify_${orderId}`;
 
@@ -248,6 +252,8 @@ export const POST: RequestHandler = async ({ request }) => {
 				const cancelled = cancelPendingRecoveryForEmail(email);
 				if (cancelled > 0) console.log('[shopify-purchase] cancelled pending recovery on repeat purchase', { email, cancelled });
 			}
+			// Mapeia sid → email pra abandoned-popup recovery em compras futuras
+			if (bpSid) setSidEmail(bpSid, email);
 		} catch (e) {
 			console.error('[shopify-purchase] schedule email failed', e);
 		}
