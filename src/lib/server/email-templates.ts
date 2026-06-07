@@ -40,6 +40,7 @@ export interface UpsellV2Vars {
   previousAmount: number;
   currency: string;
   locale?: Locale;
+  recipientEmail?: string;
 }
 
 function escape(s: string | undefined | null): string {
@@ -371,8 +372,8 @@ const VARIANT_50 = '49473431208074';   // Hero
 const VARIANT_80 = '49473431240842';   // Champion
 const VARIANT_100 = '49473431273610';  // Protector
 
-function checkoutUrl(variantId: string, missionTag: string): string {
-  const params = new URLSearchParams({
+function checkoutUrl(variantId: string, missionTag: string, recipientEmail?: string): string {
+  const params: Record<string, string> = {
     utm_source: 'email',
     utm_medium: 'upsell-v2',
     utm_campaign: '48h',
@@ -381,8 +382,12 @@ function checkoutUrl(variantId: string, missionTag: string): string {
     'attributes[utm_medium]': 'upsell-v2',
     'attributes[utm_campaign]': '48h',
     'attributes[utm_content]': missionTag
-  });
-  return `https://${SHOPIFY_CART_DOMAIN}/cart/${variantId}:1?${params.toString()}`;
+  };
+  // Pre-preenche email no Shopify checkout — reduz friction pra repeat purchase
+  if (recipientEmail && /\S+@\S+\.\S+/.test(recipientEmail)) {
+    params['checkout[email]'] = recipientEmail;
+  }
+  return `https://${SHOPIFY_CART_DOMAIN}/cart/${variantId}:1?${new URLSearchParams(params).toString()}`;
 }
 
 export function upsellV2Subject(locale?: Locale): string {
@@ -399,9 +404,9 @@ export function upsellV2Html(vars: UpsellV2Vars): string {
   const name = vars.firstName ? escape(vars.firstName) : t.fallbackName;
   const previous = formatAmount(vars.previousAmount, vars.currency, locale);
 
-  const url50 = checkoutUrl(VARIANT_50, 'mission-50');
-  const url80 = checkoutUrl(VARIANT_80, 'mission-80');
-  const url100 = checkoutUrl(VARIANT_100, 'mission-100');
+  const url50 = checkoutUrl(VARIANT_50, 'mission-50', vars.recipientEmail);
+  const url80 = checkoutUrl(VARIANT_80, 'mission-80', vars.recipientEmail);
+  const url100 = checkoutUrl(VARIANT_100, 'mission-100', vars.recipientEmail);
 
   const missionButton = (opts: {
     href: string;

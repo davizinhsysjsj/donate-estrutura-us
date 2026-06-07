@@ -249,7 +249,12 @@ export function scheduleEmailFlow(input: {
   scheduleEmail({
     toEmail: input.toEmail,
     templateName: 'upsell-v2',
-    templateData: { firstName: input.firstName, previousAmount: input.amount, currency: input.currency },
+    templateData: {
+      firstName: input.firstName,
+      previousAmount: input.amount,
+      currency: input.currency,
+      recipientEmail: input.toEmail
+    },
     delayMs: 48 * 60 * 60 * 1000 // 48 h
   });
 

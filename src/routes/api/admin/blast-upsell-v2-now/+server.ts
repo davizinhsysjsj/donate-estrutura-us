@@ -50,7 +50,7 @@ export const POST: RequestHandler = async ({ request }) => {
       const r = await sendNow({
         toEmail: item.toEmail,
         templateName: 'upsell-v2',
-        templateData: item.templateData
+        templateData: { ...item.templateData, recipientEmail: item.toEmail }
       });
       results.push({
         to: item.toEmail,
