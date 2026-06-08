@@ -391,7 +391,11 @@
       <h3>Organisator</h3>
       <div class="organizer-row">
         <div class="organizer-avatar">
-          {CAMPAIGN.organizer.split(' ').map((s) => s[0]).join('').slice(0, 2)}
+          {#if CAMPAIGN.organizerImage}
+            <img src={CAMPAIGN.organizerImage} alt={CAMPAIGN.organizer} loading="lazy" />
+          {:else}
+            {CAMPAIGN.organizer.split(' ').map((s) => s[0]).join('').slice(0, 2)}
+          {/if}
         </div>
         <div style="flex:1;min-width:0">
           <div class="organizer-name">{CAMPAIGN.organizer}</div>

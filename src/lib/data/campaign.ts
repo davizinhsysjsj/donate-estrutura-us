@@ -22,6 +22,7 @@ export const CAMPAIGN = {
   brand: 'PawsCo',
   organizer: 'Aoife Murphy',
   organizerCity: 'Antwerpen, België',
+  organizerImage: '/organizer.png',
   category: 'Dieren',
   createdMonth: 'mei 2026',
 
