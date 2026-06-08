@@ -602,18 +602,3 @@
 <!-- Exit intent popup (desktop: cursor sai pelo topo após 8s) -->
 <ExitIntentPopup bind:this={exitPopup} onDonate={openDonation} onBack={() => goto('/wacht')} />
 
-<!-- Sticky donate bar mobile — alavanca #1 em LPs crowdfunding mobile -->
-<div class="sticky-donate-mobile">
-  <button
-    type="button"
-    class="sticky-donate-cta"
-    onclick={() => {
-      import('$lib/utils/analytics').then((m) => m.track('sticky_donate_click', { from: 'lp', amount: 25 })).catch(() => {});
-      goto('/donate?amount=25&utm_source=sticky&utm_medium=lp');
-    }}
-  >
-    <span class="sticky-donate-icon">🐾</span>
-    <span class="sticky-donate-text">Doneer nu</span>
-    <span class="sticky-donate-amount">€25</span>
-  </button>
-</div>
