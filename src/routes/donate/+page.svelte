@@ -24,19 +24,22 @@
     desc: string;
   };
 
+  // Ordem: topo ancora valores ALTOS (psicologia anti-âncora baixa).
+  // Linha 1: €50, €100 · Linha 2: €200, €300 · Linha 3: €25*, €500
+  // Linha 4: €80, €35 · Linha 5: €30, €20 · Linha 6: €15, €10
   const AMOUNTS: AmountOption[] = [
-    { amount: 10,  desc: 'Geeft een maaltijd aan een gered dier.' },
-    { amount: 15,  desc: 'Zorgt voor maaltijden voor een dier gedurende meerdere dagen.' },
-    { amount: 20,  desc: 'Helpt een gered dier bijna een week lang te voeden.' },
-    { amount: 25,  recommended: true, desc: 'Vult lege bakjes en geeft troost aan wie honger heeft.' },
-    { amount: 30,  desc: 'Zorgt voor voer voor een hond gedurende circa 1 week.' },
-    { amount: 35,  desc: 'Volledige verzorging voor meerdere dieren gedurende een week.' },
     { amount: 50,  desc: 'Helpt 2 tot 3 dieren meerdere dagen te voeden.' },
-    { amount: 80,  desc: 'Draagt bij aan de voeding van meerdere dieren gedurende 1 à 2 weken.' },
     { amount: 100, desc: 'Garandeert voeding voor meerdere honden en katten én basisverzorging.' },
     { amount: 200, desc: 'Maakt het mogelijk om voer in grote hoeveelheden te kopen.' },
     { amount: 300, desc: 'Continue voeding en verzorging voor meerdere geredde dieren.' },
+    { amount: 25,  recommended: true, desc: 'Vult lege bakjes en geeft troost aan wie honger heeft.' },
     { amount: 500, desc: 'Voeding voor 1 maand voor al onze kleine vriendjes.' },
+    { amount: 80,  desc: 'Draagt bij aan de voeding van meerdere dieren gedurende 1 à 2 weken.' },
+    { amount: 35,  desc: 'Volledige verzorging voor meerdere dieren gedurende een week.' },
+    { amount: 30,  desc: 'Zorgt voor voer voor een hond gedurende circa 1 week.' },
+    { amount: 20,  desc: 'Helpt een gered dier bijna een week lang te voeden.' },
+    { amount: 15,  desc: 'Zorgt voor maaltijden voor een dier gedurende meerdere dagen.' },
+    { amount: 10,  desc: 'Geeft een maaltijd aan een gered dier.' },
   ];
 
   function dogsForAmount(n: number): number {
