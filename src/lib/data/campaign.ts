@@ -75,6 +75,13 @@ export const CAMPAIGN = {
     { name: 'Sven Janssens', amount: 25, ago: '22 u geleden', initials: 'SJ', color: 'av-amber' }
   ] satisfies CampaignDonor[],
 
+  // Ons werk — carrossel de fotos da rotina no abrigo (LP + VSL)
+  workImages: [
+    { src: '/work-1.png', caption: 'Elke ochtend begint hier — voeren wat we hebben.' },
+    { src: '/work-2.png', caption: 'Onze vrijwilligers zorgen voor elk dier, elke dag.' },
+    { src: '/work-3.png', caption: 'Een veilige plek dankzij donateurs zoals jij.' }
+  ],
+
   // Stats card
   stats: [
     { value: '2.847', label: 'dieren die wachten in partneropvangen' },

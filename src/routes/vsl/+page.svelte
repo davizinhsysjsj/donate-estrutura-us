@@ -11,6 +11,7 @@
   import { TIERS, DEFAULT_TIER, dogsForAmount } from '$lib/data/tiers';
   import ProgressCard from '$lib/components/ProgressCard.svelte';
   import StickyBottomBar from '$lib/components/StickyBottomBar.svelte';
+  import WorkCarousel from '$lib/components/WorkCarousel.svelte';
   import {
     captureAndPersistFbclid, getFbp, trackEvent, uuid, buildShopifyCartUrl,
     type UtmData
@@ -343,16 +344,8 @@
 
     </section>
 
-    <!-- Urgency block -->
-    <section class="urgency" data-section="urgency-cta">
-      <div class="urgency-eyebrow">Tijd telt</div>
-      <h2 class="urgency-title">Vanavond wachten er dieren.</h2>
-      <p class="urgency-sub">Jij kan er nu eentje voeden.</p>
-      <button class="urgency-cta" onclick={openDonation}>
-        Help ze voeden
-        <ChevronRight size={18} strokeWidth={2.5} />
-      </button>
-    </section>
+    <!-- Ons werk — carrossel de fotos do trabalho no abrigo -->
+    <WorkCarousel slides={CAMPAIGN.workImages} title="Ons werk" eyebrow="Achter de schermen" />
 
     <!-- Donors list (preview com 5; botao abre modal com lista completa) -->
     <div class="donations" id="donations">
