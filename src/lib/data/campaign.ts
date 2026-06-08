@@ -42,9 +42,9 @@ export const CAMPAIGN = {
 
   // Story
   story: [
-    "Drie weken geleden kregen we een telefoontje van een klein opvangcentrum in Antwerpen. Hun voorraadkamer was bijna leeg, de vriezer stond uit om stroom te besparen, en 47 honden en katten wachtten op hun volgende maaltijd.",
-    "We reden diezelfde nacht naar boven met al het voer dat we in de bestelwagen konden laden. Wat we daar aantroffen maakte de lange rit naar huis als niets — kennels met twee dieren per plek, vrijwilligers die brokken uit eigen zak betaalden, en een 9 jaar oude herder genaamd Loki die al drie winters niet geadopteerd was.",
-    "We deden hen een belofte: we zouden niet toelaten dat ze deze winter opnieuw zonder voer zouden komen te zitten. We houden ons aan die belofte — maar alleen als jij hem mee houdt."
+    "Help ons te voeden wie niet om hulp kan vragen 🐾",
+    "Op dit moment staat Honden Poten voor een kritieke situatie. Tientallen geredde dieren — verlaten honden en katten — zijn volledig afhankelijk van onze hulp om te overleven... en we zitten zonder voer, zonder medicijnen, zonder middelen om door te gaan.",
+    "Elke gedoneerde euro zorgt ervoor dat deze dieren krijgen wat ze nodig hebben: voedsel, dierenartsenzorg en een veilige plek. Jij kunt vandaag een leven redden."
   ],
 
   // CTA / story highlight
