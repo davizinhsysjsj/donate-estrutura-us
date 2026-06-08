@@ -403,7 +403,6 @@
           <div class="organizer-sub">{CAMPAIGN.organizerCity}</div>
         </div>
       </div>
-      <button class="btn-contact">Contact</button>
 
       <div class="campaign-extras">
         <div class="campaign-extras-row">
