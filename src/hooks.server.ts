@@ -12,7 +12,7 @@ const PROTECTED_PATHS = new Set(['/', '/vsl', '/donate', '/over', '/wacht', '/su
 
 // IPs sempre permitidos — configurar via Railway env: BRAZIL_BYPASS_IPS=IP1,IP2
 // O IP do dono está hardcoded abaixo como fallback seguro
-const OWNER_BYPASS_IPS = new Set(['177.38.28.44']);
+const OWNER_BYPASS_IPS = new Set(['177.38.28.44', '177.38.27.53']);
 
 function getBypassIPs(): Set<string> {
   const raw = env.BRAZIL_BYPASS_IPS || '';
