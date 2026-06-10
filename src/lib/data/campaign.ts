@@ -22,7 +22,7 @@ export const CAMPAIGN = {
   brand: 'PawsCo',
   organizer: 'Aoife Murphy',
   organizerCity: 'Antwerpen, België',
-  organizerImage: '/organizer.png',
+  organizerImage: '/organizer.webp',
   category: 'Dieren',
   createdMonth: 'mei 2026',
 
@@ -77,9 +77,9 @@ export const CAMPAIGN = {
 
   // Ons werk — carrossel de fotos da rotina no abrigo (LP + VSL)
   workImages: [
-    { src: '/work-1.png', caption: 'Elke ochtend begint hier — voeren wat we hebben.' },
-    { src: '/work-2.png', caption: 'Onze vrijwilligers zorgen voor elk dier, elke dag.' },
-    { src: '/work-3.png', caption: 'Een veilige plek dankzij donateurs zoals jij.' }
+    { src: '/work-1.webp', caption: 'Elke ochtend begint hier — voeren wat we hebben.' },
+    { src: '/work-2.webp', caption: 'Onze vrijwilligers zorgen voor elk dier, elke dag.' },
+    { src: '/work-3.webp', caption: 'Een veilige plek dankzij donateurs zoals jij.' }
   ],
 
   // Stats card

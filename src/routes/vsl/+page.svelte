@@ -55,6 +55,25 @@
     preloadCode('/donate').catch(() => {});
     setTimeout(() => { preloadData('/donate').catch(() => {}); }, 1200);
 
+    // Lazy load do video VSL (16MB) — so seta o src quando o video
+    // estiver perto de entrar na viewport. Evita que o download do
+    // video bloqueie a renderizacao inicial e a hidratacao.
+    const vslWrap = document.querySelector('.vsl-wrap');
+    if (vslWrap && 'IntersectionObserver' in window) {
+      const obs = new IntersectionObserver(
+        ([entry], o) => {
+          if (entry.isIntersecting) {
+            videoSrc = VSL_URL;
+            o.disconnect();
+          }
+        },
+        { rootMargin: '400px' }
+      );
+      obs.observe(vslWrap);
+    } else {
+      videoSrc = VSL_URL;
+    }
+
     donorTimer = setInterval(() => {
       donorIdx = (donorIdx + 1) % donorsList.length;
     }, 4200);
@@ -86,9 +105,15 @@
   const VSL_URL = 'https://belgianpaws-vsl.vercel.app/vsl.mp4';
   let videoEl: HTMLVideoElement | null = $state(null);
   let audioEnabled = $state(false);
+  // src e carregado lazy via IntersectionObserver no onMount (video tem 16MB,
+  // se carregar imediato compete com bundle/imagens criticas e trava a UI)
+  let videoSrc = $state<string>('');
 
   function enableAudio() {
     if (!videoEl) return;
+    // Se o lazy-load ainda nao setou o src, forca agora pro user nao
+    // ficar olhando pra um play que nao toca
+    if (!videoSrc) videoSrc = VSL_URL;
     videoEl.muted = false;
     videoEl.currentTime = 0;
     videoEl.play().catch(() => {});
@@ -298,12 +323,12 @@
     <div class="vsl-wrap" data-section="vsl-video">
       <video
         bind:this={videoEl}
-        src={VSL_URL}
+        src={videoSrc || undefined}
         poster={CAMPAIGN.heroImage}
         autoplay
         muted
         playsinline
-        preload="metadata"
+        preload="none"
         width="900"
         height="506"
         class="vsl-video"

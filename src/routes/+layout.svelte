@@ -9,7 +9,13 @@
 
   onMount(() => {
     if (window.location.pathname.startsWith('/dashboard')) return;
-    initAnalytics();
+    // Adia init de analytics pra nao competir com hidratacao + carregamento
+    // de assets criticos (hero, video poster). requestIdleCallback se disponivel,
+    // fallback pra setTimeout pra Safari/iOS.
+    const ric: (cb: () => void) => void =
+      (window as unknown as { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback ??
+      ((cb) => setTimeout(cb, 1200));
+    ric(() => initAnalytics());
   });
 
   // Re-trackeia a cada navegacao client-side
