@@ -5,7 +5,7 @@
     Menu, X
   } from 'lucide-svelte';
   import { onMount, onDestroy } from 'svelte';
-  import { goto } from '$app/navigation';
+  import { goto, preloadData, preloadCode } from '$app/navigation';
   import ExitIntentPopup from '$lib/components/ExitIntentPopup.svelte';
   import { CAMPAIGN } from '$lib/data/campaign';
   import { TIERS, DEFAULT_TIER, dogsForAmount } from '$lib/data/tiers';
@@ -49,6 +49,11 @@
     utm = tracking.utm;
     // fbp e setado pelo Pixel JS via cookie — le com pequeno delay pro Pixel inicializar
     setTimeout(() => { fbp = getFbp(); }, 500);
+
+    // Preload /donate em background: quando o user clicar em Doneren,
+    // dados + codigo ja estao em cache → goto() navega instantaneo
+    preloadCode('/donate').catch(() => {});
+    setTimeout(() => { preloadData('/donate').catch(() => {}); }, 1200);
 
     donorTimer = setInterval(() => {
       donorIdx = (donorIdx + 1) % donorsList.length;

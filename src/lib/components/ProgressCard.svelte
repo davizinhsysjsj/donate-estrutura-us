@@ -127,7 +127,6 @@
   }
   .progress-card-compact .progress-card-donor { font-size: 0.6875rem; }
 
-  .progress-card-donor:hover { color: #0E4B2C; }
   .progress-card-donor-text {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -170,13 +169,20 @@
     background: #C5F26E;
     color: #0E4B2C;
   }
-  .pill-donate:hover { background: #B5E859; }
 
   .pill-share {
     background: #0E4B2C;
     color: #FFFFFF;
   }
-  .pill-share:hover { background: #0A3A20; }
+
+  /* Hover so em devices com mouse real (desktop). Em touch o iOS
+     interpreta o primeiro tap como hover e nao dispara o click,
+     forcando o user a tocar duas vezes. */
+  @media (hover: hover) {
+    .pill-donate:hover { background: #B5E859; }
+    .pill-share:hover { background: #0A3A20; }
+    .progress-card-donor:hover { color: #0E4B2C; }
+  }
 
   @media (min-width: 640px) {
     .progress-card-raised { font-size: 1.125rem; }
