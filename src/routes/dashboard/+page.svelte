@@ -29,6 +29,7 @@
 
   // ── Período colapsável ──
   let periodOpen = $state(false);
+  let currencyMenuOpen = $state(false);
   const includeBots = false; // bots sempre filtrados
 
   const PERIOD_LABELS: Record<Period, string> = {
@@ -523,6 +524,22 @@
     return {
       destroy() { document.removeEventListener('mousedown', onDown); }
     };
+  }
+  function clickOutsidePeriod(node: HTMLElement) {
+    function onDown(e: MouseEvent) {
+      if (!periodOpen) return;
+      if (!node.contains(e.target as Node)) periodOpen = false;
+    }
+    document.addEventListener('mousedown', onDown);
+    return { destroy() { document.removeEventListener('mousedown', onDown); } };
+  }
+  function clickOutsideCurrency(node: HTMLElement) {
+    function onDown(e: MouseEvent) {
+      if (!currencyMenuOpen) return;
+      if (!node.contains(e.target as Node)) currencyMenuOpen = false;
+    }
+    document.addEventListener('mousedown', onDown);
+    return { destroy() { document.removeEventListener('mousedown', onDown); } };
   }
 
   async function pullFbAds() {
@@ -1085,37 +1102,19 @@
         </button>
         <div class="topbar-title-block">
           <h1 class="page-title">Dashboard</h1>
-        </div>
-        <span class="status status-inline">
-          <span class="status-dot" class:on={updateAgoSec < 6}></span>
-          <span class="status-text">
-            {updateAgoSec < 6 ? 'live' : 'Atualizado há ' + fmtAgo(updateAgoSec)}
+          <span class="status status-inline">
+            <span class="status-dot" class:on={updateAgoSec < 6}></span>
+            <span class="status-text">
+              {updateAgoSec < 6 ? 'live' : 'há ' + fmtAgo(updateAgoSec)}
+            </span>
           </span>
-        </span>
+        </div>
         <button class="filters-toggle" aria-label="filtros" onclick={() => (mobileFiltersOpen = !mobileFiltersOpen)}>
           {mobileFiltersOpen ? '✕' : '⌥'}
         </button>
-      </div>
-      <div class="topbar-right" class:mobile-open={mobileFiltersOpen}>
-        <!-- Personalizar / Concluir edicao (so desktop; mobile usa long-press) -->
-        {#if activeTab === 'overview'}
-          {#if editMode}
-            <button class="btn-customize btn-customize-exit topbar-customize" onclick={exitEditMode}>
-              ✓ Concluir
-            </button>
-          {:else}
-            <button class="btn-customize btn-customize-desktop topbar-customize" onclick={() => (customizeOpen = !customizeOpen)}>
-              {customizeOpen ? '✕ Fechar' : '⊙ Personalizar'}
-            </button>
-          {/if}
-        {/if}
-        <!-- Atualizar -->
-        <button
-          class="btn-update topbar-update"
-          onclick={refresh}
-          disabled={refreshing}
-        >{refreshing ? 'Atualizando' : '↻ Atualizar'}</button>
-        <!-- Seletor de conta de anúncio (estilo UTMfy) -->
+        <!-- Cluster de seletores (conta + periodo + moeda) ao lado de "Dashboard" -->
+        <div class="topbar-selectors" class:mobile-open={mobileFiltersOpen}>
+          <!-- Seletor de conta de anúncio (estilo UTMfy) -->
         <div class="account-switch" use:clickOutsideAccount>
           <button
             class="account-btn"
@@ -1282,50 +1281,70 @@
           {/if}
         </div>
         <!-- Período de visualização colapsável -->
-        <button class="period-label-btn" onclick={() => (periodOpen = !periodOpen)}>
-          <span class="period-label-icon">📅</span>
-          <span>Período</span>
-          <span class="period-label-active">{PERIOD_LABELS[period]}</span>
-          <span class="period-chevron" class:open={periodOpen}>▾</span>
-        </button>
-        {#if periodOpen}
-          <div class="period-pills">
-            {#each (['hoje','ontem','hoje_ontem','ultimos_7d','este_mes'] as Period[]) as p}
-              <button
-                class="period-pill"
-                class:active={period === p}
-                onclick={() => { period = p; periodOpen = false; }}
-              >{PERIOD_LABELS[p]}</button>
-            {/each}
-          </div>
-        {/if}
-        <select bind:value={pathFilter} class="select select-sm">
-          <option value="">Todas rotas</option>
-          <option value="/">/ (LP)</option>
-          <option value="/donate">/donate</option>
-          <option value="/vsl">/vsl</option>
-        </select>
-        <select bind:value={deviceFilter} class="select select-sm">
-          <option value="">Todos devices</option>
-          <option value="mobile">Mobile</option>
-          <option value="desktop">Desktop</option>
-          <option value="tablet">Tablet</option>
-        </select>
-        <!-- Seletor de moeda: BRL | USD | EUR -->
-        <div class="currency-switch" role="group" aria-label="Moeda de exibição">
-          {#each CURRENCY_OPTIONS as opt}
-            <button
-              type="button"
-              class="currency-pill"
-              class:active={displayCurrency === opt.code}
-              onclick={() => selectCurrency(opt.code)}
-              aria-pressed={displayCurrency === opt.code}
-            >
-              <span class="currency-pill-symbol">{opt.symbol}</span>
-              <span class="currency-pill-label">{opt.code}</span>
-            </button>
-          {/each}
+        <div class="selector-wrap" use:clickOutsidePeriod>
+          <button class="selector-btn period-label-btn" class:active={periodOpen} onclick={() => (periodOpen = !periodOpen)}>
+            <span class="selector-icon">📅</span>
+            <span class="selector-label">Período</span>
+            <span class="selector-value">{PERIOD_LABELS[period]}</span>
+            <span class="selector-chevron" class:open={periodOpen}>▾</span>
+          </button>
+          {#if periodOpen}
+            <div class="selector-menu period-menu">
+              {#each (['hoje','ontem','hoje_ontem','ultimos_7d','este_mes'] as Period[]) as p}
+                <button
+                  class="selector-menu-item"
+                  class:active={period === p}
+                  onclick={() => { period = p; periodOpen = false; }}
+                >{PERIOD_LABELS[p]}</button>
+              {/each}
+            </div>
+          {/if}
         </div>
+        <!-- Seletor de moeda como dropdown -->
+        <div class="selector-wrap" use:clickOutsideCurrency>
+          <button class="selector-btn" class:active={currencyMenuOpen} onclick={() => (currencyMenuOpen = !currencyMenuOpen)}>
+            <span class="selector-icon">$</span>
+            <span class="selector-label">Moeda</span>
+            <span class="selector-value">{displayCurrency}</span>
+            <span class="selector-chevron" class:open={currencyMenuOpen}>▾</span>
+          </button>
+          {#if currencyMenuOpen}
+            <div class="selector-menu currency-menu">
+              {#each CURRENCY_OPTIONS as opt}
+                <button
+                  type="button"
+                  class="selector-menu-item"
+                  class:active={displayCurrency === opt.code}
+                  onclick={() => { selectCurrency(opt.code); currencyMenuOpen = false; }}
+                >
+                  <span class="selector-menu-symbol">{opt.symbol}</span>
+                  <span class="selector-menu-text">{opt.code}</span>
+                  <span class="selector-menu-hint">{opt.label}</span>
+                </button>
+              {/each}
+            </div>
+          {/if}
+        </div>
+        </div>
+      </div>
+      <div class="topbar-right" class:mobile-open={mobileFiltersOpen}>
+        <!-- Personalizar / Concluir edicao (so desktop; mobile usa long-press) -->
+        {#if activeTab === 'overview'}
+          {#if editMode}
+            <button class="btn-customize btn-customize-exit topbar-customize" onclick={exitEditMode}>
+              ✓ Concluir
+            </button>
+          {:else}
+            <button class="btn-customize btn-customize-desktop topbar-customize" onclick={() => (customizeOpen = !customizeOpen)}>
+              {customizeOpen ? '✕ Fechar' : '⊙ Personalizar'}
+            </button>
+          {/if}
+        {/if}
+        <button
+          class="btn-update topbar-update"
+          onclick={refresh}
+          disabled={refreshing}
+        >{refreshing ? 'Atualizando' : '↻ Atualizar'}</button>
         <button class="btn-reset" onclick={resetData} disabled={resetting} title="Zerar todos os dados">
           {resetting ? '…' : 'Reset'}
         </button>
@@ -2657,10 +2676,14 @@
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
   }
-  .topbar-left { display: flex; align-items: baseline; gap: 16px; }
+  .topbar-left {
+    display: flex; align-items: center; gap: 12px;
+    flex-wrap: wrap; flex: 1 1 auto; min-width: 0;
+  }
   .page-title {
     margin: 0; font-size: 1.5rem; font-weight: 700;
     letter-spacing: -0.025em; text-transform: capitalize;
+    line-height: 1.2;
   }
   .status {
     font-size: 0.8125rem; color: #8b94a4;
@@ -3099,34 +3122,45 @@
 
     /* Topbar */
     .topbar {
-      flex-direction: column; align-items: stretch; gap: 12px;
+      flex-direction: column; align-items: stretch; gap: 10px;
       margin-bottom: 16px;
       position: sticky; top: 0; z-index: 50;
       background: linear-gradient(180deg, #0a0d12 75%, rgba(10,13,18,0));
       padding-top: 8px; margin-top: -8px;
     }
-    /* Topbar mobile: título na 1ª linha (centralizado), ações na 2ª */
     .topbar-left {
-      display: flex; flex-wrap: wrap; align-items: center; gap: 10px; width: 100%;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%;
     }
-    /* Linha 1 — título centralizado, ocupa toda a largura */
+    /* Linha 1: ☰ + título compacto + ⌥ */
+    .hamburger { order: 1; }
     .topbar-title-block {
-      order: 1; width: 100%;
-      display: flex; justify-content: center; align-items: center;
-      flex-direction: row;
+      order: 2; flex: 1; min-width: 0;
+      display: inline-flex; align-items: baseline; gap: 8px;
     }
-    .page-title { font-size: 1.125rem; text-align: center; }
-    /* Linha 2 — ☰ + update-row + ⌥ */
-    .hamburger { order: 2; }
-    .update-row {
-      order: 3; flex: 1; justify-content: space-between;
-      background: #11161d; border: 1px solid #1f2630;
-      padding: 7px 12px; border-radius: 10px;
-    }
-    .filters-toggle { order: 4; }
+    .page-title { font-size: 1.125rem; }
+    .filters-toggle { order: 3; }
     .status { font-size: 0.75rem; }
     .status-text { white-space: nowrap; }
     .btn-update { padding: 5px 14px; font-size: 0.8125rem; }
+
+    /* Linha 2 (mobile): seletores em scroll horizontal sem quebrar */
+    .topbar-selectors {
+      order: 4; width: 100%;
+      display: flex; flex-wrap: nowrap;
+      gap: 6px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+    .topbar-selectors::-webkit-scrollbar { display: none; }
+    .selector-btn { padding: 7px 10px; font-size: 0.75rem; flex-shrink: 0; }
+    .selector-value { font-size: 0.6875rem; padding: 1px 6px; }
+    /* Dropdowns mobile: ocupam quase toda a largura */
+    .selector-menu {
+      left: 0; right: auto;
+      min-width: 220px; max-width: calc(100vw - 24px);
+    }
 
     .hamburger {
       display: inline-flex; flex-direction: column; justify-content: center;
@@ -3531,23 +3565,67 @@
   .ta-right { text-align: right; }
   .bar-orange { background: linear-gradient(90deg, #ff7043, #ff9800); }
 
-  /* ── Período colapsável ── */
-  .period-label-btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: #11161d; border: 1px solid #1f2630; color: #c8cdd5;
-    padding: 7px 12px; border-radius: 8px; font-size: 0.8125rem; font-weight: 500;
-    font-family: inherit; cursor: pointer; transition: all 0.15s;
+  /* ── Cluster de seletores na topbar (estilo UTMfy/Hotmart) ── */
+  .topbar-selectors {
+    display: inline-flex; align-items: center; gap: 8px;
+    flex-wrap: wrap;
+  }
+  .selector-wrap { position: relative; display: inline-block; }
+  .selector-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    background: #11161d; border: 1px solid #1f2630; border-radius: 10px;
+    color: #c5cad3; font-family: inherit; font-size: 0.8125rem; font-weight: 500;
+    cursor: pointer; transition: border-color 0.15s, background 0.15s;
+    -webkit-tap-highlight-color: transparent;
     white-space: nowrap;
   }
-  .period-label-btn:hover { border-color: #2e3a4a; color: #e6e9ef; }
-  .period-label-active {
-    color: #02a95c; font-weight: 700;
-    background: rgba(2,169,92,0.1); padding: 1px 6px; border-radius: 4px;
+  .selector-btn:hover { border-color: #2e3a4a; color: #e6e9ef; }
+  .selector-btn.active { border-color: #02a95c; background: rgba(2,169,92,0.08); }
+  .selector-icon { font-size: 0.9rem; opacity: 0.85; }
+  .selector-label { color: #8b94a4; font-weight: 500; }
+  .selector-btn.active .selector-label { color: #02a95c; }
+  .selector-value {
+    font-weight: 700; color: #02a95c;
+    background: rgba(2,169,92,0.1); padding: 2px 8px; border-radius: 5px;
     font-size: 0.75rem;
   }
-  .period-chevron { font-size: 0.6rem; color: #6b7787; transition: transform 0.2s; }
-  .period-chevron.open { transform: rotate(180deg); }
-  .period-label-icon { font-size: 0.875rem; }
+  .selector-chevron { font-size: 0.6rem; color: #6b7787; transition: transform 0.2s; }
+  .selector-chevron.open { transform: rotate(180deg); }
+
+  .selector-menu {
+    position: absolute; top: calc(100% + 6px); left: 0;
+    min-width: 200px;
+    background: #0d1117; border: 1px solid #1f2630; border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+    z-index: 200; padding: 5px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .currency-menu { min-width: 180px; }
+  .period-menu { min-width: 200px; }
+  .selector-menu-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px;
+    background: transparent; border: none; border-radius: 7px;
+    color: #c5cad3; font-family: inherit; font-size: 0.8125rem;
+    cursor: pointer; text-align: left;
+    transition: background 0.12s, color 0.12s;
+  }
+  .selector-menu-item:hover { background: #141a23; color: #e6e9ef; }
+  .selector-menu-item.active {
+    background: rgba(2,169,92,0.12);
+    color: #02a95c; font-weight: 600;
+  }
+  .selector-menu-symbol {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; font-weight: 700;
+    min-width: 18px; text-align: center;
+  }
+  .selector-menu-text { font-weight: 600; flex: 1; }
+  .selector-menu-hint { color: #6b7787; font-size: 0.75rem; }
+  .selector-menu-item.active .selector-menu-hint { color: rgba(2,169,92,0.6); }
+
+  /* Legado — usado em outras tabs (Ads, Campanhas) */
+  .period-label-btn { /* alias do selector-btn */ }
 
   /* ── Seletor de Conta de Anúncio (estilo UTMfy) ── */
   .account-switch { position: relative; display: inline-block; }
@@ -3818,30 +3896,6 @@
     max-width: 140px;
   }
 
-  /* ── Seletor de Moeda (BRL | USD | EUR) ── */
-  .currency-switch {
-    display: inline-flex; align-items: stretch; gap: 0;
-    border: 1px solid #1f2630; border-radius: 10px; overflow: hidden;
-    background: #11161d; padding: 3px;
-  }
-  .currency-pill {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 6px 12px;
-    background: transparent; border: none;
-    color: #8b94a4; font-family: inherit; font-size: 0.75rem; font-weight: 600;
-    cursor: pointer; border-radius: 7px;
-    transition: background 0.15s, color 0.15s;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .currency-pill:hover { color: #d6dae3; }
-  .currency-pill.active {
-    background: rgba(2,169,92,0.14);
-    color: #02a95c;
-  }
-  .currency-pill-symbol {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.875rem; font-weight: 700;
-  }
-  .currency-pill-label { letter-spacing: 0.04em; }
   .select-sm { font-size: 0.75rem; padding: 6px 10px; }
 
   /* ── Filterbar campanhas (UTMfy style) ── */
@@ -3960,14 +4014,14 @@
     /* ocultar cols secundárias na tabela UTMfy em mobile */
     .camp-utmfy th.th-num:nth-child(n+5),
     .camp-tr td.td-num:nth-child(n+5) { display: none; }
-    .period-label-btn { font-size: 0.75rem; padding: 6px 10px; }
-    .currency-switch { flex: 1 1 auto; }
-    .currency-pill { padding: 6px 8px; font-size: 0.6875rem; }
-    /* Seletor de conta — full width no mobile, menu cobre tela */
-    .account-switch { width: 100%; }
-    .account-btn { width: 100%; max-width: none; justify-content: space-between; padding: 8px 10px; }
-    .account-btn-label { max-width: none; flex: 1; }
-    .account-menu { left: 0; right: 0; min-width: 0; max-width: none; max-height: 70vh; }
+    /* Seletor de conta mobile: dropdown alinhado à esquerda da topbar */
+    .account-btn { padding: 7px 10px; font-size: 0.75rem; max-width: 180px; }
+    .account-btn-label { max-width: 90px; }
+    .account-menu {
+      left: 0; right: auto;
+      min-width: 280px; max-width: calc(100vw - 24px);
+      max-height: 70vh;
+    }
   }
 
   /* ── Taxas form ── */
