@@ -341,14 +341,48 @@
     statusCode: number;
     currency: string;
     business: string | null;
+    businessId: string | null;
+    source: string;
     timezone: string | null;
     amountSpent: number;
   }
   let fbAccounts = $state<FbAccount[]>([]);
+  let fbBusinesses = $state<{ id: string; name: string }[]>([]);
   let fbAccountId = $state<string>('');     // '' = padrão (FB_ADS_ACCOUNT_ID server-side)
   let fbAccountsLoading = $state(false);
   let fbAccountsError = $state('');
   let accountMenuOpen = $state(false);
+  let accountSearch = $state('');
+
+  // Filtro + agrupamento por BM (igual UTMfy)
+  const fbAccountsFiltered = $derived.by(() => {
+    const q = accountSearch.trim().toLowerCase();
+    if (!q) return fbAccounts;
+    return fbAccounts.filter((a) =>
+      a.name.toLowerCase().includes(q) ||
+      a.id.toLowerCase().includes(q) ||
+      (a.business || '').toLowerCase().includes(q) ||
+      a.currency.toLowerCase().includes(q)
+    );
+  });
+
+  const fbAccountsGrouped = $derived.by(() => {
+    const groups = new Map<string, { id: string; name: string; accounts: FbAccount[] }>();
+    for (const acc of fbAccountsFiltered) {
+      const key = acc.businessId || '__personal__';
+      const name = acc.business || 'Conta pessoal (sem BM)';
+      if (!groups.has(key)) {
+        groups.set(key, { id: key, name, accounts: [] });
+      }
+      groups.get(key)!.accounts.push(acc);
+    }
+    // Ordena grupos: pessoal por último, BMs por nome
+    return [...groups.values()].sort((a, b) => {
+      if (a.id === '__personal__') return 1;
+      if (b.id === '__personal__') return -1;
+      return a.name.localeCompare(b.name);
+    });
+  });
 
   const fbAccountQuery = $derived(fbAccountId ? `&account_id=${encodeURIComponent(fbAccountId)}` : '');
   const fbActiveAccount = $derived(
@@ -366,6 +400,7 @@
       if (r.ok) {
         const d = await r.json();
         fbAccounts = d.accounts || [];
+        fbBusinesses = d.businesses || [];
         // Se não tem conta selecionada, usa o padrão do server
         if (!fbAccountId && d.defaultAccount) {
           // Tenta restaurar do localStorage
@@ -380,7 +415,8 @@
             fbAccountId = d.defaultAccount;
           }
         }
-        if (d._error) fbAccountsError = d._error;
+        if (d.errors?.length) fbAccountsError = d.errors[0];
+        else if (d._error) fbAccountsError = d._error;
       } else {
         const err = await r.json().catch(() => ({}));
         fbAccountsError = err.error || `HTTP ${r.status}`;
@@ -1022,38 +1058,59 @@
           {#if accountMenuOpen}
             <div class="account-menu">
               <div class="account-menu-head">
-                <span>Contas de anúncio ({fbAccounts.length})</span>
+                <span>{fbAccounts.length} contas · {fbBusinesses.length} BMs</span>
                 <button class="account-refresh" onclick={() => loadFbAccounts(true)} disabled={fbAccountsLoading}>
                   {fbAccountsLoading ? '…' : '↻'}
                 </button>
               </div>
+              <div class="account-menu-search-wrap">
+                <input
+                  type="text"
+                  class="account-menu-search"
+                  placeholder="Buscar conta, BM ou ID…"
+                  bind:value={accountSearch}
+                />
+              </div>
               {#if fbAccountsError}
-                <div class="account-menu-error">{fbAccountsError}</div>
+                <div class="account-menu-error" title={fbAccountsError}>⚠ {fbAccountsError}</div>
               {/if}
-              {#if !fbAccounts.length && !fbAccountsLoading}
-                <div class="account-menu-empty">Nenhuma conta encontrada</div>
+              {#if !fbAccountsFiltered.length && !fbAccountsLoading}
+                <div class="account-menu-empty">
+                  {accountSearch ? 'Nenhuma conta bate com a busca' : 'Nenhuma conta encontrada'}
+                </div>
               {/if}
               <div class="account-menu-list">
-                {#each fbAccounts as acc (acc.id)}
-                  <button
-                    type="button"
-                    class="account-menu-item"
-                    class:active={acc.id === fbAccountId}
-                    class:disabled={acc.statusCode !== 1}
-                    onclick={() => selectFbAccount(acc.id)}
-                  >
-                    <div class="account-menu-item-main">
-                      <span class="account-menu-item-name">{acc.name}</span>
-                      <span class="account-menu-item-id">{acc.id}</span>
+                {#each fbAccountsGrouped as group (group.id)}
+                  <div class="account-menu-group">
+                    <div class="account-menu-group-head">
+                      <span class="account-menu-group-icon">{group.id === '__personal__' ? '👤' : '🏢'}</span>
+                      <span class="account-menu-group-name">{group.name}</span>
+                      <span class="account-menu-group-count">{group.accounts.length}</span>
                     </div>
-                    <div class="account-menu-item-meta">
-                      <span class="account-menu-item-currency">{acc.currency}</span>
-                      <span class="account-menu-item-status status-{acc.status}">{acc.status}</span>
-                      {#if acc.business}
-                        <span class="account-menu-item-biz" title={acc.business}>{acc.business}</span>
-                      {/if}
-                    </div>
-                  </button>
+                    {#each group.accounts as acc (acc.id)}
+                      <button
+                        type="button"
+                        class="account-menu-item"
+                        class:active={acc.id === fbAccountId}
+                        class:disabled={acc.statusCode !== 1}
+                        onclick={() => selectFbAccount(acc.id)}
+                      >
+                        <div class="account-menu-item-main">
+                          <span class="account-menu-item-name">{acc.name}</span>
+                          <span class="account-menu-item-id">{acc.id}</span>
+                        </div>
+                        <div class="account-menu-item-meta">
+                          <span class="account-menu-item-currency">{acc.currency}</span>
+                          <span class="account-menu-item-status status-{acc.status}">{acc.status}</span>
+                          {#if acc.amountSpent > 0}
+                            <span class="account-menu-item-spent" title="Gasto lifetime">
+                              {acc.currency} {acc.amountSpent.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+                            </span>
+                          {/if}
+                        </div>
+                      </button>
+                    {/each}
+                  </div>
                 {/each}
               </div>
             </div>
@@ -3387,7 +3444,44 @@
     font-size: 0.8125rem; color: #6b7787;
     padding: 16px 10px; text-align: center;
   }
+  .account-menu-search-wrap { padding: 4px 6px 6px; }
+  .account-menu-search {
+    width: 100%;
+    background: #0a0d12; border: 1px solid #1f2630; border-radius: 8px;
+    color: #e6e9ef; font-family: inherit; font-size: 0.8125rem;
+    padding: 8px 12px;
+    transition: border-color 0.15s;
+  }
+  .account-menu-search::placeholder { color: #6b7787; }
+  .account-menu-search:focus { outline: none; border-color: #02a95c; }
+
   .account-menu-list { overflow-y: auto; flex: 1; }
+  .account-menu-group { margin-bottom: 4px; }
+  .account-menu-group:last-child { margin-bottom: 0; }
+  .account-menu-group-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px 6px;
+    font-size: 0.6875rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: #8b94a4;
+    position: sticky; top: 0;
+    background: #0d1117;
+    z-index: 2;
+  }
+  .account-menu-group-icon { font-size: 0.875rem; opacity: 0.8; }
+  .account-menu-group-name {
+    flex: 1;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .account-menu-group-count {
+    font-family: 'JetBrains Mono', monospace; color: #6b7787;
+    background: #11161d; padding: 1px 6px; border-radius: 4px;
+    font-size: 0.625rem;
+  }
+  .account-menu-item-spent {
+    font-family: 'JetBrains Mono', monospace; font-weight: 600;
+    color: #c5cad3;
+  }
   .account-menu-item {
     display: flex; flex-direction: column; gap: 4px;
     width: 100%; text-align: left;
