@@ -4,7 +4,7 @@
   let { data } = $props();
 
   // ── State ──
-  type Tab = 'overview' | 'live' | 'funnel' | 'vsl' | 'heatmap' | 'sessions' | 'revenue' | 'tech' | 'ads' | 'taxas' | 'campanhas';
+  type Tab = 'overview' | 'live' | 'funnel' | 'vsl' | 'heatmap' | 'sessions' | 'revenue' | 'tech' | 'ads' | 'taxas' | 'campanhas' | 'cleaner';
   type Period = 'hoje' | 'ontem' | 'hoje_ontem' | 'ultimos_7d' | 'este_mes';
   let activeTab = $state<Tab>('overview');
   let period = $state<Period>('hoje');
@@ -332,10 +332,92 @@
   let fbAds = $state<any>(null);
   let fbLoading = $state(false);
 
+  // ── Seletor de conta de anúncio (estilo UTMfy) ──
+  interface FbAccount {
+    id: string;          // act_XXXXX
+    accountId: string;   // XXXXX
+    name: string;
+    status: string;
+    statusCode: number;
+    currency: string;
+    business: string | null;
+    timezone: string | null;
+    amountSpent: number;
+  }
+  let fbAccounts = $state<FbAccount[]>([]);
+  let fbAccountId = $state<string>('');     // '' = padrão (FB_ADS_ACCOUNT_ID server-side)
+  let fbAccountsLoading = $state(false);
+  let fbAccountsError = $state('');
+  let accountMenuOpen = $state(false);
+
+  const fbAccountQuery = $derived(fbAccountId ? `&account_id=${encodeURIComponent(fbAccountId)}` : '');
+  const fbActiveAccount = $derived(
+    fbAccounts.find((a) => a.id === fbAccountId) || null
+  );
+  const fbActiveAccountLabel = $derived(
+    fbActiveAccount ? fbActiveAccount.name : (fbAccountId ? fbAccountId : 'Conta padrão')
+  );
+
+  async function loadFbAccounts(force = false) {
+    fbAccountsLoading = true;
+    fbAccountsError = '';
+    try {
+      const r = await fetch(`/api/fb-ads/accounts${force ? '?force=1' : ''}`, { cache: 'no-store' });
+      if (r.ok) {
+        const d = await r.json();
+        fbAccounts = d.accounts || [];
+        // Se não tem conta selecionada, usa o padrão do server
+        if (!fbAccountId && d.defaultAccount) {
+          // Tenta restaurar do localStorage
+          try {
+            const saved = localStorage.getItem('vitrack_fb_account_id');
+            if (saved && fbAccounts.some((a: FbAccount) => a.id === saved)) {
+              fbAccountId = saved;
+            } else {
+              fbAccountId = d.defaultAccount;
+            }
+          } catch {
+            fbAccountId = d.defaultAccount;
+          }
+        }
+        if (d._error) fbAccountsError = d._error;
+      } else {
+        const err = await r.json().catch(() => ({}));
+        fbAccountsError = err.error || `HTTP ${r.status}`;
+      }
+    } catch (e: any) {
+      fbAccountsError = e?.message || 'erro de rede';
+    }
+    fbAccountsLoading = false;
+  }
+
+  function selectFbAccount(id: string) {
+    fbAccountId = id;
+    accountMenuOpen = false;
+    try { localStorage.setItem('vitrack_fb_account_id', id); } catch {}
+    // Trigger refetch
+    pullFbAds();
+    if (activeTab === 'campanhas') pullCampaigns();
+  }
+
+  // Svelte action: fecha o menu de contas se clicar fora
+  function clickOutsideAccount(node: HTMLElement) {
+    function onDown(e: MouseEvent) {
+      if (!accountMenuOpen) return;
+      if (!node.contains(e.target as Node)) {
+        accountMenuOpen = false;
+      }
+    }
+    document.addEventListener('mousedown', onDown);
+    return {
+      destroy() { document.removeEventListener('mousedown', onDown); }
+    };
+  }
+
   async function pullFbAds() {
     fbLoading = true;
     try {
-      const r = await fetch(`/api/fb-ads?window=${fbWin}`, { cache: 'no-store' });
+      const r = await fetch(`/api/fb-ads?window=${fbWin}${fbAccountQuery}`, { cache: 'no-store' });
       if (r.ok) fbAds = await r.json();
     } catch {}
     fbLoading = false;
@@ -352,6 +434,7 @@
   $effect(() => {
     if (!data.authed) return;
     const _w = fbWin;
+    const _acc = fbAccountId;
     pullFbAds();
   });
 
@@ -477,6 +560,8 @@
     } catch {}
     // Busca câmbio ao vivo
     fetchLiveRate();
+    // Carrega lista de contas de anúncio disponíveis no perfil
+    loadFbAccounts();
   });
 
   function dragStart(id: CardId) { dragSrc = id; }
@@ -660,7 +745,7 @@
   async function pullCampaigns() {
     campaignsLoading = true;
     try {
-      const r = await fetch(`/api/fb-ads?window=${fbWin}&campaigns=1`, { cache: 'no-store' });
+      const r = await fetch(`/api/fb-ads?window=${fbWin}&campaigns=1${fbAccountQuery}`, { cache: 'no-store' });
       if (r.ok) {
         const d = await r.json();
         fbCampaigns = d.campaigns || [];
@@ -673,6 +758,7 @@
     if (!data.authed) return;
     if (activeTab === 'campanhas') {
       const _w = fbWin;
+      const _acc = fbAccountId;
       pullCampaigns();
     }
   });
@@ -692,6 +778,125 @@
     if (metric === 'inp') return val < 200 ? 'good' : val < 500 ? 'ok' : 'bad';
     if (metric === 'cls') return val < 0.1 ? 'good' : val < 0.25 ? 'ok' : 'bad';
     return 'ok';
+  }
+
+  // ─── Cleaner (Burlador Meta Ads) ───
+  let cleanerVideoFile = $state<File | null>(null);
+  let cleanerImageFile = $state<File | null>(null);
+  let cleanerImagePreview = $state<string | null>(null);
+  let cleanerTargetDuration = $state(360); // 6 min
+  let cleanerIntensity = $state<'normal' | 'aggressive'>('normal');
+  let cleanerStatus = $state<'idle' | 'uploading' | 'processing' | 'done' | 'error'>('idle');
+  let cleanerProgress = $state(0);
+  let cleanerError = $state('');
+  let cleanerResultUrl = $state<string | null>(null);
+  let cleanerResultName = $state('');
+  let cleanerStartedAt = $state(0);
+  let cleanerElapsed = $state(0);
+  let cleanerElapsedTimer: ReturnType<typeof setInterval> | null = null;
+
+  function pickCleanerVideo(e: Event) {
+    const inp = e.currentTarget as HTMLInputElement;
+    const f = inp.files?.[0];
+    cleanerVideoFile = f ?? null;
+  }
+  function pickCleanerImage(e: Event) {
+    const inp = e.currentTarget as HTMLInputElement;
+    const f = inp.files?.[0];
+    cleanerImageFile = f ?? null;
+    if (cleanerImagePreview) URL.revokeObjectURL(cleanerImagePreview);
+    cleanerImagePreview = f ? URL.createObjectURL(f) : null;
+  }
+  function resetCleaner() {
+    cleanerVideoFile = null;
+    cleanerImageFile = null;
+    if (cleanerImagePreview) URL.revokeObjectURL(cleanerImagePreview);
+    cleanerImagePreview = null;
+    cleanerStatus = 'idle';
+    cleanerProgress = 0;
+    cleanerError = '';
+    if (cleanerResultUrl) URL.revokeObjectURL(cleanerResultUrl);
+    cleanerResultUrl = null;
+    cleanerResultName = '';
+    cleanerElapsed = 0;
+    if (cleanerElapsedTimer) { clearInterval(cleanerElapsedTimer); cleanerElapsedTimer = null; }
+  }
+
+  async function runCleaner() {
+    if (!cleanerVideoFile) { cleanerError = 'Selecione um video'; return; }
+    cleanerError = '';
+    cleanerStatus = 'uploading';
+    cleanerProgress = 0;
+    cleanerStartedAt = Date.now();
+    cleanerElapsed = 0;
+
+    if (cleanerElapsedTimer) clearInterval(cleanerElapsedTimer);
+    cleanerElapsedTimer = setInterval(() => {
+      cleanerElapsed = Math.round((Date.now() - cleanerStartedAt) / 1000);
+    }, 1000);
+
+    const form = new FormData();
+    form.append('video', cleanerVideoFile);
+    if (cleanerImageFile) form.append('image', cleanerImageFile);
+    form.append('targetDuration', String(cleanerTargetDuration));
+    form.append('intensity', cleanerIntensity);
+
+    try {
+      // Usa XHR pra ter progresso de upload
+      const result = await new Promise<Blob>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/clean-video');
+        xhr.responseType = 'blob';
+        xhr.upload.onprogress = (evt) => {
+          if (evt.lengthComputable) {
+            cleanerProgress = Math.round((evt.loaded / evt.total) * 100);
+            if (cleanerProgress >= 100) cleanerStatus = 'processing';
+          }
+        };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(xhr.response as Blob);
+          } else {
+            // Tenta ler mensagem de erro do blob
+            const r = new FileReader();
+            r.onload = () => {
+              try {
+                const j = JSON.parse(r.result as string);
+                reject(new Error(j.message || `HTTP ${xhr.status}`));
+              } catch {
+                reject(new Error(r.result as string || `HTTP ${xhr.status}`));
+              }
+            };
+            r.onerror = () => reject(new Error(`HTTP ${xhr.status}`));
+            r.readAsText(xhr.response);
+          }
+        };
+        xhr.onerror = () => reject(new Error('Erro de rede'));
+        xhr.ontimeout = () => reject(new Error('Timeout'));
+        xhr.timeout = 10 * 60 * 1000; // 10 min
+        xhr.send(form);
+      });
+
+      cleanerResultUrl = URL.createObjectURL(result);
+      cleanerResultName = `video-limpo-${Date.now()}.mp4`;
+      cleanerStatus = 'done';
+    } catch (e: any) {
+      cleanerError = e?.message || 'Erro desconhecido';
+      cleanerStatus = 'error';
+    } finally {
+      if (cleanerElapsedTimer) { clearInterval(cleanerElapsedTimer); cleanerElapsedTimer = null; }
+    }
+  }
+
+  function fmtBytes(n: number): string {
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / 1024 / 1024).toFixed(1) + ' MB';
+  }
+  function fmtSecs(n: number): string {
+    const m = Math.floor(n / 60);
+    const s = n % 60;
+    return m > 0 ? `${m}m${String(s).padStart(2, '0')}s` : `${s}s`;
   }
 </script>
 
@@ -741,7 +946,8 @@
         { id: 'vsl', label: 'VSL', icon: '▶' },
         { id: 'sessions', label: 'Sessões', icon: '☰' },
         { id: 'revenue', label: 'Receita', icon: '$' },
-        { id: 'tech', label: 'Performance', icon: '⏱︎' }
+        { id: 'tech', label: 'Performance', icon: '⏱︎' },
+        { id: 'cleaner', label: 'Burlador Meta', icon: '⌽' }
       ] as item}
         <button class="nav-item" data-tab={item.id} class:active={activeTab === item.id} onclick={() => { activeTab = item.id as Tab; mobileMenuOpen = false; }}>
           <span class="nav-icon">{item.icon}</span>
@@ -796,6 +1002,63 @@
           onclick={refresh}
           disabled={refreshing}
         >{refreshing ? 'Atualizando' : '↻ Atualizar'}</button>
+        <!-- Seletor de conta de anúncio (estilo UTMfy) -->
+        <div class="account-switch" use:clickOutsideAccount>
+          <button
+            class="account-btn"
+            class:active={accountMenuOpen}
+            onclick={() => (accountMenuOpen = !accountMenuOpen)}
+            title={fbActiveAccount ? `${fbActiveAccount.name} · ${fbActiveAccount.currency}` : 'Selecionar conta'}
+          >
+            <span class="account-btn-icon">⌬</span>
+            <span class="account-btn-label">
+              {fbAccountsLoading && !fbAccounts.length ? 'Carregando…' : fbActiveAccountLabel}
+            </span>
+            {#if fbActiveAccount}
+              <span class="account-btn-currency">{fbActiveAccount.currency}</span>
+            {/if}
+            <span class="account-chevron" class:open={accountMenuOpen}>▾</span>
+          </button>
+          {#if accountMenuOpen}
+            <div class="account-menu">
+              <div class="account-menu-head">
+                <span>Contas de anúncio ({fbAccounts.length})</span>
+                <button class="account-refresh" onclick={() => loadFbAccounts(true)} disabled={fbAccountsLoading}>
+                  {fbAccountsLoading ? '…' : '↻'}
+                </button>
+              </div>
+              {#if fbAccountsError}
+                <div class="account-menu-error">{fbAccountsError}</div>
+              {/if}
+              {#if !fbAccounts.length && !fbAccountsLoading}
+                <div class="account-menu-empty">Nenhuma conta encontrada</div>
+              {/if}
+              <div class="account-menu-list">
+                {#each fbAccounts as acc (acc.id)}
+                  <button
+                    type="button"
+                    class="account-menu-item"
+                    class:active={acc.id === fbAccountId}
+                    class:disabled={acc.statusCode !== 1}
+                    onclick={() => selectFbAccount(acc.id)}
+                  >
+                    <div class="account-menu-item-main">
+                      <span class="account-menu-item-name">{acc.name}</span>
+                      <span class="account-menu-item-id">{acc.id}</span>
+                    </div>
+                    <div class="account-menu-item-meta">
+                      <span class="account-menu-item-currency">{acc.currency}</span>
+                      <span class="account-menu-item-status status-{acc.status}">{acc.status}</span>
+                      {#if acc.business}
+                        <span class="account-menu-item-biz" title={acc.business}>{acc.business}</span>
+                      {/if}
+                    </div>
+                  </button>
+                {/each}
+              </div>
+            </div>
+          {/if}
+        </div>
         <!-- Período de visualização colapsável -->
         <button class="period-label-btn" onclick={() => (periodOpen = !periodOpen)}>
           <span class="period-label-icon">📅</span>
@@ -851,7 +1114,175 @@
       <div class="toast">{toastMsg}</div>
     {/if}
 
-    {#if !snap}
+    {#if activeTab === 'cleaner'}
+      <div class="tab-content">
+        <div class="cleaner-wrap">
+          <header class="cleaner-head">
+            <h2 class="cleaner-title">⌽ Burlador Meta Ads</h2>
+            <p class="cleaner-sub">
+              Limpa metadata + aplica transformacoes pesadas pra burlar a deteccao de repost do Facebook/Meta Ads.
+              Visualmente identico, fingerprint totalmente diferente.
+            </p>
+          </header>
+
+          <div class="cleaner-grid">
+            <div class="cleaner-form">
+              <!-- Upload da imagem (vem ANTES do video) -->
+              <label class="cleaner-field">
+                <span class="cleaner-label">1. Imagem de capa <em>(opcional, vira frame inicial + preenche final ate completar a duracao alvo)</em></span>
+                <input type="file" accept="image/*" onchange={pickCleanerImage} class="cleaner-input-file" />
+                {#if cleanerImageFile}
+                  <span class="cleaner-file-info">
+                    ▸ <strong>{cleanerImageFile.name}</strong> · {fmtBytes(cleanerImageFile.size)}
+                  </span>
+                  {#if cleanerImagePreview}
+                    <img src={cleanerImagePreview} alt="preview" class="cleaner-image-preview" />
+                  {/if}
+                {/if}
+              </label>
+
+              <!-- Upload do video -->
+              <label class="cleaner-field">
+                <span class="cleaner-label">2. Video original <em>(obrigatorio, max 200MB)</em></span>
+                <input type="file" accept="video/*" onchange={pickCleanerVideo} class="cleaner-input-file" />
+                {#if cleanerVideoFile}
+                  <span class="cleaner-file-info">
+                    ▸ <strong>{cleanerVideoFile.name}</strong> · {fmtBytes(cleanerVideoFile.size)}
+                  </span>
+                {/if}
+              </label>
+
+              <!-- Duracao alvo -->
+              <label class="cleaner-field">
+                <span class="cleaner-label">3. Duracao final (segundos)</span>
+                <div class="cleaner-duration-row">
+                  <input
+                    type="number"
+                    min="10"
+                    max="3600"
+                    bind:value={cleanerTargetDuration}
+                    class="cleaner-input-num"
+                  />
+                  <span class="cleaner-duration-hint">= {fmtSecs(cleanerTargetDuration)}</span>
+                  <button type="button" class="cleaner-preset" onclick={() => cleanerTargetDuration = 60}>1m</button>
+                  <button type="button" class="cleaner-preset" onclick={() => cleanerTargetDuration = 180}>3m</button>
+                  <button type="button" class="cleaner-preset" onclick={() => cleanerTargetDuration = 360}>6m</button>
+                  <button type="button" class="cleaner-preset" onclick={() => cleanerTargetDuration = 600}>10m</button>
+                </div>
+              </label>
+
+              <!-- Intensidade -->
+              <label class="cleaner-field">
+                <span class="cleaner-label">4. Intensidade dos efeitos</span>
+                <div class="cleaner-intensity-row">
+                  <button
+                    type="button"
+                    class="cleaner-intensity-btn"
+                    class:active={cleanerIntensity === 'normal'}
+                    onclick={() => cleanerIntensity = 'normal'}
+                  >
+                    <strong>Normal</strong>
+                    <small>+2% speed, crop 8px, noise leve</small>
+                  </button>
+                  <button
+                    type="button"
+                    class="cleaner-intensity-btn"
+                    class:active={cleanerIntensity === 'aggressive'}
+                    onclick={() => cleanerIntensity = 'aggressive'}
+                  >
+                    <strong>Agressivo</strong>
+                    <small>+4% speed, crop 12px, noise medio</small>
+                  </button>
+                </div>
+              </label>
+
+              <!-- Botoes -->
+              <div class="cleaner-actions">
+                <button
+                  type="button"
+                  class="btn-cleaner-go"
+                  disabled={!cleanerVideoFile || cleanerStatus === 'uploading' || cleanerStatus === 'processing'}
+                  onclick={runCleaner}
+                >
+                  {#if cleanerStatus === 'uploading'}
+                    Enviando… {cleanerProgress}%
+                  {:else if cleanerStatus === 'processing'}
+                    Processando… {fmtSecs(cleanerElapsed)}
+                  {:else}
+                    ▶ Converter
+                  {/if}
+                </button>
+                {#if cleanerStatus !== 'idle'}
+                  <button type="button" class="btn-cleaner-reset" onclick={resetCleaner}>
+                    Limpar
+                  </button>
+                {/if}
+              </div>
+
+              <!-- Status -->
+              {#if cleanerStatus === 'uploading' || cleanerStatus === 'processing'}
+                <div class="cleaner-progress-wrap">
+                  <div class="cleaner-progress-track">
+                    <div
+                      class="cleaner-progress-fill"
+                      class:processing={cleanerStatus === 'processing'}
+                      style="width: {cleanerStatus === 'uploading' ? cleanerProgress : 100}%"
+                    ></div>
+                  </div>
+                  <div class="cleaner-progress-text">
+                    {#if cleanerStatus === 'uploading'}
+                      Enviando arquivo… {cleanerProgress}%
+                    {:else}
+                      Processando no servidor (ffmpeg)… isso pode levar 1-3min pra videos longos.
+                    {/if}
+                  </div>
+                </div>
+              {/if}
+
+              {#if cleanerStatus === 'error'}
+                <div class="cleaner-error">
+                  <strong>Erro:</strong> {cleanerError}
+                </div>
+              {/if}
+
+              {#if cleanerStatus === 'done' && cleanerResultUrl}
+                <div class="cleaner-success">
+                  <strong>✓ Video processado em {fmtSecs(cleanerElapsed)}</strong>
+                  <a href={cleanerResultUrl} download={cleanerResultName} class="btn-cleaner-download">
+                    ⤓ Baixar video limpo
+                  </a>
+                  <video src={cleanerResultUrl} controls class="cleaner-preview"></video>
+                </div>
+              {/if}
+            </div>
+
+            <!-- Painel lateral: explicacao -->
+            <aside class="cleaner-info">
+              <h3>O que e feito</h3>
+              <ul>
+                <li><strong>Metadata strip:</strong> remove tudo (title, encoder, GPS, creation_time, comment)</li>
+                <li><strong>Crop + rescale:</strong> tira 8-12px das bordas e reescala pra 1080x1920 — quebra phash visual</li>
+                <li><strong>Eq color shift:</strong> ajusta brightness +2-3%, contrast +3-5%, saturation +5-8%</li>
+                <li><strong>Noise injection:</strong> grao temporal aleatorio em todos os frames</li>
+                <li><strong>Unsharp:</strong> filtro de nitidez leve que muda gradientes</li>
+                <li><strong>Speed shift:</strong> +2% (normal) ou +4% (agressivo) — quebra hash temporal</li>
+                <li><strong>Audio pitch:</strong> pitch shift ~0.5% via asetrate</li>
+                <li><strong>Re-encode:</strong> H264 preset veryfast, CRF 23-24, GOP 48</li>
+                <li><strong>Audio re-encode:</strong> AAC 96kbps, 44.1kHz (novo fingerprint)</li>
+                <li><strong>Estrutura:</strong> imagem (1 frame) + video + tela preta 2s + imagem ate completar duracao alvo</li>
+              </ul>
+              <h3>Limites</h3>
+              <ul>
+                <li>Upload max: 200MB</li>
+                <li>Duracao alvo max: 1h</li>
+                <li>Timeout processamento: 5min</li>
+                <li>Saida sempre: 1080x1920, H264+AAC, mp4</li>
+              </ul>
+            </aside>
+          </div>
+        </div>
+      </div>
+    {:else if !snap}
       <div class="loading">
         <div class="spinner"></div>
         <span>Carregando dados…</span>
@@ -2896,6 +3327,122 @@
   .period-chevron.open { transform: rotate(180deg); }
   .period-label-icon { font-size: 0.875rem; }
 
+  /* ── Seletor de Conta de Anúncio (estilo UTMfy) ── */
+  .account-switch { position: relative; display: inline-block; }
+  .account-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    background: #11161d; border: 1px solid #1f2630; border-radius: 10px;
+    color: #c5cad3; font-family: inherit; font-size: 0.8125rem; font-weight: 500;
+    cursor: pointer; transition: border-color 0.15s, background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    max-width: 240px;
+  }
+  .account-btn:hover { border-color: #2e3a4a; color: #e6e9ef; }
+  .account-btn.active { border-color: #02a95c; background: rgba(2,169,92,0.08); }
+  .account-btn-icon { font-size: 0.875rem; color: #02a95c; }
+  .account-btn-label {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 140px; font-weight: 600;
+  }
+  .account-btn-currency {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6875rem; font-weight: 700;
+    color: #02a95c; background: rgba(2,169,92,0.12);
+    padding: 2px 6px; border-radius: 4px;
+  }
+  .account-chevron { font-size: 0.6rem; color: #6b7787; transition: transform 0.2s; }
+  .account-chevron.open { transform: rotate(180deg); }
+
+  .account-menu {
+    position: absolute; top: calc(100% + 6px); right: 0;
+    min-width: 340px; max-width: 420px;
+    background: #0d1117; border: 1px solid #1f2630; border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+    z-index: 200; padding: 6px;
+    max-height: 480px; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .account-menu-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 10px 10px;
+    font-size: 0.6875rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: #6b7787;
+    border-bottom: 1px solid #1a1f28;
+    margin-bottom: 6px;
+  }
+  .account-refresh {
+    background: transparent; border: 1px solid #1f2630; border-radius: 6px;
+    color: #8b94a4; padding: 3px 8px; cursor: pointer; font-size: 0.75rem;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .account-refresh:hover { border-color: #02a95c; color: #02a95c; }
+  .account-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
+  .account-menu-error {
+    font-size: 0.75rem; color: #f87171;
+    padding: 6px 10px; margin-bottom: 4px;
+    background: rgba(248,113,113,0.08); border-radius: 6px;
+  }
+  .account-menu-empty {
+    font-size: 0.8125rem; color: #6b7787;
+    padding: 16px 10px; text-align: center;
+  }
+  .account-menu-list { overflow-y: auto; flex: 1; }
+  .account-menu-item {
+    display: flex; flex-direction: column; gap: 4px;
+    width: 100%; text-align: left;
+    padding: 10px 12px;
+    background: transparent; border: 1px solid transparent; border-radius: 8px;
+    color: #c5cad3; font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .account-menu-item:hover { background: #141a23; }
+  .account-menu-item.active {
+    background: rgba(2,169,92,0.1);
+    border-color: rgba(2,169,92,0.35);
+  }
+  .account-menu-item.disabled { opacity: 0.55; }
+  .account-menu-item-main {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  }
+  .account-menu-item-name {
+    font-weight: 600; font-size: 0.875rem; color: #e6e9ef;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 1;
+  }
+  .account-menu-item.active .account-menu-item-name { color: #02a95c; }
+  .account-menu-item-id {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem;
+    color: #6b7787;
+  }
+  .account-menu-item-meta {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    font-size: 0.6875rem;
+  }
+  .account-menu-item-currency {
+    font-family: 'JetBrains Mono', monospace; font-weight: 700;
+    color: #8b94a4; background: #11161d;
+    padding: 2px 6px; border-radius: 4px;
+  }
+  .account-menu-item-status {
+    text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;
+    padding: 2px 6px; border-radius: 4px;
+  }
+  .account-menu-item-status.status-active { color: #02a95c; background: rgba(2,169,92,0.12); }
+  .account-menu-item-status.status-disabled,
+  .account-menu-item-status.status-closed,
+  .account-menu-item-status.status-pending_closure { color: #f87171; background: rgba(248,113,113,0.1); }
+  .account-menu-item-status.status-unsettled,
+  .account-menu-item-status.status-pending_review,
+  .account-menu-item-status.status-pending_settlement,
+  .account-menu-item-status.status-in_grace_period { color: #fbbf24; background: rgba(251,191,36,0.1); }
+  .account-menu-item-biz {
+    color: #6b7787; font-style: italic;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 140px;
+  }
+
   /* ── Seletor de Moeda (BRL | USD | EUR) ── */
   .currency-switch {
     display: inline-flex; align-items: stretch; gap: 0;
@@ -3041,6 +3588,11 @@
     .period-label-btn { font-size: 0.75rem; padding: 6px 10px; }
     .currency-switch { flex: 1 1 auto; }
     .currency-pill { padding: 6px 8px; font-size: 0.6875rem; }
+    /* Seletor de conta — full width no mobile, menu cobre tela */
+    .account-switch { width: 100%; }
+    .account-btn { width: 100%; max-width: none; justify-content: space-between; padding: 8px 10px; }
+    .account-btn-label { max-width: none; flex: 1; }
+    .account-menu { left: 0; right: 0; min-width: 0; max-width: none; max-height: 70vh; }
   }
 
   /* ── Taxas form ── */
@@ -3069,5 +3621,155 @@
   }
   .tax-preview h3 {
     margin: 0 0 14px; font-size: 0.875rem; color: #8b94a4; font-weight: 500;
+  }
+
+  /* ─── Cleaner (Burlador Meta) ─── */
+  .cleaner-wrap { max-width: 1200px; margin: 0 auto; }
+  .cleaner-head { margin-bottom: 24px; }
+  .cleaner-title {
+    font-size: 1.5rem; font-weight: 600; color: #f0f4fa;
+    margin: 0 0 6px;
+  }
+  .cleaner-sub {
+    font-size: 0.875rem; color: #8b94a4; margin: 0; max-width: 720px; line-height: 1.5;
+  }
+  .cleaner-grid {
+    display: grid; gap: 24px;
+    grid-template-columns: 1fr 320px;
+  }
+  @media (max-width: 900px) {
+    .cleaner-grid { grid-template-columns: 1fr; }
+  }
+  .cleaner-form {
+    background: #0a0d12; border: 1px solid #1a1f28;
+    border-radius: 12px; padding: 24px;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  .cleaner-field { display: flex; flex-direction: column; gap: 8px; }
+  .cleaner-label {
+    font-size: 0.8125rem; color: #e0e5ed; font-weight: 500;
+  }
+  .cleaner-label em {
+    font-style: normal; color: #6b7280; font-weight: 400; font-size: 0.75rem;
+  }
+  .cleaner-input-file {
+    background: #131820; border: 1px dashed #2a3140; color: #cdd5e0;
+    padding: 12px; border-radius: 8px; cursor: pointer; font-family: inherit;
+    font-size: 0.8125rem;
+  }
+  .cleaner-input-file::file-selector-button {
+    background: #1f2733; color: #e0e5ed; border: 0; padding: 8px 14px;
+    border-radius: 6px; cursor: pointer; font-family: inherit;
+    margin-right: 10px;
+  }
+  .cleaner-file-info {
+    font-size: 0.75rem; color: #02b864;
+  }
+  .cleaner-duration-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .cleaner-input-num {
+    background: #131820; border: 1px solid #2a3140; color: #f0f4fa;
+    padding: 8px 12px; border-radius: 8px; width: 100px;
+    font-family: inherit; font-size: 0.875rem;
+  }
+  .cleaner-duration-hint { color: #8b94a4; font-size: 0.8125rem; margin-right: 12px; }
+  .cleaner-preset {
+    background: #1f2733; border: 1px solid #2a3140; color: #cdd5e0;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer;
+    font-family: inherit; font-size: 0.75rem;
+  }
+  .cleaner-preset:hover { background: #2a3140; }
+  .cleaner-intensity-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .cleaner-intensity-btn {
+    background: #131820; border: 1.5px solid #2a3140; color: #cdd5e0;
+    padding: 12px 16px; border-radius: 10px; cursor: pointer; flex: 1;
+    font-family: inherit; text-align: left; min-width: 180px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .cleaner-intensity-btn strong { font-size: 0.875rem; color: #f0f4fa; }
+  .cleaner-intensity-btn small { font-size: 0.75rem; color: #8b94a4; }
+  .cleaner-intensity-btn.active {
+    border-color: #02b864; background: rgba(2,184,100,0.08);
+  }
+  .cleaner-intensity-btn.active strong { color: #02b864; }
+  .cleaner-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+  .btn-cleaner-go {
+    background: linear-gradient(180deg, #02b864 0%, #02a95c 100%);
+    color: #fff; border: none; padding: 12px 22px; border-radius: 10px;
+    font-weight: 600; cursor: pointer; font-family: inherit; font-size: 0.9375rem;
+    box-shadow: 0 4px 12px rgba(2,169,92,0.3); transition: opacity 0.15s;
+    min-width: 200px;
+  }
+  .btn-cleaner-go:disabled { opacity: 0.55; cursor: not-allowed; }
+  .btn-cleaner-go:hover:not(:disabled) { opacity: 0.92; }
+  .btn-cleaner-reset {
+    background: #1f2733; color: #cdd5e0; border: 1px solid #2a3140;
+    padding: 12px 18px; border-radius: 10px; cursor: pointer;
+    font-family: inherit; font-size: 0.875rem;
+  }
+  .cleaner-progress-wrap { margin-top: 8px; }
+  .cleaner-progress-track {
+    height: 8px; background: #131820; border-radius: 999px; overflow: hidden;
+  }
+  .cleaner-progress-fill {
+    height: 100%; background: #02b864; border-radius: 999px; transition: width 0.2s;
+  }
+  .cleaner-progress-fill.processing {
+    background: linear-gradient(90deg, #02b864, #6366f1, #02b864);
+    background-size: 200% 100%;
+    animation: cleaner-stripe 1.4s linear infinite;
+  }
+  @keyframes cleaner-stripe {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .cleaner-progress-text {
+    font-size: 0.75rem; color: #8b94a4; margin-top: 8px;
+  }
+  .cleaner-error {
+    background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3);
+    color: #fca5a5; padding: 12px 16px; border-radius: 10px;
+    font-size: 0.8125rem;
+  }
+  .cleaner-success {
+    background: rgba(2,184,100,0.06); border: 1px solid rgba(2,184,100,0.3);
+    border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px;
+  }
+  .cleaner-success strong { color: #02b864; font-size: 0.9375rem; }
+  .btn-cleaner-download {
+    display: inline-block; background: #02b864; color: #fff; text-decoration: none;
+    padding: 12px 22px; border-radius: 10px; font-weight: 600; font-size: 0.9375rem;
+    text-align: center; transition: opacity 0.15s; align-self: flex-start;
+  }
+  .btn-cleaner-download:hover { opacity: 0.92; }
+  .cleaner-preview {
+    width: 100%; max-width: 360px; border-radius: 10px;
+    background: #000; align-self: flex-start;
+  }
+  .cleaner-info {
+    background: #0a0d12; border: 1px solid #1a1f28;
+    border-radius: 12px; padding: 20px;
+    align-self: start;
+  }
+  .cleaner-info h3 {
+    margin: 0 0 12px; font-size: 0.8125rem; color: #8b94a4;
+    font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .cleaner-info h3:not(:first-child) { margin-top: 18px; }
+  .cleaner-info ul {
+    list-style: none; padding: 0; margin: 0;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .cleaner-info li {
+    font-size: 0.75rem; color: #cdd5e0; line-height: 1.5;
+    padding-left: 12px; position: relative;
+  }
+  .cleaner-info li::before {
+    content: '▸'; color: #02b864; position: absolute; left: 0;
+  }
+  .cleaner-info strong { color: #f0f4fa; font-weight: 500; }
+  .cleaner-image-preview {
+    max-width: 200px; max-height: 280px; margin-top: 8px;
+    border: 1px solid #2a3140; border-radius: 6px; object-fit: contain;
+    background: #14181f;
   }
 </style>

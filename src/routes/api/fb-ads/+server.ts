@@ -48,7 +48,17 @@ const PRESET_MAP: Record<string, string> = {
 // Token permanente (System User — sem expiração, somente leitura de ads)
 const FB_TOKEN = env.FB_ADS_TOKEN ||
   'EAASpkEKZBxb8BRkZAvHccwFXjbEUJcgkb7qzwZBfx6t6qkNJMMPrIitCI3YQATc9iiqZCo6OrrYkGhFdrULwg0z1aBBWoFMhHJx0TzC8T9T01nRKmAtZA0PJyn3fgNZBhuQ1Mg8J1KA1XeDPMJIZC41J8CMREjCiAWnyOqHyQI1qQ9vqeIdftvZBsHY9jcRn7wZDZD';
-const FB_ACCT = env.FB_ADS_ACCOUNT_ID || 'act_1451507589956064';
+const FB_ACCT_DEFAULT = env.FB_ADS_ACCOUNT_ID || 'act_1451507589956064';
+
+// Aceita "act_123" ou "123" e normaliza para "act_123". Bloqueia chars inválidos.
+function normalizeAcct(raw: string | null): string {
+  if (!raw) return FB_ACCT_DEFAULT;
+  const trimmed = raw.trim();
+  // Apenas dígitos (com ou sem prefixo act_) — evita injection na URL
+  const m = trimmed.match(/^(?:act_)?(\d{6,20})$/);
+  if (!m) return FB_ACCT_DEFAULT;
+  return `act_${m[1]}`;
+}
 
 function findAction(arr: any[] | undefined, type: string): string {
   return arr?.find((a: any) => a.action_type === type)?.value || '0';
@@ -102,15 +112,16 @@ export const GET: RequestHandler = async ({ url }) => {
   const win          = url.searchParams.get('window') || '24h';
   const withCampaigns = url.searchParams.get('campaigns') === '1';
   const preset       = PRESET_MAP[win] || 'today';
+  const FB_ACCT      = normalizeAcct(url.searchParams.get('account_id'));
 
-  const cacheKey = `${win}-${withCampaigns}`;
+  const cacheKey = `${FB_ACCT}-${win}-${withCampaigns}`;
   const cached = _cache[cacheKey];
   if (cached && Date.now() - cached.ts < CACHE_TTL) return json(cached.data);
 
   try {
     const fields = [
       'spend','impressions','inline_link_clicks','reach',
-      'cpm','cpc','ctr','actions','action_values',
+      'cpm','cpc','ctr','actions','action_values','account_currency',
     ].join(',');
 
     // ── Caso especial: Hoje + Ontem ───────────────────────────────────
@@ -169,7 +180,8 @@ export const GET: RequestHandler = async ({ url }) => {
         campaigns = [...map.values()];
       }
 
-      const result = { ...combined, currency: 'USD', datePreset: 'hoje_ontem', campaigns };
+      const accCurrency = (td?.account_currency || yd?.account_currency || 'USD') as string;
+      const result = { ...combined, currency: accCurrency, accountId: FB_ACCT, datePreset: 'hoje_ontem', campaigns };
       _cache[cacheKey] = { data: result, ts: Date.now() };
       saveDiskCache();
       return json(result);
@@ -202,7 +214,7 @@ export const GET: RequestHandler = async ({ url }) => {
       const empty = {
         spend: 0, impressions: 0, clicks: 0, reach: 0,
         cpm: 0, cpc: 0, ctr: 0, purchases: 0, purchaseValue: 0,
-        currency: 'USD', datePreset: preset, campaigns,
+        currency: 'USD', accountId: FB_ACCT, datePreset: preset, campaigns,
       };
       _cache[cacheKey] = { data: empty, ts: Date.now() };
       saveDiskCache();
@@ -211,7 +223,8 @@ export const GET: RequestHandler = async ({ url }) => {
 
     const result = {
       ...parseInsight(d),
-      currency:   'USD',
+      currency:   (d.account_currency || 'USD') as string,
+      accountId:   FB_ACCT,
       datePreset:  preset,
       campaigns,
     };
