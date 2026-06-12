@@ -357,19 +357,54 @@
 
   // ── Token FB configuravel ──
   let tokenPanelOpen = $state(false);
-  let tokenStatus = $state<{ source: string; masked: string; length: number; updatedAt: number | null; defaultAccount: string } | null>(null);
+  type TokenStatus = {
+    source: string;
+    masked: string;
+    length: number;
+    updatedAt: number | null;
+    defaultAccount: string;
+    expiresAt?: number | null;
+    daysLeft?: number | null;
+    kind?: string | null;
+    needsRefresh?: boolean;
+    oauthConfigured?: boolean;
+    authorizeUrl?: string | null;
+  };
+  let tokenStatus = $state<TokenStatus | null>(null);
   let tokenInput = $state('');
   let tokenSaving = $state(false);
   let tokenError = $state('');
   let tokenSuccessMsg = $state('');
   let fbDebug = $state<any>(null);
   let debugLoading = $state(false);
+  let refreshingToken = $state(false);
 
   async function loadTokenStatus() {
     try {
-      const r = await fetch('/api/fb-ads/token', { cache: 'no-store' });
+      const r = await fetch('/api/fb-ads/oauth/status', { cache: 'no-store' });
       if (r.ok) tokenStatus = await r.json();
     } catch {}
+  }
+
+  async function refreshTokenNow() {
+    refreshingToken = true;
+    tokenError = '';
+    tokenSuccessMsg = '';
+    try {
+      const r = await fetch('/api/fb-ads/token/refresh', { method: 'POST' });
+      const d = await r.json();
+      if (r.ok && d.ok) {
+        tokenStatus = { ...(tokenStatus || {}), ...d.status } as TokenStatus;
+        const days = d.status?.daysLeft;
+        tokenSuccessMsg = `✓ Token renovado (vale por mais ${days} dias)`;
+        setTimeout(() => { tokenSuccessMsg = ''; }, 4000);
+      } else {
+        tokenError = d.error || 'Falha ao renovar';
+      }
+    } catch (e: any) {
+      tokenError = e?.message || 'erro de rede';
+    }
+    refreshingToken = false;
   }
 
   async function saveToken() {
@@ -692,6 +727,22 @@
     loadFbAccounts();
     // Carrega status do token FB
     loadTokenStatus();
+
+    // Pos-OAuth: limpa query param e mostra toast
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('fb_connected') === '1') {
+        tokenPanelOpen = true;
+        tokenSuccessMsg = '✓ Conectado ao Facebook! Token renova automaticamente.';
+        // Limpa URL sem reload
+        params.delete('fb_connected');
+        const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        window.history.replaceState({}, '', newUrl);
+        setTimeout(() => { tokenSuccessMsg = ''; }, 6000);
+        // Recarrega contas com novo token
+        loadFbAccounts(true);
+      }
+    } catch {}
   });
 
   function dragStart(id: CardId) { dragSrc = id; }
@@ -1178,7 +1229,41 @@
                           <button class="account-token-clear" onclick={clearStoredToken}>Remover</button>
                         {/if}
                       </div>
+                      {#if tokenStatus.expiresAt && tokenStatus.daysLeft !== null}
+                        <div class="account-token-expiry" class:warn={tokenStatus.needsRefresh}>
+                          {#if tokenStatus.daysLeft! > 7}
+                            ✓ Vale por mais <strong>{tokenStatus.daysLeft} dias</strong> · renova sozinho aos 7d
+                          {:else if tokenStatus.daysLeft! > 0}
+                            ⚠ Expira em <strong>{tokenStatus.daysLeft} dia{tokenStatus.daysLeft === 1 ? '' : 's'}</strong> · renove agora
+                          {:else}
+                            ❌ Token expirado · reconecte com Facebook
+                          {/if}
+                        </div>
+                      {/if}
                     {/if}
+
+                    <!-- OAuth: botao principal -->
+                    {#if tokenStatus?.oauthConfigured}
+                      <a href="/api/fb-ads/oauth/start" class="account-token-oauth">
+                        <span class="oauth-icon">f</span>
+                        {tokenStatus.kind === 'oauth' ? 'Reconectar com Facebook' : 'Conectar com Facebook'}
+                      </a>
+                      {#if tokenStatus.kind === 'oauth'}
+                        <button
+                          class="account-token-refresh"
+                          onclick={refreshTokenNow}
+                          disabled={refreshingToken}
+                        >
+                          {refreshingToken ? 'Renovando…' : '↻ Renovar token agora (mais 60 dias)'}
+                        </button>
+                      {/if}
+                      <div class="account-token-divider"><span>ou cole manualmente</span></div>
+                    {:else}
+                      <div class="account-token-oauth-disabled">
+                        ⚠ OAuth nao configurado. Defina <code>FB_APP_ID</code> e <code>FB_APP_SECRET</code> nas env vars do Railway pra ativar o login automatico.
+                      </div>
+                    {/if}
+
                     <textarea
                       class="account-token-input"
                       placeholder="Cole aqui um User Access Token do Facebook (começa com EAA...)"
@@ -3768,6 +3853,70 @@
     cursor: pointer; transition: background 0.15s;
   }
   .account-token-clear:hover { background: rgba(248,113,113,0.08); }
+
+  /* ── Expiry badge ── */
+  .account-token-expiry {
+    font-size: 0.75rem; color: #02a95c;
+    padding: 6px 10px;
+    background: rgba(2,169,92,0.08); border-radius: 6px;
+    border: 1px solid rgba(2,169,92,0.2);
+  }
+  .account-token-expiry.warn {
+    color: #fbbf24;
+    background: rgba(251,191,36,0.08);
+    border-color: rgba(251,191,36,0.25);
+  }
+  .account-token-expiry strong { font-weight: 700; }
+
+  /* ── OAuth button (estilo botao FB) ── */
+  .account-token-oauth {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    background: #1877f2;
+    color: #fff !important;
+    text-decoration: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-weight: 600; font-size: 0.875rem;
+    transition: background 0.15s;
+  }
+  .account-token-oauth:hover { background: #166fe5; }
+  .account-token-oauth .oauth-icon {
+    width: 22px; height: 22px; border-radius: 4px;
+    background: #fff; color: #1877f2;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: Georgia, serif; font-weight: 900; font-size: 1.1rem;
+    line-height: 1;
+  }
+  .account-token-refresh {
+    background: transparent; border: 1px dashed #2a3340;
+    color: #8b94a4; font-family: inherit; font-size: 0.75rem;
+    padding: 6px 10px; border-radius: 6px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .account-token-refresh:hover:not(:disabled) { color: #02a95c; border-color: #02a95c; }
+  .account-token-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
+  .account-token-oauth-disabled {
+    font-size: 0.75rem; color: #fbbf24;
+    background: rgba(251,191,36,0.08);
+    border: 1px solid rgba(251,191,36,0.25);
+    padding: 8px 10px; border-radius: 6px;
+    line-height: 1.4;
+  }
+  .account-token-oauth-disabled code {
+    background: rgba(0,0,0,0.3); padding: 1px 4px; border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem;
+  }
+  .account-token-divider {
+    display: flex; align-items: center; gap: 8px;
+    color: #5a6577; font-size: 0.6875rem;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin: 4px 0;
+  }
+  .account-token-divider::before,
+  .account-token-divider::after {
+    content: ''; flex: 1; height: 1px; background: #1f2630;
+  }
+
   .account-token-input {
     width: 100%; box-sizing: border-box;
     background: #0a0d12; border: 1px solid #1f2630; border-radius: 8px;

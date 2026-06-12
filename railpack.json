@@ -1,14 +1,19 @@
 {
   "$schema": "https://schema.railpack.com",
+  "packages": {
+    "node": "20"
+  },
   "steps": {
     "build": {
       "commands": [
+        "apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*",
         "pnpm install --frozen-lockfile",
         "pnpm run build"
       ]
     }
   },
   "deploy": {
-    "startCommand": "node build"
+    "aptPackages": ["ffmpeg"],
+    "startCommand": "BODY_SIZE_LIMIT=262144000 node build"
   }
 }

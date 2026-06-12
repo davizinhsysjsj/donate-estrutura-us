@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import fs from 'node:fs';
 import path from 'node:path';
-import { getFbToken, getDefaultAccountId } from '$lib/server/fb-token';
+import { getFbToken, getDefaultAccountId, maybeRefreshInBackground } from '$lib/server/fb-token';
 
 // Cache em memória por chave
 const _cache: Record<string, { data: any; ts: number }> = {};
@@ -134,6 +134,7 @@ export const GET: RequestHandler = async ({ url }) => {
   const preset       = PRESET_MAP[win] || 'today';
   const FB_ACCT      = normalizeAcct(url.searchParams.get('account_id'));
   const FB_TOKEN     = getFbToken();
+  maybeRefreshInBackground();
 
   const cacheKey = `${FB_ACCT}-${win}-${withCampaigns}`;
   const cached = _cache[cacheKey];
