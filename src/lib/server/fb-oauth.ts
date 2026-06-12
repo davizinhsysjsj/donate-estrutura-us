@@ -20,13 +20,12 @@ export function getRedirectUri(origin?: string): string {
   return 'https://belgianpawshelter.help/api/fb-ads/oauth/callback';
 }
 
-// Permissoes que pedimos: ler ads + listar BMs + (opcional) gerenciar
+// Permissoes minimas: ler ads + listar BMs.
+// As 3 listadas precisam estar com "Advanced Access" ativo no painel do app:
+// https://developers.facebook.com/apps/{APP_ID}/app-review/permissions/
 export const OAUTH_SCOPES = [
   'ads_read',
   'business_management',
-  'ads_management',
-  'read_insights',
-  'pages_read_engagement',
 ].join(',');
 
 export function buildAuthorizeUrl(state: string, origin: string): string {
