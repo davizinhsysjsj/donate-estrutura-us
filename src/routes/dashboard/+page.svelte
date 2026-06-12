@@ -354,6 +354,81 @@
   let accountMenuOpen = $state(false);
   let accountSearch = $state('');
 
+  // ── Token FB configuravel ──
+  let tokenPanelOpen = $state(false);
+  let tokenStatus = $state<{ source: string; masked: string; length: number; updatedAt: number | null; defaultAccount: string } | null>(null);
+  let tokenInput = $state('');
+  let tokenSaving = $state(false);
+  let tokenError = $state('');
+  let tokenSuccessMsg = $state('');
+  let fbDebug = $state<any>(null);
+  let debugLoading = $state(false);
+
+  async function loadTokenStatus() {
+    try {
+      const r = await fetch('/api/fb-ads/token', { cache: 'no-store' });
+      if (r.ok) tokenStatus = await r.json();
+    } catch {}
+  }
+
+  async function saveToken() {
+    if (!tokenInput.trim()) {
+      tokenError = 'Cole o token primeiro';
+      return;
+    }
+    tokenSaving = true;
+    tokenError = '';
+    tokenSuccessMsg = '';
+    try {
+      const r = await fetch('/api/fb-ads/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: tokenInput.trim() }),
+      });
+      const d = await r.json();
+      if (r.ok && d.ok) {
+        tokenSuccessMsg = `✓ Token salvo (${d.fbUser?.name || d.fbUser?.id})`;
+        tokenStatus = d.status;
+        tokenInput = '';
+        // Recarrega contas com novo token
+        await loadFbAccounts(true);
+        setTimeout(() => { tokenSuccessMsg = ''; }, 4000);
+      } else {
+        tokenError = d.error || 'Falha ao salvar';
+      }
+    } catch (e: any) {
+      tokenError = e?.message || 'erro de rede';
+    }
+    tokenSaving = false;
+  }
+
+  async function clearStoredToken() {
+    if (!confirm('Remover token salvo e voltar pro padrão (env)?')) return;
+    try {
+      const r = await fetch('/api/fb-ads/token', { method: 'DELETE' });
+      const d = await r.json();
+      if (r.ok && d.ok) {
+        tokenStatus = d.status;
+        tokenSuccessMsg = '✓ Token removido, usando padrão';
+        await loadFbAccounts(true);
+        setTimeout(() => { tokenSuccessMsg = ''; }, 4000);
+      }
+    } catch {}
+  }
+
+  async function runDebug() {
+    debugLoading = true;
+    fbDebug = null;
+    try {
+      const r = await fetch('/api/fb-ads/debug', { cache: 'no-store' });
+      if (r.ok) fbDebug = await r.json();
+      else fbDebug = { error: 'HTTP ' + r.status };
+    } catch (e: any) {
+      fbDebug = { error: e?.message };
+    }
+    debugLoading = false;
+  }
+
   // Filtro + agrupamento por BM (igual UTMfy)
   const fbAccountsFiltered = $derived.by(() => {
     const q = accountSearch.trim().toLowerCase();
@@ -598,6 +673,8 @@
     fetchLiveRate();
     // Carrega lista de contas de anúncio disponíveis no perfil
     loadFbAccounts();
+    // Carrega status do token FB
+    loadTokenStatus();
   });
 
   function dragStart(id: CardId) { dragSrc = id; }
@@ -1079,6 +1156,94 @@
                   {accountSearch ? 'Nenhuma conta bate com a busca' : 'Nenhuma conta encontrada'}
                 </div>
               {/if}
+              <!-- Painel de configuração do token (collapsible) -->
+              <div class="account-token-section">
+                <button
+                  class="account-token-toggle"
+                  onclick={() => { tokenPanelOpen = !tokenPanelOpen; if (tokenPanelOpen) loadTokenStatus(); }}
+                >
+                  <span>⚙ Token Facebook</span>
+                  {#if tokenStatus}
+                    <span class="account-token-source" title="Origem do token em uso">
+                      {tokenStatus.source === 'disk' ? '💾 salvo' : tokenStatus.source === 'env' ? '🔑 env' : '⚠️ padrão'}
+                    </span>
+                  {/if}
+                  <span class="account-chevron" class:open={tokenPanelOpen}>▾</span>
+                </button>
+                {#if tokenPanelOpen}
+                  <div class="account-token-body">
+                    {#if tokenStatus}
+                      <div class="account-token-info">
+                        <span>Token atual: <code>{tokenStatus.masked}</code></span>
+                        {#if tokenStatus.source === 'disk'}
+                          <button class="account-token-clear" onclick={clearStoredToken}>Remover</button>
+                        {/if}
+                      </div>
+                    {/if}
+                    <textarea
+                      class="account-token-input"
+                      placeholder="Cole aqui um User Access Token do Facebook (começa com EAA...)"
+                      bind:value={tokenInput}
+                      rows="3"
+                    ></textarea>
+                    <div class="account-token-actions">
+                      <button class="account-token-save" onclick={saveToken} disabled={tokenSaving || !tokenInput.trim()}>
+                        {tokenSaving ? 'Validando…' : 'Salvar token'}
+                      </button>
+                      <button class="account-token-debug" onclick={runDebug} disabled={debugLoading}>
+                        {debugLoading ? '…' : '🔍 Diagnosticar'}
+                      </button>
+                    </div>
+                    {#if tokenError}
+                      <div class="account-menu-error">{tokenError}</div>
+                    {/if}
+                    {#if tokenSuccessMsg}
+                      <div class="account-token-success">{tokenSuccessMsg}</div>
+                    {/if}
+                    <details class="account-token-help">
+                      <summary>Como pegar um token completo?</summary>
+                      <ol>
+                        <li>Acesse <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener">Graph API Explorer</a></li>
+                        <li>Selecione seu app (ou crie um novo)</li>
+                        <li>Em "Permissions" adicione: <code>ads_read</code> + <code>business_management</code> + <code>ads_management</code></li>
+                        <li>Click em "Generate Access Token" e autorize</li>
+                        <li>Cole o token aqui. Pra tornar permanente, troque por um <a href="https://developers.facebook.com/docs/facebook-login/guides/access-tokens#long-lived-tokens" target="_blank" rel="noopener">long-lived token</a> (60 dias)</li>
+                      </ol>
+                    </details>
+                    {#if fbDebug}
+                      <div class="account-token-debug-result">
+                        {#if fbDebug.error}
+                          <div class="account-menu-error">Erro: {fbDebug.error}</div>
+                        {:else}
+                          <div class="debug-section">
+                            <strong>Diagnóstico:</strong>
+                            {#each fbDebug.diagnosis as line}
+                              <div class="debug-line">{line}</div>
+                            {/each}
+                          </div>
+                          {#if fbDebug.permissions?.granted?.length}
+                            <div class="debug-section">
+                              <strong>Permissões:</strong> {fbDebug.permissions.granted.join(', ')}
+                            </div>
+                          {/if}
+                          {#if fbDebug.businesses?.count > 0}
+                            <div class="debug-section">
+                              <strong>BMs ({fbDebug.businesses.count}):</strong>
+                              {#each fbDebug.businessAccounts as bm}
+                                <div class="debug-bm">
+                                  <span>🏢 {bm.name}</span>
+                                  <span class="debug-bm-stats">{bm.ownedCount + bm.clientCount} contas</span>
+                                </div>
+                              {/each}
+                            </div>
+                          {/if}
+                        {/if}
+                      </div>
+                    {/if}
+                  </div>
+                {/if}
+              </div>
+
               <div class="account-menu-list">
                 {#each fbAccountsGrouped as group (group.id)}
                   <div class="account-menu-group">
@@ -3481,6 +3646,122 @@
   .account-menu-item-spent {
     font-family: 'JetBrains Mono', monospace; font-weight: 600;
     color: #c5cad3;
+  }
+
+  /* ── Painel de token FB ── */
+  .account-token-section {
+    border-top: 1px solid #1a1f28;
+    border-bottom: 1px solid #1a1f28;
+    margin: 4px 0;
+  }
+  .account-token-toggle {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; padding: 10px 12px;
+    background: transparent; border: none;
+    color: #c5cad3; font-family: inherit; font-size: 0.8125rem; font-weight: 600;
+    cursor: pointer; text-align: left;
+    transition: background 0.15s;
+  }
+  .account-token-toggle:hover { background: #141a23; }
+  .account-token-toggle > span:first-child { flex: 1; }
+  .account-token-source {
+    font-size: 0.6875rem; font-weight: 500;
+    color: #6b7787;
+    background: #11161d;
+    padding: 2px 8px; border-radius: 4px;
+  }
+  .account-token-body {
+    padding: 4px 10px 12px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .account-token-info {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    font-size: 0.75rem; color: #8b94a4;
+  }
+  .account-token-info code {
+    font-family: 'JetBrains Mono', monospace;
+    color: #02a95c; background: rgba(2,169,92,0.08);
+    padding: 1px 6px; border-radius: 4px;
+  }
+  .account-token-clear {
+    background: transparent; border: 1px solid #2a3340;
+    color: #f87171; font-size: 0.6875rem;
+    padding: 4px 10px; border-radius: 6px;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .account-token-clear:hover { background: rgba(248,113,113,0.08); }
+  .account-token-input {
+    width: 100%; box-sizing: border-box;
+    background: #0a0d12; border: 1px solid #1f2630; border-radius: 8px;
+    color: #e6e9ef; font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem;
+    padding: 8px 10px; resize: vertical; min-height: 60px;
+    transition: border-color 0.15s;
+  }
+  .account-token-input:focus { outline: none; border-color: #02a95c; }
+  .account-token-actions {
+    display: flex; gap: 8px;
+  }
+  .account-token-save {
+    flex: 1;
+    background: linear-gradient(180deg, #02b864 0%, #02a95c 100%);
+    color: #fff; border: none;
+    padding: 8px 12px; border-radius: 8px;
+    font-family: inherit; font-size: 0.8125rem; font-weight: 600;
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  .account-token-save:hover:not(:disabled) { opacity: 0.92; }
+  .account-token-save:disabled { opacity: 0.4; cursor: not-allowed; }
+  .account-token-debug {
+    background: transparent; border: 1px solid #2a3340;
+    color: #c5cad3; font-family: inherit; font-size: 0.8125rem;
+    padding: 8px 12px; border-radius: 8px;
+    cursor: pointer; transition: border-color 0.15s;
+  }
+  .account-token-debug:hover:not(:disabled) { border-color: #02a95c; color: #02a95c; }
+  .account-token-debug:disabled { opacity: 0.5; cursor: not-allowed; }
+  .account-token-success {
+    font-size: 0.75rem; color: #02a95c;
+    padding: 6px 10px;
+    background: rgba(2,169,92,0.08); border-radius: 6px;
+  }
+  .account-token-help {
+    font-size: 0.75rem; color: #8b94a4;
+  }
+  .account-token-help summary {
+    cursor: pointer; padding: 6px 0;
+    color: #6b7787; user-select: none;
+  }
+  .account-token-help summary:hover { color: #c5cad3; }
+  .account-token-help ol {
+    margin: 6px 0 0; padding-left: 22px;
+    display: flex; flex-direction: column; gap: 4px;
+    line-height: 1.4;
+  }
+  .account-token-help a { color: #02a95c; text-decoration: none; }
+  .account-token-help a:hover { text-decoration: underline; }
+  .account-token-help code {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem;
+    background: #11161d; padding: 1px 5px; border-radius: 3px;
+    color: #c5cad3;
+  }
+  .account-token-debug-result {
+    display: flex; flex-direction: column; gap: 8px;
+    font-size: 0.75rem; color: #c5cad3;
+    background: #0a0d12; border: 1px solid #1a1f28; border-radius: 8px;
+    padding: 10px;
+  }
+  .debug-section { display: flex; flex-direction: column; gap: 4px; }
+  .debug-section strong { color: #e6e9ef; font-size: 0.75rem; }
+  .debug-line { padding-left: 4px; line-height: 1.4; }
+  .debug-bm {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 4px 8px;
+    background: #11161d; border-radius: 5px;
+    font-size: 0.6875rem;
+  }
+  .debug-bm-stats {
+    font-family: 'JetBrains Mono', monospace;
+    color: #02a95c; font-weight: 600;
   }
   .account-menu-item {
     display: flex; flex-direction: column; gap: 4px;

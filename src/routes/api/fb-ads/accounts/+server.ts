@@ -1,13 +1,9 @@
 import { json } from '@sveltejs/kit';
-import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
+import { getFbToken, getDefaultAccountId } from '$lib/server/fb-token';
 
 const CACHE_TTL = 10 * 60 * 1000;
 let _cache: { data: any; ts: number } | null = null;
-
-const FB_TOKEN = env.FB_ADS_TOKEN ||
-  'EAASpkEKZBxb8BRkZAvHccwFXjbEUJcgkb7qzwZBfx6t6qkNJMMPrIitCI3YQATc9iiqZCo6OrrYkGhFdrULwg0z1aBBWoFMhHJx0TzC8T9T01nRKmAtZA0PJyn3fgNZBhuQ1Mg8J1KA1XeDPMJIZC41J8CMREjCiAWnyOqHyQI1qQ9vqeIdftvZBsHY9jcRn7wZDZD';
-const DEFAULT_ACCT = env.FB_ADS_ACCOUNT_ID || 'act_1451507589956064';
 
 const STATUS_LABEL: Record<number, string> = {
   1: 'active',
@@ -91,6 +87,8 @@ export const GET: RequestHandler = async ({ url }) => {
     return json(_cache.data);
   }
 
+  const FB_TOKEN = getFbToken();
+  const DEFAULT_ACCT = getDefaultAccountId();
   const errors: string[] = [];
   const accountsMap = new Map<string, NormalizedAccount>();
   const accountFields = 'id,account_id,name,account_status,currency,business,timezone_name,amount_spent,disable_reason';

@@ -1,8 +1,8 @@
 import { json } from '@sveltejs/kit';
-import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 import fs from 'node:fs';
 import path from 'node:path';
+import { getFbToken, getDefaultAccountId } from '$lib/server/fb-token';
 
 // Cache em memória por chave
 const _cache: Record<string, { data: any; ts: number }> = {};
@@ -45,18 +45,13 @@ const PRESET_MAP: Record<string, string> = {
   'this_month':   'this_month',
 };
 
-// Token permanente (System User — sem expiração, somente leitura de ads)
-const FB_TOKEN = env.FB_ADS_TOKEN ||
-  'EAASpkEKZBxb8BRkZAvHccwFXjbEUJcgkb7qzwZBfx6t6qkNJMMPrIitCI3YQATc9iiqZCo6OrrYkGhFdrULwg0z1aBBWoFMhHJx0TzC8T9T01nRKmAtZA0PJyn3fgNZBhuQ1Mg8J1KA1XeDPMJIZC41J8CMREjCiAWnyOqHyQI1qQ9vqeIdftvZBsHY9jcRn7wZDZD';
-const FB_ACCT_DEFAULT = env.FB_ADS_ACCOUNT_ID || 'act_1451507589956064';
-
 // Aceita "act_123" ou "123" e normaliza para "act_123". Bloqueia chars inválidos.
 function normalizeAcct(raw: string | null): string {
-  if (!raw) return FB_ACCT_DEFAULT;
+  if (!raw) return getDefaultAccountId();
   const trimmed = raw.trim();
   // Apenas dígitos (com ou sem prefixo act_) — evita injection na URL
   const m = trimmed.match(/^(?:act_)?(\d{6,20})$/);
-  if (!m) return FB_ACCT_DEFAULT;
+  if (!m) return getDefaultAccountId();
   return `act_${m[1]}`;
 }
 
@@ -113,6 +108,7 @@ export const GET: RequestHandler = async ({ url }) => {
   const withCampaigns = url.searchParams.get('campaigns') === '1';
   const preset       = PRESET_MAP[win] || 'today';
   const FB_ACCT      = normalizeAcct(url.searchParams.get('account_id'));
+  const FB_TOKEN     = getFbToken();
 
   const cacheKey = `${FB_ACCT}-${win}-${withCampaigns}`;
   const cached = _cache[cacheKey];
