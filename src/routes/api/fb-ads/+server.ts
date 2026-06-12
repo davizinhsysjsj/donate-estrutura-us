@@ -70,6 +70,31 @@ async function fbFetch(path: string) {
   return r.json();
 }
 
+// Pagina via cursor `paging.next` ate esgotar (max 10 paginas = 5000 itens com limit=500)
+async function fbFetchAll(initialPath: string): Promise<any[]> {
+  const out: any[] = [];
+  let next: string | null = `https://graph.facebook.com/v21.0/${initialPath}`;
+  let pages = 0;
+  while (next && pages < 10) {
+    pages++;
+    const r = await fetch(next, { signal: AbortSignal.timeout(15_000) });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `FB API ${r.status}`);
+    }
+    const body = await r.json();
+    if (Array.isArray(body.data)) out.push(...body.data);
+    next = body.paging?.next || null;
+  }
+  return out;
+}
+
+// Filtro Graph API: campanhas ativamente entregando (campaign status + ad status)
+// Inclui status que estao "rodando": ACTIVE. Exclui PAUSED, ARCHIVED, DELETED, etc.
+const CAMPAIGN_ACTIVE_FILTER = encodeURIComponent(JSON.stringify([
+  { field: 'campaign.effective_status', operator: 'IN', value: ['ACTIVE'] }
+]));
+
 function parseInsight(d: any) {
   return {
     spend:         parseFloat(d.spend        || '0'),
@@ -138,15 +163,16 @@ export const GET: RequestHandler = async ({ url }) => {
 
       let campaigns: any[] = [];
       if (withCampaigns) {
-        const camFields = 'campaign_name,spend,impressions,inline_link_clicks,ctr,cpm,cpc';
-        const [tcb, ycb] = await Promise.all([
-          fbFetch(`${FB_ACCT}/insights?fields=${camFields}&date_preset=today&level=campaign&access_token=${FB_TOKEN}`),
-          fbFetch(`${FB_ACCT}/insights?fields=${camFields}&date_preset=yesterday&level=campaign&access_token=${FB_TOKEN}`),
+        const camFields = 'campaign_id,campaign_name,spend,impressions,inline_link_clicks,ctr,cpm,cpc';
+        const camQS = `fields=${camFields}&level=campaign&limit=500&filtering=${CAMPAIGN_ACTIVE_FILTER}&access_token=${FB_TOKEN}`;
+        const [todayList, yestList] = await Promise.all([
+          fbFetchAll(`${FB_ACCT}/insights?${camQS}&date_preset=today`),
+          fbFetchAll(`${FB_ACCT}/insights?${camQS}&date_preset=yesterday`),
         ]);
         // Merge campaigns por nome
         const map = new Map<string, any>();
-        for (const c of [...(tcb.data || []), ...(ycb.data || [])]) {
-          const key = c.campaign_name;
+        for (const c of [...todayList, ...yestList]) {
+          const key = c.campaign_id || c.campaign_name;
           if (map.has(key)) {
             const ex = map.get(key);
             const newSpend = ex.spend + parseFloat(c.spend || '0');
@@ -163,6 +189,7 @@ export const GET: RequestHandler = async ({ url }) => {
             });
           } else {
             map.set(key, {
+              id: c.campaign_id,
               name: c.campaign_name,
               spend: parseFloat(c.spend || '0'),
               impressions: parseInt(c.impressions || '0'),
@@ -191,11 +218,12 @@ export const GET: RequestHandler = async ({ url }) => {
 
     let campaigns: any[] = [];
     if (withCampaigns) {
-      const camFields = 'campaign_name,spend,impressions,clicks,ctr,cpm,cpc';
-      const cb = await fbFetch(
-        `${FB_ACCT}/insights?fields=${camFields}&date_preset=${preset}&level=campaign&access_token=${FB_TOKEN}`
+      const camFields = 'campaign_id,campaign_name,spend,impressions,inline_link_clicks,ctr,cpm,cpc';
+      const list = await fbFetchAll(
+        `${FB_ACCT}/insights?fields=${camFields}&date_preset=${preset}&level=campaign&limit=500&filtering=${CAMPAIGN_ACTIVE_FILTER}&access_token=${FB_TOKEN}`
       );
-      campaigns = (cb.data || []).map((c: any) => ({
+      campaigns = list.map((c: any) => ({
+        id:          c.campaign_id,
         name:        c.campaign_name,
         spend:       parseFloat(c.spend               || '0'),
         impressions: parseInt  (c.impressions          || '0'),
