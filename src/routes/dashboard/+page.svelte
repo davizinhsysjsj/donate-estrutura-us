@@ -949,6 +949,17 @@
   let fbCampaigns = $state<any[]>([]);
   let campaignsLoading = $state(false);
 
+  // Densidade da tabela de campanhas — usuario escolhe
+  type CampView = 'essential' | 'funnel' | 'full';
+  let campView = $state<CampView>('funnel');
+  let campActionOpenId = $state<string | null>(null);
+  let campActionBusyId = $state<string | null>(null);
+  let campEditBudgetId = $state<string | null>(null);
+  let campEditBudgetValue = $state('');
+  let campDuplicateConfirmId = $state<string | null>(null);
+  let campErrorMsg = $state('');
+  let campSuccessMsg = $state('');
+
   async function pullCampaigns() {
     campaignsLoading = true;
     fbCampaigns = [];  // limpa enquanto carrega — evita mostrar dados da conta anterior
@@ -960,6 +971,83 @@
       }
     } catch {}
     campaignsLoading = false;
+  }
+
+  async function patchCampaign(id: string, body: Record<string, any>): Promise<boolean> {
+    campActionBusyId = id;
+    campErrorMsg = '';
+    try {
+      const r = await fetch(`/api/fb-ads/campaign/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+      campSuccessMsg = '✓ Campanha atualizada';
+      setTimeout(() => (campSuccessMsg = ''), 3500);
+      await pullCampaigns();  // recarrega pra refletir
+      return true;
+    } catch (e: any) {
+      campErrorMsg = e?.message || 'Erro desconhecido';
+      return false;
+    } finally {
+      campActionBusyId = null;
+    }
+  }
+
+  async function toggleCampaign(c: any) {
+    const newStatus = c.status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE';
+    if (newStatus === 'PAUSED' && !confirm(`Pausar campanha "${c.name}"?`)) return;
+    await patchCampaign(c.id, { status: newStatus });
+    campActionOpenId = null;
+  }
+
+  function openEditBudget(c: any) {
+    campEditBudgetId = c.id;
+    campEditBudgetValue = c.dailyBudget ? String(c.dailyBudget) : '';
+    campActionOpenId = null;
+  }
+
+  async function saveBudget(id: string) {
+    const num = parseFloat(campEditBudgetValue.replace(',', '.'));
+    if (!num || num <= 0) {
+      campErrorMsg = 'Orçamento inválido';
+      return;
+    }
+    const ok = await patchCampaign(id, { dailyBudget: num });
+    if (ok) campEditBudgetId = null;
+  }
+
+  async function duplicateCampaign(id: string) {
+    campActionBusyId = id;
+    campErrorMsg = '';
+    try {
+      const r = await fetch(`/api/fb-ads/campaign/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'duplicate' }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+      campSuccessMsg = '✓ Campanha duplicada (criada pausada)';
+      setTimeout(() => (campSuccessMsg = ''), 5000);
+      await pullCampaigns();
+    } catch (e: any) {
+      campErrorMsg = e?.message || 'Erro ao duplicar';
+    } finally {
+      campActionBusyId = null;
+      campDuplicateConfirmId = null;
+      campActionOpenId = null;
+    }
+  }
+
+  function clickOutsideAction(node: HTMLElement) {
+    const handler = (e: MouseEvent) => {
+      if (!node.contains(e.target as Node)) campActionOpenId = null;
+    };
+    document.addEventListener('click', handler);
+    return { destroy() { document.removeEventListener('click', handler); } };
   }
 
   $effect(() => {
@@ -2392,53 +2480,169 @@
         {:else if fbCampaigns.length === 0}
           <div class="empty"><span class="empty-emoji">◎</span><p>Sem campanhas no período. Tente outro intervalo.</p></div>
         {:else}
+          <!-- Toggle de densidade -->
+          <div class="camp-view-toggle">
+            <span class="camp-view-label">Visualização:</span>
+            <button class="camp-view-pill" class:active={campView === 'essential'} onclick={() => (campView = 'essential')}>Essencial</button>
+            <button class="camp-view-pill" class:active={campView === 'funnel'} onclick={() => (campView = 'funnel')}>Funil completo</button>
+            <button class="camp-view-pill" class:active={campView === 'full'} onclick={() => (campView = 'full')}>Tudo</button>
+          </div>
+
+          {#if campSuccessMsg}<div class="camp-flash success">{campSuccessMsg}</div>{/if}
+          {#if campErrorMsg}<div class="camp-flash error">⚠ {campErrorMsg} <button onclick={() => (campErrorMsg = '')}>✕</button></div>{/if}
+
           <!-- Tabela estilo UTMfy -->
           {@const campTotalSpend  = fbCampaigns.reduce((s, c) => s + c.spend, 0)}
           {@const campTotalImpr   = fbCampaigns.reduce((s, c) => s + c.impressions, 0)}
           {@const campTotalClicks = fbCampaigns.reduce((s, c) => s + c.clicks, 0)}
+          {@const campTotalPurch  = fbCampaigns.reduce((s, c) => s + (c.purchases || 0), 0)}
+          {@const campTotalRev    = fbCampaigns.reduce((s, c) => s + (c.purchaseValue || 0), 0)}
+          {@const campTotalLPV    = fbCampaigns.reduce((s, c) => s + (c.landingPageViews || 0), 0)}
+          {@const campTotalIC     = fbCampaigns.reduce((s, c) => s + (c.initiateCheckout || 0), 0)}
+          {@const campTotalATC    = fbCampaigns.reduce((s, c) => s + (c.addToCart || 0), 0)}
           <div class="camp-utmfy-wrap">
-            <table class="camp-utmfy">
+            <table class="camp-utmfy camp-utmfy-{campView}">
               <thead>
                 <tr>
-                  <th class="th-status">Status</th>
+                  <th class="th-status">●</th>
                   <th class="th-name">Campanha</th>
                   <th class="th-num">Gastos</th>
+                  {#if campView !== 'essential'}
+                    <th class="th-num">Orçamento</th>
+                  {/if}
                   <th class="th-num">Impressões</th>
+                  {#if campView === 'full'}
+                    <th class="th-num">Alcance</th>
+                    <th class="th-num">Freq.</th>
+                  {/if}
                   <th class="th-num">Cliques</th>
                   <th class="th-num">CTR</th>
-                  <th class="th-num">CPM</th>
-                  <th class="th-num">CPC</th>
+                  {#if campView !== 'essential'}
+                    <th class="th-num">LPV</th>
+                    <th class="th-num">IC</th>
+                  {/if}
+                  {#if campView === 'full'}
+                    <th class="th-num">ATC</th>
+                  {/if}
+                  <th class="th-num">Compras</th>
+                  <th class="th-num">Receita</th>
+                  <th class="th-num">ROAS</th>
+                  <th class="th-num">CPA</th>
+                  {#if campView === 'full'}
+                    <th class="th-num">CPM</th>
+                    <th class="th-num">CPC</th>
+                  {/if}
+                  <th class="th-actions">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {#each [...fbCampaigns].sort((a, b) => b.spend - a.spend) as c, i (c.id || c.name)}
-                <tr class="camp-tr" class:camp-tr-alt={i % 2 !== 0}>
+                <tr class="camp-tr" class:camp-tr-alt={i % 2 !== 0} class:camp-tr-paused={c.status === 'PAUSED'}>
                   <td class="td-status">
-                    <span class="camp-status-dot" class:active={c.spend > 0}></span>
+                    <span class="camp-status-dot" class:active={c.status === 'ACTIVE'} class:paused={c.status === 'PAUSED'} title={c.effectiveStatus || c.status}></span>
                   </td>
                   <td class="td-name">
                     <span class="camp-name-txt" title={c.name}>{c.name}</span>
+                    {#if c.objective}<span class="camp-objective">{c.objective.replace('OUTCOME_','').toLowerCase()}</span>{/if}
                   </td>
                   <td class="td-num">
                     <span class="camp-val-main">{fmtSpendDisplay(c.spend)}</span>
                     <span class="camp-val-sub">{fmtSpendSub(c.spend)}</span>
                   </td>
-                  <td class="td-num">
-                    <span class="camp-val-main">{fmtNum(c.impressions)}</span>
-                  </td>
-                  <td class="td-num">
-                    <span class="camp-val-main">{fmtNum(c.clicks)}</span>
-                  </td>
+                  {#if campView !== 'essential'}
+                    <td class="td-num">
+                      {#if c.dailyBudget}
+                        <span class="camp-val-main">{fmtSpendDisplay(c.dailyBudget)}</span>
+                        <span class="camp-val-sub">/dia</span>
+                      {:else if c.lifetimeBudget}
+                        <span class="camp-val-main">{fmtSpendDisplay(c.lifetimeBudget)}</span>
+                        <span class="camp-val-sub">total</span>
+                      {:else}<span class="camp-val-sub">—</span>{/if}
+                    </td>
+                  {/if}
+                  <td class="td-num"><span class="camp-val-main">{fmtNum(c.impressions)}</span></td>
+                  {#if campView === 'full'}
+                    <td class="td-num"><span class="camp-val-main">{fmtNum(c.reach)}</span></td>
+                    <td class="td-num"><span class="camp-val-main">{c.frequency ? c.frequency.toFixed(2) : '—'}</span></td>
+                  {/if}
+                  <td class="td-num"><span class="camp-val-main">{fmtNum(c.clicks)}</span></td>
                   <td class="td-num">
                     <span class="camp-val-main {c.ctr > 2 ? 'camp-val-green' : c.ctr < 1 ? 'camp-val-red' : ''}">{fmtPct2(c.ctr)}</span>
                   </td>
+                  {#if campView !== 'essential'}
+                    <td class="td-num"><span class="camp-val-main">{fmtNum(c.landingPageViews || 0)}</span></td>
+                    <td class="td-num"><span class="camp-val-main">{fmtNum(c.initiateCheckout || 0)}</span></td>
+                  {/if}
+                  {#if campView === 'full'}
+                    <td class="td-num"><span class="camp-val-main">{fmtNum(c.addToCart || 0)}</span></td>
+                  {/if}
                   <td class="td-num">
-                    <span class="camp-val-main">{fmtSpendDisplay(c.cpm / 1000)}</span>
-                    <span class="camp-val-sub">por mil</span>
+                    <span class="camp-val-main {c.purchases > 0 ? 'camp-val-green' : ''}">{fmtNum(c.purchases || 0)}</span>
                   </td>
                   <td class="td-num">
-                    <span class="camp-val-main">{fmtSpendDisplay(c.cpc)}</span>
-                    <span class="camp-val-sub">por clique</span>
+                    <span class="camp-val-main">{fmtSpendDisplay(c.purchaseValue || 0)}</span>
+                  </td>
+                  <td class="td-num">
+                    <span class="camp-val-main {c.roas > 1.5 ? 'camp-val-green' : c.roas < 1 && c.spend > 5 ? 'camp-val-red' : ''}">{c.roas ? c.roas.toFixed(2) + 'x' : '—'}</span>
+                  </td>
+                  <td class="td-num">
+                    <span class="camp-val-main">{c.cpa > 0 ? fmtSpendDisplay(c.cpa) : '—'}</span>
+                  </td>
+                  {#if campView === 'full'}
+                    <td class="td-num">
+                      <span class="camp-val-main">{fmtSpendDisplay(c.cpm / 1000)}</span>
+                      <span class="camp-val-sub">por mil</span>
+                    </td>
+                    <td class="td-num">
+                      <span class="camp-val-main">{fmtSpendDisplay(c.cpc)}</span>
+                    </td>
+                  {/if}
+                  <td class="td-actions" use:clickOutsideAction>
+                    {#if campEditBudgetId === c.id}
+                      <!-- Edicao inline de orcamento -->
+                      <div class="camp-edit-budget">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="1"
+                          bind:value={campEditBudgetValue}
+                          class="camp-edit-budget-input"
+                          placeholder="USD"
+                        />
+                        <button class="camp-action-save" onclick={() => saveBudget(c.id)} disabled={campActionBusyId === c.id}>
+                          {campActionBusyId === c.id ? '…' : '✓'}
+                        </button>
+                        <button class="camp-action-cancel" onclick={() => (campEditBudgetId = null)}>✕</button>
+                      </div>
+                    {:else}
+                      <button class="camp-action-btn" onclick={(e) => { e.stopPropagation(); campActionOpenId = campActionOpenId === c.id ? null : c.id; }}>
+                        ⋯
+                      </button>
+                      {#if campActionOpenId === c.id}
+                        <div class="camp-action-menu">
+                          <button class="camp-action-item" onclick={() => toggleCampaign(c)} disabled={campActionBusyId === c.id}>
+                            {#if c.status === 'ACTIVE'}⏸ Pausar{:else}▶ Ativar{/if}
+                          </button>
+                          <button class="camp-action-item" onclick={() => openEditBudget(c)}>
+                            ✎ Editar orçamento
+                          </button>
+                          <button class="camp-action-item" onclick={() => { campDuplicateConfirmId = c.id; campActionOpenId = null; }}>
+                            ⎘ Duplicar
+                          </button>
+                        </div>
+                      {/if}
+                      {#if campDuplicateConfirmId === c.id}
+                        <div class="camp-action-menu camp-action-confirm">
+                          <p>Duplicar "<strong>{c.name.slice(0, 30)}{c.name.length > 30 ? '…' : ''}</strong>"? A cópia será criada <strong>pausada</strong>.</p>
+                          <div class="camp-action-confirm-btns">
+                            <button class="camp-action-cancel" onclick={() => (campDuplicateConfirmId = null)}>Cancelar</button>
+                            <button class="camp-action-save" onclick={() => duplicateCampaign(c.id)} disabled={campActionBusyId === c.id}>
+                              {campActionBusyId === c.id ? 'Duplicando…' : 'Duplicar'}
+                            </button>
+                          </div>
+                        </div>
+                      {/if}
+                    {/if}
                   </td>
                 </tr>
                 {/each}
@@ -2447,12 +2651,23 @@
                 <tr class="camp-tr-total">
                   <td></td>
                   <td class="td-name"><strong>{fbCampaigns.length} campanha{fbCampaigns.length !== 1 ? 's' : ''}</strong></td>
-                  <td class="td-num"><span class="camp-val-main"><strong>{fmtSpendDisplay(campTotalSpend)}</strong></span><span class="camp-val-sub">{fmtSpendSub(campTotalSpend)}</span></td>
-                  <td class="td-num"><span class="camp-val-main"><strong>{fmtNum(campTotalImpr)}</strong></span></td>
-                  <td class="td-num"><span class="camp-val-main"><strong>{fmtNum(campTotalClicks)}</strong></span></td>
+                  <td class="td-num"><strong>{fmtSpendDisplay(campTotalSpend)}</strong></td>
+                  {#if campView !== 'essential'}<td class="td-num">—</td>{/if}
+                  <td class="td-num"><strong>{fmtNum(campTotalImpr)}</strong></td>
+                  {#if campView === 'full'}<td class="td-num">—</td><td class="td-num">—</td>{/if}
+                  <td class="td-num"><strong>{fmtNum(campTotalClicks)}</strong></td>
                   <td class="td-num">—</td>
-                  <td class="td-num">—</td>
-                  <td class="td-num">—</td>
+                  {#if campView !== 'essential'}
+                    <td class="td-num"><strong>{fmtNum(campTotalLPV)}</strong></td>
+                    <td class="td-num"><strong>{fmtNum(campTotalIC)}</strong></td>
+                  {/if}
+                  {#if campView === 'full'}<td class="td-num"><strong>{fmtNum(campTotalATC)}</strong></td>{/if}
+                  <td class="td-num"><strong>{fmtNum(campTotalPurch)}</strong></td>
+                  <td class="td-num"><strong>{fmtSpendDisplay(campTotalRev)}</strong></td>
+                  <td class="td-num"><strong>{campTotalSpend > 0 ? (campTotalRev / campTotalSpend).toFixed(2) + 'x' : '—'}</strong></td>
+                  <td class="td-num"><strong>{campTotalPurch > 0 ? fmtSpendDisplay(campTotalSpend / campTotalPurch) : '—'}</strong></td>
+                  {#if campView === 'full'}<td class="td-num">—</td><td class="td-num">—</td>{/if}
+                  <td class="td-actions">—</td>
                 </tr>
               </tfoot>
             </table>
@@ -4358,6 +4573,109 @@
     background: #02a95c;
     box-shadow: 0 0 0 3px rgba(2,169,92,0.15);
   }
+  .camp-status-dot.paused {
+    background: #fbbf24;
+    box-shadow: 0 0 0 3px rgba(251,191,36,0.15);
+  }
+  .camp-tr-paused { opacity: 0.65; }
+  .camp-objective {
+    display: block;
+    font-size: 0.6875rem; color: #6b7787;
+    text-transform: lowercase; margin-top: 2px;
+  }
+
+  /* Toggle de view */
+  .camp-view-toggle {
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 14px;
+  }
+  .camp-view-label {
+    font-size: 0.75rem; color: #8b94a4; margin-right: 6px; font-weight: 600;
+  }
+  .camp-view-pill {
+    background: #0d1117; border: 1px solid #1f2630;
+    color: #c5cad3; font-family: inherit; font-size: 0.75rem;
+    padding: 5px 12px; border-radius: 6px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .camp-view-pill:hover { border-color: #2a3340; color: #e6e9ef; }
+  .camp-view-pill.active {
+    background: rgba(2,169,92,0.1);
+    border-color: #02a95c;
+    color: #02a95c;
+  }
+
+  /* Flash messages */
+  .camp-flash {
+    padding: 10px 14px; border-radius: 8px; font-size: 0.8125rem;
+    margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .camp-flash.success { background: rgba(2,169,92,0.08); color: #02a95c; border: 1px solid rgba(2,169,92,0.2); }
+  .camp-flash.error { background: rgba(220,38,38,0.08); color: #f87171; border: 1px solid rgba(220,38,38,0.2); }
+  .camp-flash button { background: none; border: none; color: inherit; cursor: pointer; font-size: 1rem; opacity: 0.7; }
+  .camp-flash button:hover { opacity: 1; }
+
+  /* Coluna de acoes */
+  .th-actions { width: 60px; text-align: center; }
+  .td-actions {
+    width: 60px; text-align: center; position: relative;
+  }
+  .camp-action-btn {
+    background: transparent; border: 1px solid transparent;
+    color: #c5cad3; cursor: pointer;
+    width: 28px; height: 28px; border-radius: 6px;
+    font-size: 1.1rem; line-height: 1;
+    transition: all 0.15s;
+  }
+  .camp-action-btn:hover { border-color: #2a3340; background: #141a23; }
+  .camp-action-menu {
+    position: absolute; top: calc(100% + 4px); right: 8px;
+    background: #11151c; border: 1px solid #1f2630; border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    min-width: 180px; z-index: 100;
+    padding: 4px; display: flex; flex-direction: column;
+  }
+  .camp-action-item {
+    background: transparent; border: none;
+    color: #e6e9ef; font-family: inherit; font-size: 0.8125rem;
+    padding: 8px 12px; border-radius: 6px; text-align: left;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .camp-action-item:hover:not(:disabled) { background: #141a23; }
+  .camp-action-item:disabled { opacity: 0.5; cursor: not-allowed; }
+  .camp-action-confirm {
+    min-width: 240px; padding: 12px;
+  }
+  .camp-action-confirm p {
+    margin: 0 0 12px; font-size: 0.8125rem; color: #c5cad3; line-height: 1.5;
+  }
+  .camp-action-confirm-btns {
+    display: flex; gap: 8px; justify-content: flex-end;
+  }
+
+  .camp-edit-budget {
+    display: flex; align-items: center; gap: 4px;
+    background: #0d1117; border: 1px solid #02a95c;
+    border-radius: 6px; padding: 2px;
+  }
+  .camp-edit-budget-input {
+    background: transparent; border: none; color: #e6e9ef;
+    font-family: inherit; font-size: 0.8125rem;
+    width: 70px; padding: 4px 6px; outline: none;
+  }
+  .camp-action-save {
+    background: #02a95c; color: #fff; border: none;
+    width: 24px; height: 24px; border-radius: 4px;
+    cursor: pointer; font-size: 0.75rem; font-weight: 700;
+  }
+  .camp-action-save:hover:not(:disabled) { background: #029b54; }
+  .camp-action-save:disabled { opacity: 0.5; cursor: not-allowed; }
+  .camp-action-cancel {
+    background: transparent; color: #8b94a4; border: 1px solid #2a3340;
+    width: 24px; height: 24px; border-radius: 4px;
+    cursor: pointer; font-size: 0.75rem;
+  }
+  .camp-action-cancel:hover { color: #f87171; border-color: #f87171; }
   .camp-name-txt {
     display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     font-weight: 500; color: #c8cdd5; max-width: 260px;

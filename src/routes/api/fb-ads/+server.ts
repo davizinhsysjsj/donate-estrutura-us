@@ -90,36 +90,71 @@ async function fbFetchAll(initialPath: string): Promise<any[]> {
 }
 
 
+// Procura action de varios action_types (purchase pode vir como 'purchase' ou
+// 'offsite_conversion.fb_pixel_purchase' dependendo do setup do Pixel).
+function findActionAny(arr: any[] | undefined, types: string[]): number {
+  if (!arr) return 0;
+  let total = 0;
+  for (const t of types) {
+    const v = arr.find((a: any) => a.action_type === t)?.value;
+    if (v) total += parseFloat(v);
+  }
+  return total;
+}
+
 function parseInsight(d: any) {
+  const spend = parseFloat(d.spend || '0');
+  const impressions = parseInt(d.impressions || '0');
+  const clicks = parseInt(d.inline_link_clicks || '0');
+  const totalClicks = parseInt(d.clicks || '0');  // qualquer click (incluindo botoes do FB)
+
+  // Funil de conversao — agrega versoes "puras" + offsite_conversion + onsite
+  const landingPageViews = findActionAny(d.actions, ['landing_page_view']);
+  const viewContent      = findActionAny(d.actions, ['view_content', 'offsite_conversion.fb_pixel_view_content']);
+  const addToCart        = findActionAny(d.actions, ['add_to_cart', 'offsite_conversion.fb_pixel_add_to_cart']);
+  const initiateCheckout = findActionAny(d.actions, ['initiate_checkout', 'offsite_conversion.fb_pixel_initiate_checkout']);
+  const purchases        = findActionAny(d.actions, ['purchase', 'offsite_conversion.fb_pixel_purchase', 'omni_purchase']);
+  const purchaseValue    = findActionAny(d.action_values, ['purchase', 'offsite_conversion.fb_pixel_purchase', 'omni_purchase']);
+  const leads            = findActionAny(d.actions, ['lead', 'offsite_conversion.fb_pixel_lead']);
+
   return {
-    spend:         parseFloat(d.spend        || '0'),
-    impressions:   parseInt  (d.impressions  || '0'),
-    clicks:        parseInt  (d.inline_link_clicks || '0'),
+    spend, impressions, clicks, totalClicks,
     reach:         parseInt  (d.reach        || '0'),
+    frequency:     parseFloat(d.frequency    || '0'),
     cpm:           parseFloat(d.cpm          || '0'),
     cpc:           parseFloat(d.cpc          || '0'),
     ctr:           parseFloat(d.ctr          || '0'),
-    purchases:     parseInt  (findAction(d.actions,       'purchase')),
-    purchaseValue: parseFloat(findAction(d.action_values, 'purchase')),
+    landingPageViews, viewContent, addToCart, initiateCheckout, purchases, purchaseValue, leads,
+    roas:          spend > 0 ? purchaseValue / spend : 0,
+    cpa:           purchases > 0 ? spend / purchases : 0,
+    costPerLPV:    landingPageViews > 0 ? spend / landingPageViews : 0,
   };
 }
 
 function sumInsights(a: ReturnType<typeof parseInsight>, b: ReturnType<typeof parseInsight>) {
-  const totalSpend = a.spend + b.spend;
-  const totalImpr  = a.impressions + b.impressions;
-  const totalClicks = a.clicks + b.clicks;
-  const totalReach  = a.reach + b.reach;
+  const spend = a.spend + b.spend;
+  const impressions = a.impressions + b.impressions;
+  const clicks = a.clicks + b.clicks;
+  const reach = a.reach + b.reach;
+  const purchases = a.purchases + b.purchases;
+  const purchaseValue = a.purchaseValue + b.purchaseValue;
+  const landingPageViews = a.landingPageViews + b.landingPageViews;
   return {
-    spend:         totalSpend,
-    impressions:   totalImpr,
-    clicks:        totalClicks,
-    reach:         totalReach,
-    // CPM/CPC/CTR recalculados ponderados
-    cpm:   totalImpr  > 0 ? (totalSpend / totalImpr)  * 1000 : 0,
-    cpc:   totalClicks > 0 ? totalSpend / totalClicks : 0,
-    ctr:   totalImpr  > 0 ? (totalClicks / totalImpr) * 100  : 0,
-    purchases:     a.purchases + b.purchases,
-    purchaseValue: a.purchaseValue + b.purchaseValue,
+    spend, impressions, clicks, reach,
+    totalClicks: a.totalClicks + b.totalClicks,
+    frequency: a.frequency,  // mantem o do primeiro periodo (frequency nao soma)
+    cpm:   impressions > 0 ? (spend / impressions) * 1000 : 0,
+    cpc:   clicks > 0 ? spend / clicks : 0,
+    ctr:   impressions > 0 ? (clicks / impressions) * 100  : 0,
+    landingPageViews,
+    viewContent:       a.viewContent + b.viewContent,
+    addToCart:         a.addToCart + b.addToCart,
+    initiateCheckout:  a.initiateCheckout + b.initiateCheckout,
+    purchases, purchaseValue,
+    leads: a.leads + b.leads,
+    roas:       spend > 0 ? purchaseValue / spend : 0,
+    cpa:        purchases > 0 ? spend / purchases : 0,
+    costPerLPV: landingPageViews > 0 ? spend / landingPageViews : 0,
   };
 }
 
@@ -137,9 +172,66 @@ export const GET: RequestHandler = async ({ url }) => {
 
   try {
     const fields = [
-      'spend','impressions','inline_link_clicks','reach',
+      'spend','impressions','inline_link_clicks','clicks','reach','frequency',
       'cpm','cpc','ctr','actions','action_values','account_currency',
     ].join(',');
+    const camFields = [
+      'campaign_id','campaign_name',
+      'spend','impressions','inline_link_clicks','clicks','reach','frequency',
+      'ctr','cpm','cpc','actions','action_values',
+    ].join(',');
+
+    // Carrega metadados das campanhas (status, budget, objective) em paralelo
+    // com os insights — independe do periodo.
+    async function loadCampaignMeta(): Promise<Map<string, any>> {
+      const list = await fbFetchAll(
+        `${FB_ACCT}/campaigns?fields=id,name,status,effective_status,daily_budget,lifetime_budget,objective,created_time&limit=500&access_token=${FB_TOKEN}`
+      );
+      const map = new Map<string, any>();
+      for (const c of list) {
+        map.set(c.id, {
+          status: c.status,
+          effectiveStatus: c.effective_status,
+          dailyBudget: c.daily_budget ? parseInt(c.daily_budget) / 100 : null,
+          lifetimeBudget: c.lifetime_budget ? parseInt(c.lifetime_budget) / 100 : null,
+          objective: c.objective,
+          createdTime: c.created_time,
+        });
+      }
+      return map;
+    }
+
+    function shapeCampaign(c: any, meta?: any) {
+      const p = parseInsight(c);
+      return {
+        id:          c.campaign_id,
+        name:        c.campaign_name,
+        status:      meta?.status || null,
+        effectiveStatus: meta?.effectiveStatus || null,
+        dailyBudget: meta?.dailyBudget ?? null,
+        lifetimeBudget: meta?.lifetimeBudget ?? null,
+        objective:   meta?.objective || null,
+        spend:       p.spend,
+        impressions: p.impressions,
+        clicks:      p.clicks,
+        totalClicks: p.totalClicks,
+        reach:       p.reach,
+        frequency:   p.frequency,
+        ctr:         p.ctr,
+        cpm:         p.cpm,
+        cpc:         p.cpc,
+        landingPageViews: p.landingPageViews,
+        viewContent:      p.viewContent,
+        addToCart:        p.addToCart,
+        initiateCheckout: p.initiateCheckout,
+        purchases:        p.purchases,
+        purchaseValue:    p.purchaseValue,
+        leads:            p.leads,
+        roas:             p.roas,
+        cpa:              p.cpa,
+        costPerLPV:       p.costPerLPV,
+      };
+    }
 
     // ── Caso especial: Hoje + Ontem ───────────────────────────────────
     if (preset === '__hoje_ontem__') {
@@ -159,41 +251,35 @@ export const GET: RequestHandler = async ({ url }) => {
 
       let campaigns: any[] = [];
       if (withCampaigns) {
-        const camFields = 'campaign_id,campaign_name,spend,impressions,inline_link_clicks,ctr,cpm,cpc';
         const camQS = `fields=${camFields}&level=campaign&limit=500&access_token=${FB_TOKEN}`;
-        const [todayList, yestList] = await Promise.all([
+        const [todayList, yestList, metaMap] = await Promise.all([
           fbFetchAll(`${FB_ACCT}/insights?${camQS}&date_preset=today`),
           fbFetchAll(`${FB_ACCT}/insights?${camQS}&date_preset=yesterday`),
+          loadCampaignMeta(),
         ]);
-        // Merge campaigns por nome
+        // Merge por campaign_id — soma metricas dos 2 periodos
         const map = new Map<string, any>();
         for (const c of [...todayList, ...yestList]) {
-          const key = c.campaign_id || c.campaign_name;
+          const key = c.campaign_id;
+          if (!key) continue;
           if (map.has(key)) {
             const ex = map.get(key);
-            const newSpend = ex.spend + parseFloat(c.spend || '0');
-            const newImpr  = ex.impressions + parseInt(c.impressions || '0');
-            const newClicks = ex.clicks + parseInt(c.inline_link_clicks || '0');
-            map.set(key, {
-              ...ex,
-              spend: newSpend,
-              impressions: newImpr,
-              clicks: newClicks,
-              ctr: newImpr > 0 ? (newClicks / newImpr) * 100 : 0,
-              cpm: newImpr > 0 ? (newSpend / newImpr) * 1000 : 0,
-              cpc: newClicks > 0 ? newSpend / newClicks : 0,
+            const shaped = shapeCampaign(c, metaMap.get(key));
+            // Soma metricas
+            const merged: any = { ...ex };
+            (['spend','impressions','clicks','totalClicks','reach','landingPageViews','viewContent','addToCart','initiateCheckout','purchases','purchaseValue','leads'] as const).forEach((k) => {
+              merged[k] = (ex[k] || 0) + (shaped[k] || 0);
             });
+            // Recalcula taxas
+            merged.cpm = merged.impressions > 0 ? (merged.spend / merged.impressions) * 1000 : 0;
+            merged.cpc = merged.clicks > 0 ? merged.spend / merged.clicks : 0;
+            merged.ctr = merged.impressions > 0 ? (merged.clicks / merged.impressions) * 100 : 0;
+            merged.roas = merged.spend > 0 ? merged.purchaseValue / merged.spend : 0;
+            merged.cpa = merged.purchases > 0 ? merged.spend / merged.purchases : 0;
+            merged.costPerLPV = merged.landingPageViews > 0 ? merged.spend / merged.landingPageViews : 0;
+            map.set(key, merged);
           } else {
-            map.set(key, {
-              id: c.campaign_id,
-              name: c.campaign_name,
-              spend: parseFloat(c.spend || '0'),
-              impressions: parseInt(c.impressions || '0'),
-              clicks: parseInt(c.inline_link_clicks || '0'),
-              ctr: parseFloat(c.ctr || '0'),
-              cpm: parseFloat(c.cpm || '0'),
-              cpc: parseFloat(c.cpc || '0'),
-            });
+            map.set(key, shapeCampaign(c, metaMap.get(key)));
           }
         }
         campaigns = [...map.values()];
@@ -214,20 +300,11 @@ export const GET: RequestHandler = async ({ url }) => {
 
     let campaigns: any[] = [];
     if (withCampaigns) {
-      const camFields = 'campaign_id,campaign_name,spend,impressions,inline_link_clicks,ctr,cpm,cpc';
-      const list = await fbFetchAll(
-        `${FB_ACCT}/insights?fields=${camFields}&date_preset=${preset}&level=campaign&limit=500&access_token=${FB_TOKEN}`
-      );
-      campaigns = list.map((c: any) => ({
-        id:          c.campaign_id,
-        name:        c.campaign_name,
-        spend:       parseFloat(c.spend               || '0'),
-        impressions: parseInt  (c.impressions          || '0'),
-        clicks:      parseInt  (c.inline_link_clicks   || '0'),
-        ctr:         parseFloat(c.ctr          || '0'),
-        cpm:         parseFloat(c.cpm          || '0'),
-        cpc:         parseFloat(c.cpc          || '0'),
-      }));
+      const [list, metaMap] = await Promise.all([
+        fbFetchAll(`${FB_ACCT}/insights?fields=${camFields}&date_preset=${preset}&level=campaign&limit=500&access_token=${FB_TOKEN}`),
+        loadCampaignMeta(),
+      ]);
+      campaigns = list.map((c: any) => shapeCampaign(c, metaMap.get(c.campaign_id)));
     }
 
     if (!d) {
