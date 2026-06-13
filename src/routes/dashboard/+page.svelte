@@ -3601,25 +3601,26 @@
     .country-input { width: 100%; }
     .toggle { justify-content: space-between; }
 
-    /* KPIs mobile — grid 2 colunas com STRETCH (cards da mesma linha
-       crescem ate ficar com mesma altura — sem espaço vazio).
-       grid-auto-flow: dense preenche buracos com cards futuros. */
+    /* KPIs mobile — grid 2 colunas. Cards tem altura natural (compacta).
+       ONLINE AGORA (kpi-live) ocupa span 2 = full width — assim nao
+       sobra espaço vazio do amigo curto ao lado. */
     .kpi-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       grid-auto-flow: dense;
-      grid-auto-rows: 1fr;          /* todas as linhas com mesma altura */
       gap: 10px;
-      align-items: stretch;
+      align-items: stretch;     /* cards da mesma LINHA com mesma altura */
     }
     .kpi-grid > .kpi {
       margin: 0;
       display: flex;
       flex-direction: column;
-      justify-content: center;       /* centraliza valor no card esticado */
       width: auto;
       grid-column: span 1;
-      min-height: 100px;
+    }
+    /* Cards que sao por natureza maiores ocupam 2 colunas no mobile */
+    .kpi-grid > .kpi.kpi-live {
+      grid-column: span 2;
     }
     .kpi-grid > .kpi.kpi-large {
       grid-column: span 2;
