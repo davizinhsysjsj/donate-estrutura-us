@@ -2597,11 +2597,11 @@
                     </td>
                   {/if}
                   <td class="td-num" data-label="ROAS">
-                    <span class="camp-val-main {c.roas > 1.5 ? 'camp-val-green' : c.roas < 1 && c.spend > 5 ? 'camp-val-red' : ''}">{c.roas ? c.roas.toFixed(2) : '—'}</span>
+                    <span class="camp-val-main camp-val-green">{c.roas ? c.roas.toFixed(2) : '—'}</span>
                     <span class="camp-val-sub">Retorno</span>
                   </td>
                   <td class="td-num" data-label="Resultados">
-                    <span class="camp-val-main {c.purchases > 0 ? 'camp-val-green' : ''}">{fmtNum(c.purchases || 0)}</span>
+                    <span class="camp-val-main camp-val-green">{fmtNum(c.purchases || 0)}</span>
                     <span class="camp-val-sub">Compras</span>
                   </td>
                   <td class="td-num" data-label="Custo por resultado">
