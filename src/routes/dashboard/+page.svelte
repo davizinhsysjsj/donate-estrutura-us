@@ -960,11 +960,12 @@
   let campErrorMsg = $state('');
   let campSuccessMsg = $state('');
 
-  async function pullCampaigns() {
+  async function pullCampaigns(force = false) {
     campaignsLoading = true;
-    fbCampaigns = [];  // limpa enquanto carrega — evita mostrar dados da conta anterior
+    fbCampaigns = [];
     try {
-      const r = await fetch(`/api/fb-ads?window=${fbWin}&campaigns=1${fbAccountQuery}`, { cache: 'no-store' });
+      const nocache = force ? '&nocache=1' : '';
+      const r = await fetch(`/api/fb-ads?window=${fbWin}&campaigns=1${fbAccountQuery}${nocache}`, { cache: 'no-store' });
       if (r.ok) {
         const d = await r.json();
         fbCampaigns = d.campaigns || [];
@@ -2469,7 +2470,7 @@
                 Atualizado {fmtAgo(updateAgoSec)}
               {/if}
             </span>
-            <button class="btn-camp-refresh" onclick={pullCampaigns} disabled={campaignsLoading}>
+            <button class="btn-camp-refresh" onclick={() => pullCampaigns(true)} disabled={campaignsLoading}>
               ↻ Atualizar
             </button>
           </div>

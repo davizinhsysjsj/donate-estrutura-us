@@ -32,16 +32,17 @@ function saveDiskCache(): void {
 // Carrega na inicialização
 loadDiskCache();
 
-// Mapeia janela do dashboard para date_preset da FB API
+// Mapeia janela do dashboard para date_preset da FB API.
+// IMPORTANTE: Graph API v18+ usa "last_Xd" (sem underscore antes do d).
 const PRESET_MAP: Record<string, string> = {
   '2m':  'today', '15m': 'today', '1h': 'today',
-  '6h':  'today', '24h': 'today', '7d': 'last_7_d',
+  '6h':  'today', '24h': 'today', '7d': 'last_7d',
   'today':        'today',
   'yesterday':    'yesterday',
   'hoje_ontem':   '__hoje_ontem__', // especial — soma hoje + ontem
-  'last_7_d':     'last_7_d',
-  'last_14_d':    'last_14_d',
-  'last_30_d':    'last_30_d',
+  'last_7_d':     'last_7d',
+  'last_14_d':    'last_14d',
+  'last_30_d':    'last_30d',
   'this_month':   'this_month',
 };
 
@@ -167,8 +168,11 @@ export const GET: RequestHandler = async ({ url }) => {
   maybeRefreshInBackground();
 
   const cacheKey = `${FB_ACCT}-${win}-${withCampaigns}`;
-  const cached = _cache[cacheKey];
-  if (cached && Date.now() - cached.ts < CACHE_TTL) return json(cached.data);
+  const skipCache = url.searchParams.get('nocache') === '1';
+  if (!skipCache) {
+    const cached = _cache[cacheKey];
+    if (cached && Date.now() - cached.ts < CACHE_TTL) return json(cached.data);
+  }
 
   try {
     const fields = [
