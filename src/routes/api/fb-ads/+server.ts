@@ -89,10 +89,11 @@ async function fbFetchAll(initialPath: string): Promise<any[]> {
   return out;
 }
 
-// Filtro Graph API: campanhas ativamente entregando (campaign status + ad status)
-// Inclui status que estao "rodando": ACTIVE. Exclui PAUSED, ARCHIVED, DELETED, etc.
+// Filtro Graph API: pega campanhas com qualquer atividade no periodo.
+// Includes PAUSED tambem porque uma campanha pode rodar de manha e ser
+// pausada de tarde — ainda queremos ver o gasto. Excluimos so DELETED/ARCHIVED.
 const CAMPAIGN_ACTIVE_FILTER = encodeURIComponent(JSON.stringify([
-  { field: 'campaign.effective_status', operator: 'IN', value: ['ACTIVE'] }
+  { field: 'campaign.effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED', 'CAMPAIGN_PAUSED'] }
 ]));
 
 function parseInsight(d: any) {

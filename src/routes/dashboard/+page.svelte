@@ -4,7 +4,7 @@
   let { data } = $props();
 
   // ── State ──
-  type Tab = 'overview' | 'live' | 'funnel' | 'vsl' | 'heatmap' | 'sessions' | 'revenue' | 'tech' | 'ads' | 'taxas' | 'campanhas' | 'cleaner';
+  type Tab = 'overview' | 'live' | 'funnel' | 'vsl' | 'heatmap' | 'sessions' | 'revenue' | 'tech' | 'ads' | 'taxas' | 'campanhas' | 'cleaner' | 'contas';
   type Period = 'hoje' | 'ontem' | 'hoje_ontem' | 'ultimos_7d' | 'este_mes';
   let activeTab = $state<Tab>('overview');
   let period = $state<Period>('hoje');
@@ -386,6 +386,28 @@
     } catch {}
   }
 
+  // Abre OAuth FB em popup centralizado. Listener message reage no mount.
+  let oauthPopup: Window | null = null;
+  let oauthInProgress = $state(false);
+  function openOAuthPopup() {
+    if (!tokenStatus?.oauthConfigured) return;
+    const w = 600, h = 700;
+    const left = Math.max(0, (window.screen.width - w) / 2);
+    const top  = Math.max(0, (window.screen.height - h) / 2);
+    oauthInProgress = true;
+    tokenError = '';
+    tokenSuccessMsg = '';
+    oauthPopup = window.open(
+      '/api/fb-ads/oauth/start',
+      'fb-oauth',
+      `width=${w},height=${h},left=${left},top=${top},popup=yes`
+    );
+    if (!oauthPopup) {
+      oauthInProgress = false;
+      tokenError = 'Popup bloqueado pelo navegador. Permita popups para este site e tente de novo.';
+    }
+  }
+
   async function refreshTokenNow() {
     refreshingToken = true;
     tokenError = '';
@@ -728,21 +750,25 @@
     // Carrega status do token FB
     loadTokenStatus();
 
-    // Pos-OAuth: limpa query param e mostra toast
-    try {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('fb_connected') === '1') {
-        tokenPanelOpen = true;
-        tokenSuccessMsg = '✓ Conectado ao Facebook! Token renova automaticamente.';
-        // Limpa URL sem reload
-        params.delete('fb_connected');
-        const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-        window.history.replaceState({}, '', newUrl);
-        setTimeout(() => { tokenSuccessMsg = ''; }, 6000);
-        // Recarrega contas com novo token
+    // Listener do popup OAuth — recebe postMessage do callback
+    const onOAuthMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
+      const data: any = e.data;
+      if (!data || data.type !== 'fb-oauth-result') return;
+      oauthInProgress = false;
+      try { oauthPopup?.close(); } catch {}
+      oauthPopup = null;
+      if (data.payload?.ok) {
+        tokenSuccessMsg = '✓ Conectado ao Facebook! Token renova sozinho.';
+        setTimeout(() => { tokenSuccessMsg = ''; }, 5000);
+        loadTokenStatus();
         loadFbAccounts(true);
+      } else {
+        tokenError = data.payload?.error || 'Falha no OAuth';
       }
-    } catch {}
+    };
+    window.addEventListener('message', onOAuthMessage);
+    return () => window.removeEventListener('message', onOAuthMessage);
   });
 
   function dragStart(id: CardId) { dragSrc = id; }
@@ -1123,6 +1149,7 @@
         { id: 'live', label: 'Live', icon: '⚡︎' },
         { id: 'funnel', label: 'Funil', icon: '▽' },
         { id: 'campanhas', label: 'Campanhas', icon: 'f' },
+        { id: 'contas', label: 'Contas', icon: '⊞' },
         { id: 'taxas', label: 'Taxas', icon: '%' },
         { id: 'vsl', label: 'VSL', icon: '▶' },
         { id: 'sessions', label: 'Sessões', icon: '☰' },
@@ -1183,185 +1210,57 @@
             <span class="account-chevron" class:open={accountMenuOpen}>▾</span>
           </button>
           {#if accountMenuOpen}
-            <div class="account-menu">
+            <div class="account-menu account-menu-compact">
               <div class="account-menu-head">
-                <span>{fbAccounts.length} contas · {fbBusinesses.length} BMs</span>
-                <button class="account-refresh" onclick={() => loadFbAccounts(true)} disabled={fbAccountsLoading}>
+                <span>{fbAccounts.length} contas</span>
+                <button class="account-refresh" onclick={() => loadFbAccounts(true)} disabled={fbAccountsLoading} title="Atualizar">
                   {fbAccountsLoading ? '…' : '↻'}
                 </button>
               </div>
-              <div class="account-menu-search-wrap">
-                <input
-                  type="text"
-                  class="account-menu-search"
-                  placeholder="Buscar conta, BM ou ID…"
-                  bind:value={accountSearch}
-                />
-              </div>
+              {#if fbAccounts.length > 8}
+                <div class="account-menu-search-wrap">
+                  <input
+                    type="text"
+                    class="account-menu-search"
+                    placeholder="Buscar conta ou ID…"
+                    bind:value={accountSearch}
+                  />
+                </div>
+              {/if}
               {#if fbAccountsError}
                 <div class="account-menu-error" title={fbAccountsError}>⚠ {fbAccountsError}</div>
               {/if}
               {#if !fbAccountsFiltered.length && !fbAccountsLoading}
                 <div class="account-menu-empty">
-                  {accountSearch ? 'Nenhuma conta bate com a busca' : 'Nenhuma conta encontrada'}
+                  {fbAccounts.length === 0
+                    ? 'Nenhuma conta. Conecte na aba Contas.'
+                    : 'Nenhuma conta bate com a busca'}
                 </div>
               {/if}
-              <!-- Painel de configuração do token (collapsible) -->
-              <div class="account-token-section">
-                <button
-                  class="account-token-toggle"
-                  onclick={() => { tokenPanelOpen = !tokenPanelOpen; if (tokenPanelOpen) loadTokenStatus(); }}
-                >
-                  <span>⚙ Token Facebook</span>
-                  {#if tokenStatus}
-                    <span class="account-token-source" title="Origem do token em uso">
-                      {tokenStatus.source === 'disk' ? '💾 salvo' : tokenStatus.source === 'env' ? '🔑 env' : '⚠️ padrão'}
-                    </span>
-                  {/if}
-                  <span class="account-chevron" class:open={tokenPanelOpen}>▾</span>
-                </button>
-                {#if tokenPanelOpen}
-                  <div class="account-token-body">
-                    {#if tokenStatus}
-                      <div class="account-token-info">
-                        <span>Token atual: <code>{tokenStatus.masked}</code></span>
-                        {#if tokenStatus.source === 'disk'}
-                          <button class="account-token-clear" onclick={clearStoredToken}>Remover</button>
-                        {/if}
-                      </div>
-                      {#if tokenStatus.expiresAt && tokenStatus.daysLeft !== null}
-                        <div class="account-token-expiry" class:warn={tokenStatus.needsRefresh}>
-                          {#if tokenStatus.daysLeft! > 7}
-                            ✓ Vale por mais <strong>{tokenStatus.daysLeft} dias</strong> · renova sozinho aos 7d
-                          {:else if tokenStatus.daysLeft! > 0}
-                            ⚠ Expira em <strong>{tokenStatus.daysLeft} dia{tokenStatus.daysLeft === 1 ? '' : 's'}</strong> · renove agora
-                          {:else}
-                            ❌ Token expirado · reconecte com Facebook
-                          {/if}
-                        </div>
-                      {/if}
-                    {/if}
-
-                    <!-- OAuth: botao principal -->
-                    {#if tokenStatus?.oauthConfigured}
-                      <a href="/api/fb-ads/oauth/start" class="account-token-oauth">
-                        <span class="oauth-icon">f</span>
-                        {tokenStatus.kind === 'oauth' ? 'Reconectar com Facebook' : 'Conectar com Facebook'}
-                      </a>
-                      {#if tokenStatus.kind === 'oauth'}
-                        <button
-                          class="account-token-refresh"
-                          onclick={refreshTokenNow}
-                          disabled={refreshingToken}
-                        >
-                          {refreshingToken ? 'Renovando…' : '↻ Renovar token agora (mais 60 dias)'}
-                        </button>
-                      {/if}
-                      <div class="account-token-divider"><span>ou cole manualmente</span></div>
-                    {:else}
-                      <div class="account-token-oauth-disabled">
-                        ⚠ OAuth nao configurado. Defina <code>FB_APP_ID</code> e <code>FB_APP_SECRET</code> nas env vars do Railway pra ativar o login automatico.
-                      </div>
-                    {/if}
-
-                    <textarea
-                      class="account-token-input"
-                      placeholder="Cole aqui um User Access Token do Facebook (começa com EAA...)"
-                      bind:value={tokenInput}
-                      rows="3"
-                    ></textarea>
-                    <div class="account-token-actions">
-                      <button class="account-token-save" onclick={saveToken} disabled={tokenSaving || !tokenInput.trim()}>
-                        {tokenSaving ? 'Validando…' : 'Salvar token'}
-                      </button>
-                      <button class="account-token-debug" onclick={runDebug} disabled={debugLoading}>
-                        {debugLoading ? '…' : '🔍 Diagnosticar'}
-                      </button>
-                    </div>
-                    {#if tokenError}
-                      <div class="account-menu-error">{tokenError}</div>
-                    {/if}
-                    {#if tokenSuccessMsg}
-                      <div class="account-token-success">{tokenSuccessMsg}</div>
-                    {/if}
-                    <details class="account-token-help">
-                      <summary>Como pegar um token completo?</summary>
-                      <ol>
-                        <li>Acesse <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener">Graph API Explorer</a></li>
-                        <li>Selecione seu app (ou crie um novo)</li>
-                        <li>Em "Permissions" adicione: <code>ads_read</code> + <code>business_management</code> + <code>ads_management</code></li>
-                        <li>Click em "Generate Access Token" e autorize</li>
-                        <li>Cole o token aqui. Pra tornar permanente, troque por um <a href="https://developers.facebook.com/docs/facebook-login/guides/access-tokens#long-lived-tokens" target="_blank" rel="noopener">long-lived token</a> (60 dias)</li>
-                      </ol>
-                    </details>
-                    {#if fbDebug}
-                      <div class="account-token-debug-result">
-                        {#if fbDebug.error}
-                          <div class="account-menu-error">Erro: {fbDebug.error}</div>
-                        {:else}
-                          <div class="debug-section">
-                            <strong>Diagnóstico:</strong>
-                            {#each fbDebug.diagnosis as line}
-                              <div class="debug-line">{line}</div>
-                            {/each}
-                          </div>
-                          {#if fbDebug.permissions?.granted?.length}
-                            <div class="debug-section">
-                              <strong>Permissões:</strong> {fbDebug.permissions.granted.join(', ')}
-                            </div>
-                          {/if}
-                          {#if fbDebug.businesses?.count > 0}
-                            <div class="debug-section">
-                              <strong>BMs ({fbDebug.businesses.count}):</strong>
-                              {#each fbDebug.businessAccounts as bm}
-                                <div class="debug-bm">
-                                  <span>🏢 {bm.name}</span>
-                                  <span class="debug-bm-stats">{bm.ownedCount + bm.clientCount} contas</span>
-                                </div>
-                              {/each}
-                            </div>
-                          {/if}
-                        {/if}
-                      </div>
-                    {/if}
-                  </div>
-                {/if}
-              </div>
-
               <div class="account-menu-list">
-                {#each fbAccountsGrouped as group (group.id)}
-                  <div class="account-menu-group">
-                    <div class="account-menu-group-head">
-                      <span class="account-menu-group-icon">{group.id === '__personal__' ? '👤' : '🏢'}</span>
-                      <span class="account-menu-group-name">{group.name}</span>
-                      <span class="account-menu-group-count">{group.accounts.length}</span>
+                {#each fbAccountsFiltered as acc (acc.id)}
+                  <button
+                    type="button"
+                    class="account-menu-item account-menu-item-flat"
+                    class:active={acc.id === fbAccountId}
+                    class:disabled={acc.statusCode !== 1}
+                    onclick={() => selectFbAccount(acc.id)}
+                  >
+                    <div class="account-menu-item-main">
+                      <span class="account-menu-item-name">{acc.name}</span>
+                      <span class="account-menu-item-id">{acc.business || acc.id}</span>
                     </div>
-                    {#each group.accounts as acc (acc.id)}
-                      <button
-                        type="button"
-                        class="account-menu-item"
-                        class:active={acc.id === fbAccountId}
-                        class:disabled={acc.statusCode !== 1}
-                        onclick={() => selectFbAccount(acc.id)}
-                      >
-                        <div class="account-menu-item-main">
-                          <span class="account-menu-item-name">{acc.name}</span>
-                          <span class="account-menu-item-id">{acc.id}</span>
-                        </div>
-                        <div class="account-menu-item-meta">
-                          <span class="account-menu-item-currency">{acc.currency}</span>
-                          <span class="account-menu-item-status status-{acc.status}">{acc.status}</span>
-                          {#if acc.amountSpent > 0}
-                            <span class="account-menu-item-spent" title="Gasto lifetime">
-                              {acc.currency} {acc.amountSpent.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
-                            </span>
-                          {/if}
-                        </div>
-                      </button>
-                    {/each}
-                  </div>
+                    <span class="account-menu-item-currency">{acc.currency}</span>
+                  </button>
                 {/each}
               </div>
+              <button
+                class="account-menu-manage"
+                onclick={() => { activeTab = 'contas'; accountMenuOpen = false; }}
+              >
+                <span>⊞ Gerenciar contas</span>
+                <span>→</span>
+              </button>
             </div>
           {/if}
         </div>
@@ -2576,6 +2475,207 @@
       </div><!-- /tab-content campanhas -->
       {/if}
 
+      {#if activeTab === 'contas'}
+      <div class="tab-content">
+        <div class="contas-header">
+          <h2 class="contas-title">Contas de Anúncios</h2>
+          <p class="contas-subtitle">Conecte o Facebook, gerencie permissões e veja todos os Business Managers e contas que você tem acesso.</p>
+        </div>
+
+        <!-- Card 1: Conexao Facebook -->
+        <div class="contas-card">
+          <div class="contas-card-head">
+            <span class="contas-card-icon" style="background:#1877f2">f</span>
+            <div>
+              <h3 class="contas-card-title">Conexão com Facebook</h3>
+              <p class="contas-card-desc">
+                {#if tokenStatus?.kind === 'oauth'}
+                  Conectado via OAuth. Token renova automaticamente.
+                {:else if tokenStatus?.kind === 'manual'}
+                  Token manual salvo. Conecte via OAuth para renovação automática.
+                {:else}
+                  Use o login do Facebook para acesso completo a todos os seus BMs.
+                {/if}
+              </p>
+            </div>
+          </div>
+
+          {#if tokenStatus}
+            <div class="contas-status-grid">
+              <div class="contas-status-cell">
+                <span class="contas-status-label">Status</span>
+                <span class="contas-status-val">
+                  {#if tokenStatus.kind === 'oauth'}
+                    <span class="dot-green"></span> Conectado (OAuth)
+                  {:else if tokenStatus.source === 'disk'}
+                    <span class="dot-yellow"></span> Token manual
+                  {:else}
+                    <span class="dot-red"></span> Não conectado
+                  {/if}
+                </span>
+              </div>
+              {#if tokenStatus.expiresAt && tokenStatus.daysLeft !== null}
+                <div class="contas-status-cell">
+                  <span class="contas-status-label">Expira em</span>
+                  <span class="contas-status-val" class:warn={tokenStatus.needsRefresh}>
+                    {tokenStatus.daysLeft! > 0
+                      ? `${tokenStatus.daysLeft} dias`
+                      : 'Expirado'}
+                  </span>
+                </div>
+              {/if}
+              <div class="contas-status-cell">
+                <span class="contas-status-label">Token</span>
+                <span class="contas-status-val mono">{tokenStatus.masked}</span>
+              </div>
+              {#if tokenStatus.updatedAt}
+                <div class="contas-status-cell">
+                  <span class="contas-status-label">Atualizado</span>
+                  <span class="contas-status-val">{new Date(tokenStatus.updatedAt).toLocaleDateString('pt-BR')}</span>
+                </div>
+              {/if}
+            </div>
+          {/if}
+
+          <div class="contas-actions">
+            {#if tokenStatus?.oauthConfigured}
+              <button class="account-token-oauth" onclick={openOAuthPopup} disabled={oauthInProgress}>
+                <span class="oauth-icon">f</span>
+                {oauthInProgress ? 'Aguardando autorização…' : (tokenStatus.kind === 'oauth' ? 'Reconectar com Facebook' : 'Conectar com Facebook')}
+              </button>
+              {#if tokenStatus.kind === 'oauth'}
+                <button class="account-token-refresh" onclick={refreshTokenNow} disabled={refreshingToken}>
+                  {refreshingToken ? 'Renovando…' : '↻ Renovar agora'}
+                </button>
+              {/if}
+              {#if tokenStatus.source === 'disk'}
+                <button class="account-token-clear" onclick={clearStoredToken}>Desconectar</button>
+              {/if}
+            {:else}
+              <div class="account-token-oauth-disabled">
+                ⚠ OAuth não configurado. Defina <code>FB_APP_ID</code> e <code>FB_APP_SECRET</code> nas env vars do Railway.
+              </div>
+            {/if}
+          </div>
+
+          {#if tokenSuccessMsg}<div class="account-token-success">{tokenSuccessMsg}</div>{/if}
+          {#if tokenError}<div class="account-menu-error">{tokenError}</div>{/if}
+
+          <details class="contas-advanced">
+            <summary>Avançado — colar token manual ou diagnosticar</summary>
+            <div class="contas-advanced-body">
+              <textarea
+                class="account-token-input"
+                placeholder="Cole um User Access Token do Facebook (começa com EAA...)"
+                bind:value={tokenInput}
+                rows="3"
+              ></textarea>
+              <div class="account-token-actions">
+                <button class="account-token-save" onclick={saveToken} disabled={tokenSaving || !tokenInput.trim()}>
+                  {tokenSaving ? 'Validando…' : 'Salvar token manual'}
+                </button>
+                <button class="account-token-debug" onclick={runDebug} disabled={debugLoading}>
+                  {debugLoading ? '…' : '🔍 Diagnosticar permissões'}
+                </button>
+              </div>
+              {#if fbDebug}
+                <div class="account-token-debug-result">
+                  {#if fbDebug.error}
+                    <div class="account-menu-error">Erro: {fbDebug.error}</div>
+                  {:else}
+                    <div class="debug-section">
+                      <strong>Diagnóstico:</strong>
+                      {#each fbDebug.diagnosis as line}<div class="debug-line">{line}</div>{/each}
+                    </div>
+                    {#if fbDebug.permissions?.granted?.length}
+                      <div class="debug-section">
+                        <strong>Permissões:</strong> {fbDebug.permissions.granted.join(', ')}
+                      </div>
+                    {/if}
+                  {/if}
+                </div>
+              {/if}
+            </div>
+          </details>
+        </div>
+
+        <!-- Card 2: BMs e contas -->
+        <div class="contas-card">
+          <div class="contas-card-head">
+            <span class="contas-card-icon" style="background:#02a95c">⊞</span>
+            <div style="flex:1">
+              <h3 class="contas-card-title">Business Managers e Contas ({fbAccounts.length})</h3>
+              <p class="contas-card-desc">
+                {fbBusinesses.length} BM{fbBusinesses.length === 1 ? '' : 's'} · {fbAccounts.length} conta{fbAccounts.length === 1 ? '' : 's'} acessíveis
+              </p>
+            </div>
+            <button class="account-refresh contas-refresh" onclick={() => loadFbAccounts(true)} disabled={fbAccountsLoading}>
+              {fbAccountsLoading ? '…' : '↻ Atualizar'}
+            </button>
+          </div>
+
+          {#if fbAccountsError}
+            <div class="account-menu-error contas-error">⚠ {fbAccountsError}</div>
+          {/if}
+
+          {#if !fbAccounts.length && !fbAccountsLoading}
+            <div class="contas-empty">
+              <p>Nenhuma conta encontrada.</p>
+              <p>Conecte-se ao Facebook acima para puxar todas as suas contas e BMs.</p>
+            </div>
+          {/if}
+
+          <div class="contas-bm-list">
+            {#each fbAccountsGrouped as group (group.id)}
+              <div class="contas-bm-block">
+                <div class="contas-bm-head">
+                  <span class="contas-bm-icon">{group.id === '__personal__' ? '👤' : '🏢'}</span>
+                  <span class="contas-bm-name">{group.name}</span>
+                  <span class="contas-bm-count">{group.accounts.length} conta{group.accounts.length === 1 ? '' : 's'}</span>
+                </div>
+                <table class="contas-bm-table">
+                  <thead>
+                    <tr>
+                      <th>Conta</th>
+                      <th>ID</th>
+                      <th>Moeda</th>
+                      <th>Status</th>
+                      <th class="num">Gasto lifetime</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {#each group.accounts as acc (acc.id)}
+                      <tr class:active-row={acc.id === fbAccountId}>
+                        <td class="contas-acc-name">{acc.name}</td>
+                        <td class="contas-acc-id mono">{acc.id}</td>
+                        <td>{acc.currency}</td>
+                        <td>
+                          <span class="contas-acc-status status-{acc.status}">{acc.status}</span>
+                        </td>
+                        <td class="num">
+                          {#if acc.amountSpent > 0}
+                            {acc.currency} {acc.amountSpent.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+                          {:else}—{/if}
+                        </td>
+                        <td>
+                          {#if acc.id === fbAccountId}
+                            <span class="contas-acc-current">✓ Selecionada</span>
+                          {:else if acc.statusCode === 1}
+                            <button class="contas-acc-select" onclick={() => selectFbAccount(acc.id)}>Selecionar</button>
+                          {/if}
+                        </td>
+                      </tr>
+                    {/each}
+                  </tbody>
+                </table>
+              </div>
+            {/each}
+          </div>
+        </div>
+      </div><!-- /tab-content contas -->
+      {/if}
+
     {/if}
 
     <footer class="dash-foot">
@@ -3784,6 +3884,159 @@
   .account-menu-search:focus { outline: none; border-color: #02a95c; }
 
   .account-menu-list { overflow-y: auto; flex: 1; }
+
+  /* Dropdown compacto (topbar) */
+  .account-menu-compact .account-menu-item-flat {
+    grid-template-columns: 1fr auto;
+    padding: 8px 10px;
+  }
+  .account-menu-manage {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; padding: 10px 12px;
+    background: transparent; border: none; border-top: 1px solid #1a1f28;
+    color: #02a95c; font-family: inherit; font-size: 0.75rem; font-weight: 600;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .account-menu-manage:hover { background: #141a23; }
+
+  /* ─── Aba CONTAS ─── */
+  .contas-header { margin-bottom: 24px; }
+  .contas-title { font-size: 1.5rem; font-weight: 700; margin: 0 0 4px; color: #e6e9ef; }
+  .contas-subtitle { color: #8b94a4; font-size: 0.875rem; margin: 0; max-width: 620px; line-height: 1.5; }
+
+  .contas-card {
+    background: #11151c;
+    border: 1px solid #1f2630;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 18px;
+  }
+  .contas-card-head {
+    display: flex; align-items: flex-start; gap: 14px;
+    margin-bottom: 16px;
+  }
+  .contas-card-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-family: Georgia, serif; font-weight: 900; font-size: 1.25rem;
+    flex-shrink: 0;
+  }
+  .contas-card-title { margin: 0 0 4px; font-size: 1rem; font-weight: 700; color: #e6e9ef; }
+  .contas-card-desc { margin: 0; font-size: 0.8125rem; color: #8b94a4; line-height: 1.5; }
+
+  .contas-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    padding: 14px 16px;
+    background: #0a0d12;
+    border: 1px solid #1a1f28;
+    border-radius: 8px;
+    margin-bottom: 14px;
+  }
+  .contas-status-cell { display: flex; flex-direction: column; gap: 3px; }
+  .contas-status-label {
+    font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.05em;
+    color: #6b7787; font-weight: 600;
+  }
+  .contas-status-val {
+    font-size: 0.8125rem; color: #e6e9ef; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .contas-status-val.warn { color: #fbbf24; }
+  .contas-status-val.mono {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 500;
+  }
+  .dot-green, .dot-yellow, .dot-red {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  }
+  .dot-green { background: #02a95c; box-shadow: 0 0 0 3px rgba(2,169,92,0.15); }
+  .dot-yellow { background: #fbbf24; box-shadow: 0 0 0 3px rgba(251,191,36,0.15); }
+  .dot-red { background: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.15); }
+
+  .contas-actions {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    align-items: center;
+  }
+  .contas-actions .account-token-oauth { flex: 1 1 240px; max-width: 320px; }
+
+  .contas-advanced { margin-top: 18px; border-top: 1px solid #1a1f28; padding-top: 14px; }
+  .contas-advanced summary {
+    cursor: pointer; font-size: 0.8125rem; color: #8b94a4; padding: 4px 0;
+  }
+  .contas-advanced summary:hover { color: #e6e9ef; }
+  .contas-advanced-body { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+
+  .contas-refresh { margin-left: auto; flex-shrink: 0; padding: 6px 12px; font-size: 0.75rem; }
+  .contas-error { margin-bottom: 12px; }
+  .contas-empty {
+    text-align: center; padding: 30px 20px;
+    color: #6b7787; font-size: 0.875rem; line-height: 1.6;
+  }
+  .contas-empty p { margin: 0 0 4px; }
+
+  /* Listagem BMs */
+  .contas-bm-list { display: flex; flex-direction: column; gap: 20px; margin-top: 8px; }
+  .contas-bm-block { background: #0a0d12; border: 1px solid #1a1f28; border-radius: 8px; overflow: hidden; }
+  .contas-bm-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    background: #11151c;
+    border-bottom: 1px solid #1a1f28;
+  }
+  .contas-bm-icon { font-size: 1rem; }
+  .contas-bm-name { font-weight: 700; color: #e6e9ef; font-size: 0.875rem; flex: 1; }
+  .contas-bm-count {
+    font-size: 0.6875rem; color: #6b7787;
+    background: #0a0d12; padding: 3px 8px; border-radius: 10px;
+    font-weight: 600;
+  }
+  .contas-bm-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 0.8125rem;
+  }
+  .contas-bm-table th {
+    text-align: left; padding: 8px 12px;
+    color: #6b7787; font-weight: 600; font-size: 0.6875rem;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    border-bottom: 1px solid #1a1f28;
+    background: #0d1117;
+  }
+  .contas-bm-table th.num { text-align: right; }
+  .contas-bm-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #11151c;
+    color: #c5cad3;
+    vertical-align: middle;
+  }
+  .contas-bm-table td.num { text-align: right; }
+  .contas-bm-table tr:last-child td { border-bottom: none; }
+  .contas-bm-table tr.active-row { background: rgba(2,169,92,0.06); }
+  .contas-acc-name { font-weight: 600; color: #e6e9ef; }
+  .contas-acc-id { font-size: 0.75rem; color: #8b94a4; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .contas-acc-status {
+    font-size: 0.6875rem; padding: 2px 8px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.03em; font-weight: 700;
+  }
+  .contas-acc-status.status-active { background: rgba(2,169,92,0.12); color: #02a95c; }
+  .contas-acc-status.status-disabled { background: rgba(220,38,38,0.12); color: #dc2626; }
+  .contas-acc-status.status-pending_review,
+  .contas-acc-status.status-pending_settlement,
+  .contas-acc-status.status-in_grace_period { background: rgba(251,191,36,0.12); color: #fbbf24; }
+  .contas-acc-status.status-closed,
+  .contas-acc-status.status-pending_closure { background: rgba(107,119,135,0.12); color: #6b7787; }
+  .contas-acc-current {
+    font-size: 0.75rem; color: #02a95c; font-weight: 600;
+  }
+  .contas-acc-select {
+    background: transparent; border: 1px solid #2a3340;
+    color: #c5cad3; font-family: inherit; font-size: 0.75rem;
+    padding: 5px 12px; border-radius: 6px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .contas-acc-select:hover { border-color: #02a95c; color: #02a95c; }
+
   .account-menu-group { margin-bottom: 4px; }
   .account-menu-group:last-child { margin-bottom: 0; }
   .account-menu-group-head {
