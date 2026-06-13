@@ -3513,55 +3513,38 @@
     .status-text { white-space: nowrap; }
     .btn-update { padding: 5px 14px; font-size: 0.8125rem; }
 
-    /* Linha 2 (mobile): seletores em scroll horizontal sem quebrar.
-       IMPORTANTE: overflow-x: clip (em vez de auto) permite que dropdowns
-       filhos com position:absolute apareçam pra fora verticalmente.
-       Com 'auto', overflow-y vira hidden implicito e os dropdowns somem. */
+    /* Linha 2 (mobile): seletores compactos com flex-wrap.
+       SEM overflow (que cortava dropdowns descendentes). Se nao caberem,
+       quebram em 2 linhas — preferivel a corte do menu. */
     .topbar-selectors {
       order: 4; width: 100%;
-      display: flex; flex-wrap: nowrap;
+      display: flex; flex-wrap: wrap;
       gap: 6px;
-      overflow-x: auto;
-      overflow-y: visible;        /* explicito: permite dropdown cair pra baixo */
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
+      overflow: visible;          /* fundamental pros dropdowns descenderem */
       padding-bottom: 2px;
     }
-    .topbar-selectors::-webkit-scrollbar { display: none; }
     .selector-btn { padding: 7px 10px; font-size: 0.75rem; flex-shrink: 0; }
     .selector-value { font-size: 0.6875rem; padding: 1px 6px; }
 
-    /* Dropdowns no mobile: position:fixed pra escapar do overflow do
-       .topbar-selectors (que tem overflow-x: auto e corta o menu).
-       Aparecem ANCORADOS no topo, logo abaixo dos botoes seletores. */
+    /* Dropdowns no mobile: position absolute (default) ancorado no botao.
+       Sem overflow no parent, o menu pode cair pra baixo livremente. */
     .selector-menu {
-      position: fixed !important;
-      top: 100px;            /* abaixo da topbar (titulo + linha de seletores) */
-      bottom: auto;
-      left: 12px; right: 12px;
-      width: auto; max-width: none;
-      min-width: 0;
-      z-index: 300;
-      max-height: calc(100vh - 120px); overflow-y: auto;
-      border-radius: 12px;
-      padding: 6px;
+      left: 0; right: auto;
+      min-width: 200px;
+      max-width: calc(100vw - 24px);
+      max-height: 60vh; overflow-y: auto;
       animation: dropdownIn 0.18s ease-out;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
     }
     .selector-menu-item {
-      padding: 12px 14px;     /* touch friendly */
-      font-size: 0.9375rem;
+      padding: 11px 12px;
+      font-size: 0.875rem;
     }
     .account-menu {
-      position: fixed !important;
-      top: 100px;
-      bottom: auto;
-      left: 12px; right: 12px;
-      min-width: 0; max-width: none;
-      max-height: calc(100vh - 120px);
-      border-radius: 12px;
+      left: 0; right: auto;
+      min-width: calc(100vw - 24px);
+      max-width: calc(100vw - 24px);
+      max-height: 70vh;
       animation: dropdownIn 0.18s ease-out;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
     }
     @keyframes dropdownIn {
       from { opacity: 0; transform: translateY(-8px); }
