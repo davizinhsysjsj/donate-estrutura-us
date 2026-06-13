@@ -2527,7 +2527,7 @@
                     {#if c.objective}<span class="camp-objective">{c.objective.replace('OUTCOME_','').toLowerCase()}</span>{/if}
                   </td>
                   <!-- ORÇAMENTO inline -->
-                  <td class="td-num td-budget">
+                  <td class="td-num td-budget" data-label="Orçamento">
                     {#if campEditBudgetId === c.id}
                       <div class="camp-edit-budget">
                         <input
@@ -3513,12 +3513,16 @@
     .status-text { white-space: nowrap; }
     .btn-update { padding: 5px 14px; font-size: 0.8125rem; }
 
-    /* Linha 2 (mobile): seletores em scroll horizontal sem quebrar */
+    /* Linha 2 (mobile): seletores em scroll horizontal sem quebrar.
+       IMPORTANTE: overflow-x: clip (em vez de auto) permite que dropdowns
+       filhos com position:absolute apareçam pra fora verticalmente.
+       Com 'auto', overflow-y vira hidden implicito e os dropdowns somem. */
     .topbar-selectors {
       order: 4; width: 100%;
       display: flex; flex-wrap: nowrap;
       gap: 6px;
       overflow-x: auto;
+      overflow-y: visible;        /* explicito: permite dropdown cair pra baixo */
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
       padding-bottom: 2px;
@@ -3526,10 +3530,40 @@
     .topbar-selectors::-webkit-scrollbar { display: none; }
     .selector-btn { padding: 7px 10px; font-size: 0.75rem; flex-shrink: 0; }
     .selector-value { font-size: 0.6875rem; padding: 1px 6px; }
-    /* Dropdowns mobile: ocupam quase toda a largura */
+
+    /* Dropdowns no mobile: position:fixed pra escapar do overflow do
+       .topbar-selectors (que tem overflow-x: auto e corta o menu).
+       Bottom-sheet: aparece no fundo da tela, full width. */
     .selector-menu {
-      left: 0; right: auto;
-      min-width: 220px; max-width: calc(100vw - 24px);
+      position: fixed !important;
+      top: auto !important;
+      bottom: 0; left: 0; right: 0;
+      width: auto; max-width: none;
+      min-width: 0;
+      z-index: 300;
+      max-height: 65vh; overflow-y: auto;
+      border-radius: 16px 16px 0 0;
+      padding: 12px;
+      padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      animation: dropupIn 0.18s ease-out;
+    }
+    .selector-menu-item {
+      padding: 14px 12px;     /* maior pra touch */
+      font-size: 0.9375rem;
+    }
+    .account-menu {
+      position: fixed !important;
+      top: auto !important;
+      bottom: 0; left: 0; right: 0;
+      min-width: 0; max-width: none;
+      max-height: 75vh;
+      border-radius: 16px 16px 0 0;
+      padding-bottom: env(safe-area-inset-bottom);
+      animation: dropupIn 0.18s ease-out;
+    }
+    @keyframes dropupIn {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
     }
 
     .hamburger {
@@ -3567,21 +3601,25 @@
     .country-input { width: 100%; }
     .toggle { justify-content: space-between; }
 
-    /* KPIs mobile — grid 2 colunas com dense flow (preenche buracos
-       automaticamente) e suporte a card "large" (ocupa 2 colunas). */
+    /* KPIs mobile — grid 2 colunas com STRETCH (cards da mesma linha
+       crescem ate ficar com mesma altura — sem espaço vazio).
+       grid-auto-flow: dense preenche buracos com cards futuros. */
     .kpi-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       grid-auto-flow: dense;
+      grid-auto-rows: 1fr;          /* todas as linhas com mesma altura */
       gap: 10px;
-      align-items: start;
+      align-items: stretch;
     }
     .kpi-grid > .kpi {
       margin: 0;
       display: flex;
       flex-direction: column;
+      justify-content: center;       /* centraliza valor no card esticado */
       width: auto;
       grid-column: span 1;
+      min-height: 100px;
     }
     .kpi-grid > .kpi.kpi-large {
       grid-column: span 2;
@@ -4778,9 +4816,10 @@
       text-align: left;
     }
     .camp-utmfy-wrap .camp-utmfy td.td-budget::before {
-      content: 'Orçamento';
+      content: attr(data-label);
       font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
-      color: #6b7787; font-weight: 600;
+      color: #8b94a4; font-weight: 700;
+      margin-right: auto; padding-right: 0;
     }
     .camp-utmfy-wrap .camp-utmfy td.td-budget .camp-budget-btn {
       flex-direction: row; gap: 6px; align-items: baseline;
@@ -4789,9 +4828,11 @@
     .camp-utmfy-wrap .camp-utmfy td.td-budget .camp-budget-btn:hover { background: transparent; }
     .camp-utmfy-wrap .camp-utmfy td.td-budget .camp-val-sub { font-size: 0.75rem; }
 
-    /* Demais células — linha "label : valor" */
+    /* Demais células — linha "label  :  valor sub-label"
+       ::before vai a esquerda com margin-right: auto.
+       Spans (val-main + val-sub) ficam agrupados na direita. */
     .camp-utmfy-wrap .camp-utmfy td.td-num {
-      display: flex; justify-content: space-between; align-items: center;
+      display: flex; align-items: baseline; gap: 6px;
       padding: 8px 0;
       border-bottom: 1px solid #1a1f28;
       text-align: left;
@@ -4801,17 +4842,17 @@
       content: attr(data-label);
       font-size: 0.75rem; color: #8b94a4; font-weight: 500;
       letter-spacing: 0.01em;
-      flex-shrink: 0; padding-right: 12px;
-    }
-    .camp-utmfy-wrap .camp-utmfy td.td-num > span:not(.camp-val-sub) {
-      text-align: right; font-weight: 600;
+      margin-right: auto;            /* empurra spans pra direita */
+      padding-right: 12px;
+      flex-shrink: 0;
     }
     .camp-utmfy-wrap .camp-utmfy td.td-num .camp-val-main {
-      display: inline; font-size: 0.875rem;
+      display: inline; font-size: 0.9375rem; font-weight: 700;
+      color: #e6e9ef;
     }
     .camp-utmfy-wrap .camp-utmfy td.td-num .camp-val-sub {
       display: inline; font-size: 0.6875rem;
-      margin-left: 6px; color: #6b7787;
+      color: #6b7787; font-weight: 500;
     }
 
     /* Footer totals — card destacado */
