@@ -4723,17 +4723,22 @@
 
     /* ════════════════════════════════════════════════════════════
        TABELA CAMPANHAS — vira CARDS no mobile
-       Cada <tr> = card. <thead> some. <td> = linha "label : valor".
+       Escopo apenas em .camp-utmfy-wrap pra nao afetar OUTRAS tabelas
+       que tambem usam classe .camp-utmfy (ex: tabela de Receita).
        ════════════════════════════════════════════════════════════ */
     .camp-utmfy-wrap {
       border: none; background: transparent; padding: 0; overflow: visible;
     }
-    .camp-utmfy, .camp-utmfy thead, .camp-utmfy tbody, .camp-utmfy tfoot,
-    .camp-utmfy tr, .camp-utmfy td { display: block; width: 100%; }
+    .camp-utmfy-wrap .camp-utmfy,
+    .camp-utmfy-wrap .camp-utmfy thead,
+    .camp-utmfy-wrap .camp-utmfy tbody,
+    .camp-utmfy-wrap .camp-utmfy tfoot,
+    .camp-utmfy-wrap .camp-utmfy tr,
+    .camp-utmfy-wrap .camp-utmfy td { display: block; width: 100%; }
 
-    .camp-utmfy thead { display: none; }
+    .camp-utmfy-wrap .camp-utmfy thead { display: none; }
 
-    .camp-utmfy tr.camp-tr {
+    .camp-utmfy-wrap .camp-utmfy tr.camp-tr {
       background: #11151c;
       border: 1px solid #1f2630;
       border-radius: 12px;
@@ -4741,29 +4746,29 @@
       margin-bottom: 12px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
-    .camp-utmfy tr.camp-tr.camp-tr-alt { background: #11151c; }
-    .camp-utmfy tr.camp-tr-paused { opacity: 0.7; }
+    .camp-utmfy-wrap .camp-utmfy tr.camp-tr.camp-tr-alt { background: #11151c; }
+    .camp-utmfy-wrap .camp-utmfy tr.camp-tr-paused { opacity: 0.7; }
 
     /* Header do card: toggle | nome ocupando 1ª linha */
-    .camp-utmfy td.td-toggle {
+    .camp-utmfy-wrap .camp-utmfy td.td-toggle {
       display: inline-flex; width: auto; vertical-align: middle;
       padding: 0; margin-right: 12px;
     }
-    .camp-utmfy td.td-name {
+    .camp-utmfy-wrap .camp-utmfy td.td-name {
       display: inline-flex; flex-direction: column;
       width: calc(100% - 60px); vertical-align: middle;
       padding: 0 0 12px 0;
       border-bottom: 1px solid #1a1f28;
       margin-bottom: 10px;
     }
-    .camp-utmfy td.td-name .camp-name-txt {
+    .camp-utmfy-wrap .camp-utmfy td.td-name .camp-name-txt {
       max-width: 100%; white-space: normal; overflow: visible;
       font-size: 0.9375rem; font-weight: 600;
     }
-    .camp-utmfy td.td-name .camp-objective { margin-top: 4px; }
+    .camp-utmfy-wrap .camp-utmfy td.td-name .camp-objective { margin-top: 4px; }
 
     /* Orcamento — card destacado embaixo do header */
-    .camp-utmfy td.td-budget {
+    .camp-utmfy-wrap .camp-utmfy td.td-budget {
       display: flex; justify-content: space-between; align-items: center;
       padding: 10px 12px;
       background: rgba(24,119,242,0.08);
@@ -4772,58 +4777,58 @@
       margin-bottom: 12px;
       text-align: left;
     }
-    .camp-utmfy td.td-budget::before {
+    .camp-utmfy-wrap .camp-utmfy td.td-budget::before {
       content: 'Orçamento';
       font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
       color: #6b7787; font-weight: 600;
     }
-    .camp-utmfy td.td-budget .camp-budget-btn {
+    .camp-utmfy-wrap .camp-utmfy td.td-budget .camp-budget-btn {
       flex-direction: row; gap: 6px; align-items: baseline;
       padding: 0; border: none;
     }
-    .camp-utmfy td.td-budget .camp-budget-btn:hover { background: transparent; }
-    .camp-utmfy td.td-budget .camp-val-sub { font-size: 0.75rem; }
+    .camp-utmfy-wrap .camp-utmfy td.td-budget .camp-budget-btn:hover { background: transparent; }
+    .camp-utmfy-wrap .camp-utmfy td.td-budget .camp-val-sub { font-size: 0.75rem; }
 
     /* Demais células — linha "label : valor" */
-    .camp-utmfy td.td-num {
+    .camp-utmfy-wrap .camp-utmfy td.td-num {
       display: flex; justify-content: space-between; align-items: center;
       padding: 8px 0;
       border-bottom: 1px solid #1a1f28;
       text-align: left;
     }
-    .camp-utmfy td.td-num:last-child { border-bottom: none; }
-    .camp-utmfy td.td-num::before {
+    .camp-utmfy-wrap .camp-utmfy td.td-num:last-child { border-bottom: none; }
+    .camp-utmfy-wrap .camp-utmfy td.td-num::before {
       content: attr(data-label);
       font-size: 0.75rem; color: #8b94a4; font-weight: 500;
       letter-spacing: 0.01em;
       flex-shrink: 0; padding-right: 12px;
     }
-    .camp-utmfy td.td-num > span:not(.camp-val-sub) {
+    .camp-utmfy-wrap .camp-utmfy td.td-num > span:not(.camp-val-sub) {
       text-align: right; font-weight: 600;
     }
-    .camp-utmfy td.td-num .camp-val-main {
+    .camp-utmfy-wrap .camp-utmfy td.td-num .camp-val-main {
       display: inline; font-size: 0.875rem;
     }
-    .camp-utmfy td.td-num .camp-val-sub {
+    .camp-utmfy-wrap .camp-utmfy td.td-num .camp-val-sub {
       display: inline; font-size: 0.6875rem;
       margin-left: 6px; color: #6b7787;
     }
 
     /* Footer totals — card destacado */
-    .camp-utmfy tr.camp-tr-total {
+    .camp-utmfy-wrap .camp-utmfy tr.camp-tr-total {
       background: #0d1117;
       border: 1px solid #02a95c33;
       border-radius: 12px;
       padding: 12px 14px;
       margin-top: 6px;
     }
-    .camp-utmfy tr.camp-tr-total td:first-child { display: none; }
-    .camp-utmfy tr.camp-tr-total td.td-name {
+    .camp-utmfy-wrap .camp-utmfy tr.camp-tr-total td:first-child { display: none; }
+    .camp-utmfy-wrap .camp-utmfy tr.camp-tr-total td.td-name {
       width: 100%; padding: 0 0 10px 0;
       border-bottom: 1px solid #1a2330; margin-bottom: 8px;
       font-size: 0.9375rem;
     }
-    .camp-utmfy tr.camp-tr-total td.td-num {
+    .camp-utmfy-wrap .camp-utmfy tr.camp-tr-total td.td-num {
       display: flex; justify-content: space-between;
       padding: 6px 0; border-bottom: 1px dashed #1a1f28;
     }
@@ -4890,45 +4895,19 @@
   }
 
   /* ════════════════════════════════════════════════════════════
-     TOPBAR mobile — seletores em scroll horizontal
+     TOPBAR mobile — polimento dos seletores ja com nowrap
      ════════════════════════════════════════════════════════════ */
   @media (max-width: 768px) {
-    .topbar-left {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      flex-wrap: nowrap !important;
-      padding-bottom: 4px;
-    }
-    .topbar-left::-webkit-scrollbar { display: none; }
-    .topbar-left .selector-wrap,
-    .topbar-left .selector-btn { flex-shrink: 0; }
-    .selector-btn {
-      padding: 7px 10px; font-size: 0.75rem;
-    }
+    .selector-btn { padding: 7px 10px; font-size: 0.75rem; }
     .selector-label { display: none; }
     .selector-value { font-size: 0.75rem; }
-
-    /* Account dropdown menu mais largo */
-    .account-menu {
-      position: fixed !important;
-      top: auto !important; bottom: 0; left: 0; right: 0;
-      max-height: 75vh;
-      border-radius: 12px 12px 0 0;
-      min-width: 100vw; max-width: 100vw;
-      animation: slideUp 0.2s ease-out;
-    }
-    @keyframes slideUp {
-      from { transform: translateY(100%); }
-      to { transform: translateY(0); }
-    }
   }
 
-  /* Tooltip auxiliar pro toggle de view */
+  /* Tablets (768-1200) — reduz fonte da tabela campanhas pra caber */
   @media (max-width: 1200px) and (min-width: 769px) {
-    /* Em tablets, esconde 'CPM' e 'Add to cart' quando view=full pra nao quebrar */
-    .camp-utmfy { font-size: 0.75rem; }
-    .camp-utmfy th, .camp-utmfy td { padding: 10px 8px; }
+    .camp-utmfy-wrap .camp-utmfy { font-size: 0.75rem; }
+    .camp-utmfy-wrap .camp-utmfy th,
+    .camp-utmfy-wrap .camp-utmfy td { padding: 10px 8px; }
   }
 
   /* ── Taxas form ── */
