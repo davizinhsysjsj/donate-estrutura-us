@@ -2559,57 +2559,57 @@
                     {/if}
                   </td>
                   <!-- GASTOS -->
-                  <td class="td-num">
+                  <td class="td-num" data-label="Gastos">
                     <span class="camp-val-main">{fmtSpendDisplay(c.spend)}</span>
                     <span class="camp-val-sub">{fmtSpendSub(c.spend)}</span>
                   </td>
-                  <td class="td-num"><span class="camp-val-main">{fmtNum(c.impressions)}</span></td>
+                  <td class="td-num" data-label="Impressões"><span class="camp-val-main">{fmtNum(c.impressions)}</span></td>
                   {#if campView === 'full'}
-                    <td class="td-num"><span class="camp-val-main">{fmtNum(c.reach)}</span></td>
-                    <td class="td-num"><span class="camp-val-main">{c.frequency ? c.frequency.toFixed(2) : '—'}</span></td>
+                    <td class="td-num" data-label="Alcance"><span class="camp-val-main">{fmtNum(c.reach)}</span></td>
+                    <td class="td-num" data-label="Frequência"><span class="camp-val-main">{c.frequency ? c.frequency.toFixed(2) : '—'}</span></td>
                   {/if}
-                  <td class="td-num">
+                  <td class="td-num" data-label="CTR">
                     <span class="camp-val-main {c.ctr > 2 ? 'camp-val-green' : c.ctr < 1 ? 'camp-val-red' : ''}">{fmtPct2(c.ctr)}</span>
                     <span class="camp-val-sub">Por impressões</span>
                   </td>
-                  <td class="td-num">
+                  <td class="td-num" data-label="Cliques no link">
                     <span class="camp-val-main">{fmtNum(c.clicks)}</span>
                     <span class="camp-val-sub">Total</span>
                   </td>
-                  <td class="td-num">
+                  <td class="td-num" data-label="CPC">
                     <span class="camp-val-main">{fmtSpendDisplay(c.cpc)}</span>
                     <span class="camp-val-sub">Por clique</span>
                   </td>
                   {#if campView !== 'essential'}
-                    <td class="td-num">
+                    <td class="td-num" data-label="Visualizações da página">
                       <span class="camp-val-main">{fmtNum(c.landingPageViews || 0)}</span>
                       <span class="camp-val-sub">Total</span>
                     </td>
-                    <td class="td-num">
+                    <td class="td-num" data-label="Finalizações de compra">
                       <span class="camp-val-main">{fmtNum(c.initiateCheckout || 0)}</span>
                       <span class="camp-val-sub">Total</span>
                     </td>
                   {/if}
                   {#if campView === 'full'}
-                    <td class="td-num">
+                    <td class="td-num" data-label="Add to cart">
                       <span class="camp-val-main">{fmtNum(c.addToCart || 0)}</span>
                       <span class="camp-val-sub">Total</span>
                     </td>
                   {/if}
-                  <td class="td-num">
+                  <td class="td-num" data-label="ROAS">
                     <span class="camp-val-main {c.roas > 1.5 ? 'camp-val-green' : c.roas < 1 && c.spend > 5 ? 'camp-val-red' : ''}">{c.roas ? c.roas.toFixed(2) : '—'}</span>
                     <span class="camp-val-sub">Retorno</span>
                   </td>
-                  <td class="td-num">
+                  <td class="td-num" data-label="Resultados">
                     <span class="camp-val-main {c.purchases > 0 ? 'camp-val-green' : ''}">{fmtNum(c.purchases || 0)}</span>
                     <span class="camp-val-sub">Compras</span>
                   </td>
-                  <td class="td-num">
+                  <td class="td-num" data-label="Custo por resultado">
                     <span class="camp-val-main">{c.cpa > 0 ? fmtSpendDisplay(c.cpa) : '—'}</span>
                     <span class="camp-val-sub">Por compra</span>
                   </td>
                   {#if campView === 'full'}
-                    <td class="td-num">
+                    <td class="td-num" data-label="CPM">
                       <span class="camp-val-main">{fmtSpendDisplay(c.cpm / 1000)}</span>
                       <span class="camp-val-sub">Por mil</span>
                     </td>
@@ -4704,14 +4704,15 @@
   }
 
   @media (max-width: 768px) {
-    /* Campanhas mobile */
-    .camp-filterbar { padding: 12px; gap: 10px; }
-    .camp-filterbar-right { flex-wrap: wrap; }
-    .camp-bar-row { grid-template-columns: 120px 1fr 90px; }
-    /* ocultar cols secundárias na tabela UTMfy em mobile */
-    .camp-utmfy th.th-num:nth-child(n+5),
-    .camp-tr td.td-num:nth-child(n+5) { display: none; }
-    /* Seletor de conta mobile: dropdown alinhado à esquerda da topbar */
+    /* ── Toggle view (Essencial/Funil/Tudo) compacto ── */
+    .camp-view-toggle { flex-wrap: wrap; }
+    .camp-view-pill { padding: 6px 10px; font-size: 0.6875rem; }
+
+    /* ── Bars (distribuição) ── */
+    .camp-bar-row { grid-template-columns: 1fr; gap: 4px; padding: 8px 0; }
+    .camp-bar-label { font-size: 0.75rem; }
+
+    /* ── Conta mobile: dropdown alinhado a esquerda ── */
     .account-btn { padding: 7px 10px; font-size: 0.75rem; max-width: 180px; }
     .account-btn-label { max-width: 90px; }
     .account-menu {
@@ -4719,6 +4720,215 @@
       min-width: 280px; max-width: calc(100vw - 24px);
       max-height: 70vh;
     }
+
+    /* ════════════════════════════════════════════════════════════
+       TABELA CAMPANHAS — vira CARDS no mobile
+       Cada <tr> = card. <thead> some. <td> = linha "label : valor".
+       ════════════════════════════════════════════════════════════ */
+    .camp-utmfy-wrap {
+      border: none; background: transparent; padding: 0; overflow: visible;
+    }
+    .camp-utmfy, .camp-utmfy thead, .camp-utmfy tbody, .camp-utmfy tfoot,
+    .camp-utmfy tr, .camp-utmfy td { display: block; width: 100%; }
+
+    .camp-utmfy thead { display: none; }
+
+    .camp-utmfy tr.camp-tr {
+      background: #11151c;
+      border: 1px solid #1f2630;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .camp-utmfy tr.camp-tr.camp-tr-alt { background: #11151c; }
+    .camp-utmfy tr.camp-tr-paused { opacity: 0.7; }
+
+    /* Header do card: toggle | nome ocupando 1ª linha */
+    .camp-utmfy td.td-toggle {
+      display: inline-flex; width: auto; vertical-align: middle;
+      padding: 0; margin-right: 12px;
+    }
+    .camp-utmfy td.td-name {
+      display: inline-flex; flex-direction: column;
+      width: calc(100% - 60px); vertical-align: middle;
+      padding: 0 0 12px 0;
+      border-bottom: 1px solid #1a1f28;
+      margin-bottom: 10px;
+    }
+    .camp-utmfy td.td-name .camp-name-txt {
+      max-width: 100%; white-space: normal; overflow: visible;
+      font-size: 0.9375rem; font-weight: 600;
+    }
+    .camp-utmfy td.td-name .camp-objective { margin-top: 4px; }
+
+    /* Orcamento — card destacado embaixo do header */
+    .camp-utmfy td.td-budget {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 12px;
+      background: rgba(24,119,242,0.08);
+      border: 1px solid rgba(24,119,242,0.2);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      text-align: left;
+    }
+    .camp-utmfy td.td-budget::before {
+      content: 'Orçamento';
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
+      color: #6b7787; font-weight: 600;
+    }
+    .camp-utmfy td.td-budget .camp-budget-btn {
+      flex-direction: row; gap: 6px; align-items: baseline;
+      padding: 0; border: none;
+    }
+    .camp-utmfy td.td-budget .camp-budget-btn:hover { background: transparent; }
+    .camp-utmfy td.td-budget .camp-val-sub { font-size: 0.75rem; }
+
+    /* Demais células — linha "label : valor" */
+    .camp-utmfy td.td-num {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #1a1f28;
+      text-align: left;
+    }
+    .camp-utmfy td.td-num:last-child { border-bottom: none; }
+    .camp-utmfy td.td-num::before {
+      content: attr(data-label);
+      font-size: 0.75rem; color: #8b94a4; font-weight: 500;
+      letter-spacing: 0.01em;
+      flex-shrink: 0; padding-right: 12px;
+    }
+    .camp-utmfy td.td-num > span:not(.camp-val-sub) {
+      text-align: right; font-weight: 600;
+    }
+    .camp-utmfy td.td-num .camp-val-main {
+      display: inline; font-size: 0.875rem;
+    }
+    .camp-utmfy td.td-num .camp-val-sub {
+      display: inline; font-size: 0.6875rem;
+      margin-left: 6px; color: #6b7787;
+    }
+
+    /* Footer totals — card destacado */
+    .camp-utmfy tr.camp-tr-total {
+      background: #0d1117;
+      border: 1px solid #02a95c33;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-top: 6px;
+    }
+    .camp-utmfy tr.camp-tr-total td:first-child { display: none; }
+    .camp-utmfy tr.camp-tr-total td.td-name {
+      width: 100%; padding: 0 0 10px 0;
+      border-bottom: 1px solid #1a2330; margin-bottom: 8px;
+      font-size: 0.9375rem;
+    }
+    .camp-utmfy tr.camp-tr-total td.td-num {
+      display: flex; justify-content: space-between;
+      padding: 6px 0; border-bottom: 1px dashed #1a1f28;
+    }
+
+    /* Switch um pouco maior pra touch */
+    .camp-switch-track { width: 44px; height: 26px; border-radius: 13px; }
+    .camp-switch-thumb { width: 22px; height: 22px; top: 2px; left: 2px; }
+    .camp-switch.active .camp-switch-thumb { transform: translateX(18px); }
+  }
+
+  @media (max-width: 480px) {
+    .camp-view-label { display: none; }  /* economiza espaço em telas bem pequenas */
+    .camp-view-pill { flex: 1; text-align: center; }
+  }
+
+  /* ════════════════════════════════════════════════════════════
+     ABA CONTAS — mobile
+     ════════════════════════════════════════════════════════════ */
+  @media (max-width: 768px) {
+    .contas-title { font-size: 1.25rem; }
+    .contas-subtitle { font-size: 0.8125rem; }
+    .contas-card { padding: 16px; border-radius: 10px; }
+    .contas-card-head { flex-wrap: wrap; }
+    .contas-card-head > div { flex: 1; min-width: 0; }
+    .contas-refresh { width: 100%; margin-top: 8px; }
+    .contas-status-grid { grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; }
+    .contas-actions { flex-direction: column; align-items: stretch; }
+    .contas-actions .account-token-oauth { flex: 1 1 100%; max-width: 100%; }
+
+    /* Tabela BMs vira cards */
+    .contas-bm-table thead { display: none; }
+    .contas-bm-table, .contas-bm-table tbody, .contas-bm-table tr, .contas-bm-table td {
+      display: block; width: 100%;
+    }
+    .contas-bm-table tr {
+      padding: 12px 14px;
+      border-bottom: 1px solid #1a1f28;
+    }
+    .contas-bm-table tr:last-child { border-bottom: none; }
+    .contas-bm-table td {
+      padding: 4px 0; text-align: left; border: none;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .contas-bm-table td.contas-acc-name {
+      font-size: 0.9375rem;
+      padding: 0 0 8px 0;
+      border-bottom: 1px solid #1a1f28;
+      margin-bottom: 8px;
+      justify-content: flex-start;
+    }
+    .contas-bm-table td.contas-acc-id::before { content: 'ID'; color: #6b7787; font-size: 0.75rem; }
+    .contas-bm-table td.num::before {
+      content: 'Gasto lifetime'; color: #6b7787; font-size: 0.75rem;
+    }
+    .contas-bm-table td:nth-child(3)::before { content: 'Moeda'; color: #6b7787; font-size: 0.75rem; }
+    .contas-bm-table td:nth-child(4)::before { content: 'Status'; color: #6b7787; font-size: 0.75rem; }
+    .contas-bm-table td:last-child {
+      padding-top: 8px; margin-top: 8px;
+      border-top: 1px solid #1a1f28;
+      justify-content: stretch;
+    }
+    .contas-bm-table td:last-child::before { content: none; }
+    .contas-acc-select { width: 100%; padding: 10px; font-size: 0.875rem; }
+  }
+
+  /* ════════════════════════════════════════════════════════════
+     TOPBAR mobile — seletores em scroll horizontal
+     ════════════════════════════════════════════════════════════ */
+  @media (max-width: 768px) {
+    .topbar-left {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      flex-wrap: nowrap !important;
+      padding-bottom: 4px;
+    }
+    .topbar-left::-webkit-scrollbar { display: none; }
+    .topbar-left .selector-wrap,
+    .topbar-left .selector-btn { flex-shrink: 0; }
+    .selector-btn {
+      padding: 7px 10px; font-size: 0.75rem;
+    }
+    .selector-label { display: none; }
+    .selector-value { font-size: 0.75rem; }
+
+    /* Account dropdown menu mais largo */
+    .account-menu {
+      position: fixed !important;
+      top: auto !important; bottom: 0; left: 0; right: 0;
+      max-height: 75vh;
+      border-radius: 12px 12px 0 0;
+      min-width: 100vw; max-width: 100vw;
+      animation: slideUp 0.2s ease-out;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+  }
+
+  /* Tooltip auxiliar pro toggle de view */
+  @media (max-width: 1200px) and (min-width: 769px) {
+    /* Em tablets, esconde 'CPM' e 'Add to cart' quando view=full pra nao quebrar */
+    .camp-utmfy { font-size: 0.75rem; }
+    .camp-utmfy th, .camp-utmfy td { padding: 10px 8px; }
   }
 
   /* ── Taxas form ── */
