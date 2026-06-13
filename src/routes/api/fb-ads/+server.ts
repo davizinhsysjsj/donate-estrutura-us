@@ -91,32 +91,34 @@ async function fbFetchAll(initialPath: string): Promise<any[]> {
 }
 
 
-// Procura action de varios action_types (purchase pode vir como 'purchase' ou
-// 'offsite_conversion.fb_pixel_purchase' dependendo do setup do Pixel).
-function findActionAny(arr: any[] | undefined, types: string[]): number {
+// Procura o PRIMEIRO action_type que existir na lista de prioridade.
+// Importante: NAO soma — somar duplica porque o mesmo evento aparece como
+// 'purchase' + 'offsite_conversion.fb_pixel_purchase' + 'omni_purchase'
+// (Pixel + CAPI + omnichannel). O Meta UI usa 'omni_*' que ja e deduplicado.
+function findActionFirst(arr: any[] | undefined, types: string[]): number {
   if (!arr) return 0;
-  let total = 0;
   for (const t of types) {
     const v = arr.find((a: any) => a.action_type === t)?.value;
-    if (v) total += parseFloat(v);
+    if (v) return parseFloat(v);
   }
-  return total;
+  return 0;
 }
 
 function parseInsight(d: any) {
   const spend = parseFloat(d.spend || '0');
   const impressions = parseInt(d.impressions || '0');
   const clicks = parseInt(d.inline_link_clicks || '0');
-  const totalClicks = parseInt(d.clicks || '0');  // qualquer click (incluindo botoes do FB)
+  const totalClicks = parseInt(d.clicks || '0');
 
-  // Funil de conversao — agrega versoes "puras" + offsite_conversion + onsite
-  const landingPageViews = findActionAny(d.actions, ['landing_page_view']);
-  const viewContent      = findActionAny(d.actions, ['view_content', 'offsite_conversion.fb_pixel_view_content']);
-  const addToCart        = findActionAny(d.actions, ['add_to_cart', 'offsite_conversion.fb_pixel_add_to_cart']);
-  const initiateCheckout = findActionAny(d.actions, ['initiate_checkout', 'offsite_conversion.fb_pixel_initiate_checkout']);
-  const purchases        = findActionAny(d.actions, ['purchase', 'offsite_conversion.fb_pixel_purchase', 'omni_purchase']);
-  const purchaseValue    = findActionAny(d.action_values, ['purchase', 'offsite_conversion.fb_pixel_purchase', 'omni_purchase']);
-  const leads            = findActionAny(d.actions, ['lead', 'offsite_conversion.fb_pixel_lead']);
+  // Funil — prioridade: omni (deduplicado) -> offsite_conversion -> bare.
+  // Pega o PRIMEIRO disponivel, nunca soma.
+  const landingPageViews = findActionFirst(d.actions, ['landing_page_view']);
+  const viewContent      = findActionFirst(d.actions, ['omni_view_content', 'offsite_conversion.fb_pixel_view_content', 'view_content']);
+  const addToCart        = findActionFirst(d.actions, ['omni_add_to_cart', 'offsite_conversion.fb_pixel_add_to_cart', 'add_to_cart']);
+  const initiateCheckout = findActionFirst(d.actions, ['omni_initiated_checkout', 'offsite_conversion.fb_pixel_initiate_checkout', 'initiate_checkout']);
+  const purchases        = findActionFirst(d.actions, ['omni_purchase', 'offsite_conversion.fb_pixel_purchase', 'purchase']);
+  const purchaseValue    = findActionFirst(d.action_values, ['omni_purchase', 'offsite_conversion.fb_pixel_purchase', 'purchase']);
+  const leads            = findActionFirst(d.actions, ['lead', 'offsite_conversion.fb_pixel_lead']);
 
   return {
     spend, impressions, clicks, totalClicks,
