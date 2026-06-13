@@ -951,6 +951,7 @@
 
   async function pullCampaigns() {
     campaignsLoading = true;
+    fbCampaigns = [];  // limpa enquanto carrega — evita mostrar dados da conta anterior
     try {
       const r = await fetch(`/api/fb-ads?window=${fbWin}&campaigns=1${fbAccountQuery}`, { cache: 'no-store' });
       if (r.ok) {
@@ -2410,7 +2411,7 @@
                 </tr>
               </thead>
               <tbody>
-                {#each fbCampaigns.sort((a, b) => b.spend - a.spend) as c, i}
+                {#each [...fbCampaigns].sort((a, b) => b.spend - a.spend) as c, i (c.id || c.name)}
                 <tr class="camp-tr" class:camp-tr-alt={i % 2 !== 0}>
                   <td class="td-status">
                     <span class="camp-status-dot" class:active={c.spend > 0}></span>
