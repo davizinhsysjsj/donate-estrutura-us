@@ -154,16 +154,16 @@
     if (refreshing) return;
     refreshing = true;
     try {
-      // Força busca de analytics + FB Ads (igual ao F5, mas sem recarregar a página)
-      // Cada call tem cache-buster, garante dados fresh mesmo no iOS Safari.
-      await Promise.all([pull(), pullFbAds()]);
+      // Atualiza analytics + FB Ads (account) + campanhas (se estiver na aba).
+      // Cache 5min do backend e respeitado — nao forca nocache=1.
+      const tasks: Promise<any>[] = [pull(), pullFbAds()];
+      if (activeTab === 'campanhas') tasks.push(pullCampaigns());
+      await Promise.all(tasks);
     } catch (e) {
       console.warn('[dashboard] refresh failed', e);
     } finally {
-      // Sempre solta o estado, mesmo se algum fetch falhou.
       refreshing = false;
     }
-    // Pisca KPIs para dar feedback visual de que os dados chegaram
     flashing = true;
     setTimeout(() => (flashing = false), 450);
   }
@@ -2447,32 +2447,6 @@
 
       {#if activeTab === 'campanhas'}
       <div class="tab-content">
-
-        <!-- Barra de filtros estilo UTMfy -->
-        <div class="camp-filterbar">
-          <div class="camp-filterbar-left">
-            <div class="camp-filter-group">
-              <label class="camp-filter-label">Período de visualização</label>
-              <div class="period-pills camp-period">
-                {#each (['hoje','ontem','hoje_ontem','ultimos_7d','este_mes'] as Period[]) as p}
-                  <button class="period-pill" class:active={period === p} onclick={() => { period = p; }}>{PERIOD_LABELS[p]}</button>
-                {/each}
-              </div>
-            </div>
-          </div>
-          <div class="camp-filterbar-right">
-            <span class="camp-update-info">
-              {#if campaignsLoading}
-                <span class="camp-updating">↻ Atualizando…</span>
-              {:else}
-                Atualizado {fmtAgo(updateAgoSec)}
-              {/if}
-            </span>
-            <button class="btn-camp-refresh" onclick={() => pullCampaigns(true)} disabled={campaignsLoading}>
-              ↻ Atualizar
-            </button>
-          </div>
-        </div>
 
         {#if campaignsLoading}
           <div class="loading"><div class="spinner"></div><span>Carregando campanhas…</span></div>
