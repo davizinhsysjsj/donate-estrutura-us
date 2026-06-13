@@ -3533,37 +3533,39 @@
 
     /* Dropdowns no mobile: position:fixed pra escapar do overflow do
        .topbar-selectors (que tem overflow-x: auto e corta o menu).
-       Bottom-sheet: aparece no fundo da tela, full width. */
+       Aparecem ANCORADOS no topo, logo abaixo dos botoes seletores. */
     .selector-menu {
       position: fixed !important;
-      top: auto !important;
-      bottom: 0; left: 0; right: 0;
+      top: 100px;            /* abaixo da topbar (titulo + linha de seletores) */
+      bottom: auto;
+      left: 12px; right: 12px;
       width: auto; max-width: none;
       min-width: 0;
       z-index: 300;
-      max-height: 65vh; overflow-y: auto;
-      border-radius: 16px 16px 0 0;
-      padding: 12px;
-      padding-bottom: calc(12px + env(safe-area-inset-bottom));
-      animation: dropupIn 0.18s ease-out;
+      max-height: calc(100vh - 120px); overflow-y: auto;
+      border-radius: 12px;
+      padding: 6px;
+      animation: dropdownIn 0.18s ease-out;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
     }
     .selector-menu-item {
-      padding: 14px 12px;     /* maior pra touch */
+      padding: 12px 14px;     /* touch friendly */
       font-size: 0.9375rem;
     }
     .account-menu {
       position: fixed !important;
-      top: auto !important;
-      bottom: 0; left: 0; right: 0;
+      top: 100px;
+      bottom: auto;
+      left: 12px; right: 12px;
       min-width: 0; max-width: none;
-      max-height: 75vh;
-      border-radius: 16px 16px 0 0;
-      padding-bottom: env(safe-area-inset-bottom);
-      animation: dropupIn 0.18s ease-out;
+      max-height: calc(100vh - 120px);
+      border-radius: 12px;
+      animation: dropdownIn 0.18s ease-out;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
     }
-    @keyframes dropupIn {
-      from { transform: translateY(100%); }
-      to { transform: translateY(0); }
+    @keyframes dropdownIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .hamburger {
