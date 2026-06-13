@@ -89,12 +89,6 @@ async function fbFetchAll(initialPath: string): Promise<any[]> {
   return out;
 }
 
-// Filtro Graph API: pega campanhas com qualquer atividade no periodo.
-// Includes PAUSED tambem porque uma campanha pode rodar de manha e ser
-// pausada de tarde — ainda queremos ver o gasto. Excluimos so DELETED/ARCHIVED.
-const CAMPAIGN_ACTIVE_FILTER = encodeURIComponent(JSON.stringify([
-  { field: 'campaign.effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED', 'CAMPAIGN_PAUSED'] }
-]));
 
 function parseInsight(d: any) {
   return {
@@ -166,7 +160,7 @@ export const GET: RequestHandler = async ({ url }) => {
       let campaigns: any[] = [];
       if (withCampaigns) {
         const camFields = 'campaign_id,campaign_name,spend,impressions,inline_link_clicks,ctr,cpm,cpc';
-        const camQS = `fields=${camFields}&level=campaign&limit=500&filtering=${CAMPAIGN_ACTIVE_FILTER}&access_token=${FB_TOKEN}`;
+        const camQS = `fields=${camFields}&level=campaign&limit=500&access_token=${FB_TOKEN}`;
         const [todayList, yestList] = await Promise.all([
           fbFetchAll(`${FB_ACCT}/insights?${camQS}&date_preset=today`),
           fbFetchAll(`${FB_ACCT}/insights?${camQS}&date_preset=yesterday`),
@@ -222,7 +216,7 @@ export const GET: RequestHandler = async ({ url }) => {
     if (withCampaigns) {
       const camFields = 'campaign_id,campaign_name,spend,impressions,inline_link_clicks,ctr,cpm,cpc';
       const list = await fbFetchAll(
-        `${FB_ACCT}/insights?fields=${camFields}&date_preset=${preset}&level=campaign&limit=500&filtering=${CAMPAIGN_ACTIVE_FILTER}&access_token=${FB_TOKEN}`
+        `${FB_ACCT}/insights?fields=${camFields}&date_preset=${preset}&level=campaign&limit=500&access_token=${FB_TOKEN}`
       );
       campaigns = list.map((c: any) => ({
         id:          c.campaign_id,
