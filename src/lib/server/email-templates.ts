@@ -14,6 +14,7 @@ const DONATE_URL = `${SITE_URL}/`;
 const UPSELL_DONATE_URL = `${SITE_URL}/donate?utm_source=email&utm_medium=recompra&utm_campaign=48h`;
 const HERO_IMAGE = `${SITE_URL}/email/feeding-dogs.jpg`;
 const UPSELL_HERO_IMAGE = `${SITE_URL}/email/rescued-dogs.jpg`;
+const ABANDONED_CHECKOUT_HERO_IMAGE = `${SITE_URL}/email/abandoned-checkout-hero.jpg`;
 const LOGO_IMAGE = `${SITE_URL}/email/logo.png`;
 const SUPPORT_EMAIL = 'contact@belgianpaws.help';
 const BRAND_COLOR = '#16A34A'; // verde camisa (usado no botao CTA)
@@ -822,7 +823,7 @@ export function abandonedCheckoutHtml(vars: AbandonedCheckoutVars): string {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr>
         <td>
-          <img src="${UPSELL_HERO_IMAGE}" alt="${t.abandonedCoHeroAlt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
+          <img src="${ABANDONED_CHECKOUT_HERO_IMAGE}" alt="${t.abandonedCoHeroAlt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
         </td>
       </tr>
       <tr>
