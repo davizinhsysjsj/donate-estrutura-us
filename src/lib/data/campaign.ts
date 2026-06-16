@@ -35,7 +35,7 @@ export const CAMPAIGN = {
 
   // Progress
   raisedEur: 1053,
-  goalEur: 5000,
+  goalEur: 20000,
   donationsCount: 412,
   // Data de encerramento da campanha (ISO). daysLeft calculado dinamicamente a partir daqui.
   campaignEndDate: '2026-06-30',
