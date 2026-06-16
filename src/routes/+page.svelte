@@ -11,7 +11,6 @@
   import ProgressCard from '$lib/components/ProgressCard.svelte';
   import StickyBottomBar from '$lib/components/StickyBottomBar.svelte';
   import ExitIntentPopup from '$lib/components/ExitIntentPopup.svelte';
-  import WorkCarousel from '$lib/components/WorkCarousel.svelte';
   import {
     captureAndPersistFbclid, getFbp, trackEvent, uuid, buildShopifyCartUrl,
     type UtmData
@@ -329,9 +328,6 @@
       </div>
 
     </section>
-
-    <!-- Ons werk — carrossel de fotos do trabalho no abrigo -->
-    <WorkCarousel slides={CAMPAIGN.workImages} title="Ons werk" eyebrow="Achter de schermen" />
 
     <!-- Donors list (preview com 5; botao abre modal com lista completa) -->
     <div class="donations" id="donations" data-section="donations-list">
