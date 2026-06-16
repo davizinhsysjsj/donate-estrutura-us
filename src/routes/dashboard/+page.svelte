@@ -349,7 +349,9 @@
   }
   let fbAccounts = $state<FbAccount[]>([]);
   let fbBusinesses = $state<{ id: string; name: string }[]>([]);
-  let fbAccountId = $state<string>('');     // '' = padrão (FB_ADS_ACCOUNT_ID server-side)
+  // MULTI-conta: array de account IDs selecionados. [] = padrão (FB_ADS_ACCOUNT_ID server-side).
+  // Quando >1, os custos sao agregados client-side via Promise.all + soma + recalc de taxas.
+  let fbAccountIds = $state<string[]>([]);
   let fbAccountsLoading = $state(false);
   let fbAccountsError = $state('');
   let accountMenuOpen = $state(false);
@@ -517,13 +519,47 @@
     });
   });
 
-  const fbAccountQuery = $derived(fbAccountId ? `&account_id=${encodeURIComponent(fbAccountId)}` : '');
-  const fbActiveAccount = $derived(
-    fbAccounts.find((a) => a.id === fbAccountId) || null
+  const fbActiveAccounts = $derived(
+    fbAccounts.filter((a) => fbAccountIds.includes(a.id))
   );
   const fbActiveAccountLabel = $derived(
-    fbActiveAccount ? fbActiveAccount.name : (fbAccountId ? fbAccountId : 'Conta padrão')
+    fbActiveAccounts.length === 0
+      ? (fbAccountIds.length ? `${fbAccountIds.length} contas` : 'Conta padrão')
+      : fbActiveAccounts.length === 1
+      ? fbActiveAccounts[0].name
+      : `${fbActiveAccounts.length} contas`
   );
+
+  // Cache key local (SWR) — varia com janela + set de IDs (ordem normalizada)
+  function buildFbCacheKey(ids: string[], win: string): string {
+    return [...ids].sort().join(',') + ':' + win;
+  }
+
+  function aggregateFbResults(results: any[]): any {
+    if (!results.length) return null;
+    if (results.length === 1) return results[0];
+    const sumKeys = [
+      'spend', 'impressions', 'clicks', 'reach', 'purchases', 'purchaseValue',
+      'viewContent', 'addToCart', 'initiateCheckout', 'landingPageViews', 'leads'
+    ] as const;
+    const out: any = {};
+    for (const k of sumKeys) {
+      out[k] = results.reduce((s, r) => s + (Number(r?.[k]) || 0), 0);
+    }
+    out.cpm = out.impressions > 0 ? (out.spend / out.impressions) * 1000 : 0;
+    out.cpc = out.clicks > 0 ? out.spend / out.clicks : 0;
+    out.ctr = out.impressions > 0 ? (out.clicks / out.impressions) * 100 : 0;
+    out.roas = out.spend > 0 ? out.purchaseValue / out.spend : 0;
+    out.cpa = out.purchases > 0 ? out.spend / out.purchases : 0;
+    out.costPerLPV = out.landingPageViews > 0 ? out.spend / out.landingPageViews : 0;
+    out.currency = results[0]?.currency || 'EUR';
+    out.accountId = results.map((r) => r?.accountId).filter(Boolean).join(',');
+    out.datePreset = results[0]?.datePreset;
+    out.campaigns = results.flatMap((r) =>
+      (r?.campaigns || []).map((c: any) => ({ ...c, _accountId: r.accountId }))
+    );
+    return out;
+  }
 
   async function loadFbAccounts(force = false) {
     fbAccountsLoading = true;
@@ -534,18 +570,31 @@
         const d = await r.json();
         fbAccounts = d.accounts || [];
         fbBusinesses = d.businesses || [];
-        // Se não tem conta selecionada, usa o padrão do server
-        if (!fbAccountId && d.defaultAccount) {
-          // Tenta restaurar do localStorage
+        // Restauracao do localStorage (com migracao do key antigo singular)
+        if (!fbAccountIds.length && fbAccounts.length) {
           try {
-            const saved = localStorage.getItem('vitrack_fb_account_id');
-            if (saved && fbAccounts.some((a: FbAccount) => a.id === saved)) {
-              fbAccountId = saved;
+            const savedArr = localStorage.getItem('vitrack_fb_account_ids');
+            if (savedArr) {
+              const parsed = JSON.parse(savedArr) as string[];
+              const valid = Array.isArray(parsed)
+                ? parsed.filter((id) => fbAccounts.some((a: FbAccount) => a.id === id))
+                : [];
+              if (valid.length) fbAccountIds = valid;
             } else {
-              fbAccountId = d.defaultAccount;
+              // Migracao do key antigo (string single)
+              const savedSingle = localStorage.getItem('vitrack_fb_account_id');
+              if (savedSingle && fbAccounts.some((a: FbAccount) => a.id === savedSingle)) {
+                fbAccountIds = [savedSingle];
+                localStorage.setItem('vitrack_fb_account_ids', JSON.stringify(fbAccountIds));
+                localStorage.removeItem('vitrack_fb_account_id');
+              }
+            }
+            // Sem nada salvo? Usa default do server
+            if (!fbAccountIds.length && d.defaultAccount) {
+              fbAccountIds = [d.defaultAccount];
             }
           } catch {
-            fbAccountId = d.defaultAccount;
+            if (d.defaultAccount) fbAccountIds = [d.defaultAccount];
           }
         }
         if (d.errors?.length) fbAccountsError = d.errors[0];
@@ -560,12 +609,33 @@
     fbAccountsLoading = false;
   }
 
-  function selectFbAccount(id: string) {
-    fbAccountId = id;
-    accountMenuOpen = false;
-    try { localStorage.setItem('vitrack_fb_account_id', id); } catch {}
-    // Trigger refetch
-    pullFbAds();
+  function saveFbAccountIds() {
+    try {
+      localStorage.setItem('vitrack_fb_account_ids', JSON.stringify(fbAccountIds));
+      localStorage.removeItem('vitrack_fb_account_id');
+    } catch {}
+  }
+
+  function toggleFbAccount(id: string) {
+    if (fbAccountIds.includes(id)) {
+      fbAccountIds = fbAccountIds.filter((x) => x !== id);
+    } else {
+      fbAccountIds = [...fbAccountIds, id];
+    }
+    saveFbAccountIds();
+    // Refetch acontece via $effect (reage a fbAccountIds)
+    if (activeTab === 'campanhas') pullCampaigns();
+  }
+
+  function selectAllFbAccounts() {
+    fbAccountIds = fbAccounts.filter((a) => a.statusCode === 1).map((a) => a.id);
+    saveFbAccountIds();
+    if (activeTab === 'campanhas') pullCampaigns();
+  }
+
+  function clearFbAccounts() {
+    fbAccountIds = [];
+    saveFbAccountIds();
     if (activeTab === 'campanhas') pullCampaigns();
   }
 
@@ -600,10 +670,49 @@
   }
 
   async function pullFbAds() {
-    fbLoading = true;
+    const cacheKey = buildFbCacheKey(fbAccountIds, fbWin);
+
+    // SWR: se tem cache local valido, mostra IMEDIATO antes de revalidar
+    // (mata o "carregando" comum no mobile quando reabre o dashboard).
+    let usedCache = false;
     try {
-      const r = await fetch(`/api/fb-ads?window=${fbWin}${fbAccountQuery}`, { cache: 'no-store' });
-      if (r.ok) fbAds = await r.json();
+      const raw = localStorage.getItem('vitrack_fb_ads_cache_v1');
+      if (raw) {
+        const c = JSON.parse(raw);
+        // Aceita cache ate 30min — depois ainda mostra, mas marca como stale
+        if (c && c.key === cacheKey && c.data) {
+          fbAds = c.data;
+          usedCache = true;
+        }
+      }
+    } catch {}
+
+    // Sem cache valido = mostra skeleton; com cache = revalida em bg sem ofuscar
+    if (!usedCache) fbLoading = true;
+    try {
+      const ids = fbAccountIds.length ? fbAccountIds : [''];
+      const results = await Promise.all(
+        ids.map(async (id) => {
+          const q = id ? `&account_id=${encodeURIComponent(id)}` : '';
+          try {
+            const r = await fetch(`/api/fb-ads?window=${fbWin}${q}`, { cache: 'no-store' });
+            return r.ok ? await r.json() : null;
+          } catch {
+            return null;
+          }
+        })
+      );
+      const aggregated = aggregateFbResults(results.filter(Boolean));
+      if (aggregated) {
+        fbAds = aggregated;
+        try {
+          localStorage.setItem('vitrack_fb_ads_cache_v1', JSON.stringify({
+            key: cacheKey,
+            data: aggregated,
+            ts: Date.now()
+          }));
+        } catch {}
+      }
     } catch {}
     fbLoading = false;
   }
@@ -619,7 +728,7 @@
   $effect(() => {
     if (!data.authed) return;
     const _w = fbWin;
-    const _acc = fbAccountId;
+    const _ids = fbAccountIds;
     pullFbAds();
   });
 
@@ -965,11 +1074,21 @@
     fbCampaigns = [];
     try {
       const nocache = force ? '&nocache=1' : '';
-      const r = await fetch(`/api/fb-ads?window=${fbWin}&campaigns=1${fbAccountQuery}${nocache}`, { cache: 'no-store' });
-      if (r.ok) {
-        const d = await r.json();
-        fbCampaigns = d.campaigns || [];
-      }
+      const ids = fbAccountIds.length ? fbAccountIds : [''];
+      const results = await Promise.all(
+        ids.map(async (id) => {
+          const q = id ? `&account_id=${encodeURIComponent(id)}` : '';
+          try {
+            const r = await fetch(`/api/fb-ads?window=${fbWin}&campaigns=1${q}${nocache}`, { cache: 'no-store' });
+            return r.ok ? await r.json() : null;
+          } catch {
+            return null;
+          }
+        })
+      );
+      fbCampaigns = results
+        .filter(Boolean)
+        .flatMap((d: any) => (d.campaigns || []).map((c: any) => ({ ...c, _accountId: d.accountId })));
     } catch {}
     campaignsLoading = false;
   }
@@ -1053,7 +1172,7 @@
     if (!data.authed) return;
     if (activeTab === 'campanhas') {
       const _w = fbWin;
-      const _acc = fbAccountId;
+      const _ids = fbAccountIds;
       pullCampaigns();
     }
   });
@@ -1286,24 +1405,34 @@
             class="account-btn"
             class:active={accountMenuOpen}
             onclick={() => (accountMenuOpen = !accountMenuOpen)}
-            title={fbActiveAccount ? `${fbActiveAccount.name} · ${fbActiveAccount.currency}` : 'Selecionar conta'}
+            title={fbActiveAccounts.length === 1
+              ? `${fbActiveAccounts[0].name} · ${fbActiveAccounts[0].currency}`
+              : fbActiveAccounts.length > 1
+              ? fbActiveAccounts.map((a) => a.name).join(', ')
+              : 'Selecionar contas'}
           >
             <span class="account-btn-icon">⌬</span>
             <span class="account-btn-label">
               {fbAccountsLoading && !fbAccounts.length ? 'Carregando…' : fbActiveAccountLabel}
             </span>
-            {#if fbActiveAccount}
-              <span class="account-btn-currency">{fbActiveAccount.currency}</span>
+            {#if fbActiveAccounts.length === 1}
+              <span class="account-btn-currency">{fbActiveAccounts[0].currency}</span>
+            {:else if fbActiveAccounts.length > 1}
+              <span class="account-btn-count">×{fbActiveAccounts.length}</span>
             {/if}
             <span class="account-chevron" class:open={accountMenuOpen}>▾</span>
           </button>
           {#if accountMenuOpen}
             <div class="account-menu account-menu-compact">
               <div class="account-menu-head">
-                <span>{fbAccounts.length} contas</span>
-                <button class="account-refresh" onclick={() => loadFbAccounts(true)} disabled={fbAccountsLoading} title="Atualizar">
-                  {fbAccountsLoading ? '…' : '↻'}
-                </button>
+                <span>{fbAccountIds.length} de {fbAccounts.length} selecionadas</span>
+                <div class="account-menu-head-actions">
+                  <button class="account-quick-action" onclick={selectAllFbAccounts} title="Selecionar todas">Todas</button>
+                  <button class="account-quick-action" onclick={clearFbAccounts} title="Limpar selecao">Limpar</button>
+                  <button class="account-refresh" onclick={() => loadFbAccounts(true)} disabled={fbAccountsLoading} title="Atualizar">
+                    {fbAccountsLoading ? '…' : '↻'}
+                  </button>
+                </div>
               </div>
               {#if fbAccounts.length > 8}
                 <div class="account-menu-search-wrap">
@@ -1330,10 +1459,13 @@
                   <button
                     type="button"
                     class="account-menu-item account-menu-item-flat"
-                    class:active={acc.id === fbAccountId}
+                    class:active={fbAccountIds.includes(acc.id)}
                     class:disabled={acc.statusCode !== 1}
-                    onclick={() => selectFbAccount(acc.id)}
+                    onclick={() => toggleFbAccount(acc.id)}
                   >
+                    <span class="account-menu-check" class:checked={fbAccountIds.includes(acc.id)} aria-hidden="true">
+                      {fbAccountIds.includes(acc.id) ? '✓' : ''}
+                    </span>
                     <div class="account-menu-item-main">
                       <span class="account-menu-item-name">{acc.name}</span>
                       <span class="account-menu-item-id">{acc.business || acc.id}</span>
@@ -2831,7 +2963,7 @@
                   </thead>
                   <tbody>
                     {#each group.accounts as acc (acc.id)}
-                      <tr class:active-row={acc.id === fbAccountId}>
+                      <tr class:active-row={fbAccountIds.includes(acc.id)}>
                         <td class="contas-acc-name">{acc.name}</td>
                         <td class="contas-acc-id mono">{acc.id}</td>
                         <td>{acc.currency}</td>
@@ -2844,10 +2976,10 @@
                           {:else}—{/if}
                         </td>
                         <td>
-                          {#if acc.id === fbAccountId}
-                            <span class="contas-acc-current">✓ Selecionada</span>
+                          {#if fbAccountIds.includes(acc.id)}
+                            <button class="contas-acc-select selected" onclick={() => toggleFbAccount(acc.id)} title="Remover selecao">✓ Selecionada</button>
                           {:else if acc.statusCode === 1}
-                            <button class="contas-acc-select" onclick={() => selectFbAccount(acc.id)}>Selecionar</button>
+                            <button class="contas-acc-select" onclick={() => toggleFbAccount(acc.id)}>Adicionar</button>
                           {/if}
                         </td>
                       </tr>
@@ -4072,6 +4204,42 @@
   }
   .account-refresh:hover { border-color: #02a95c; color: #02a95c; }
   .account-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
+  .account-menu-head-actions {
+    display: flex; align-items: center; gap: 4px;
+  }
+  .account-quick-action {
+    background: transparent; border: 1px solid #1f2630; border-radius: 6px;
+    color: #8b94a4; padding: 3px 8px; cursor: pointer;
+    font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.04em;
+    text-transform: uppercase; transition: border-color 0.15s, color 0.15s;
+  }
+  .account-quick-action:hover { border-color: #02a95c; color: #02a95c; }
+  .account-menu-check {
+    flex-shrink: 0;
+    width: 16px; height: 16px; border-radius: 4px;
+    border: 1.5px solid #2a3340; background: #0d1117;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #ffffff; font-size: 0.7rem; font-weight: 800; line-height: 1;
+    margin-right: 8px;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .account-menu-check.checked {
+    background: #02a95c; border-color: #02a95c;
+  }
+  .account-btn-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6875rem; font-weight: 700;
+    color: #02a95c; background: rgba(2,169,92,0.12);
+    padding: 2px 7px; border-radius: 4px;
+  }
+  .contas-acc-select.selected {
+    color: #02a95c; border-color: rgba(2,169,92,0.4);
+    background: rgba(2,169,92,0.08);
+  }
+  .contas-acc-select.selected:hover {
+    color: #f87171; border-color: rgba(248,113,113,0.4);
+    background: rgba(248,113,113,0.08);
+  }
   .account-menu-error {
     font-size: 0.75rem; color: #f87171;
     padding: 6px 10px; margin-bottom: 4px;
