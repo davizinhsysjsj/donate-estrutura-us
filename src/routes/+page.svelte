@@ -131,7 +131,7 @@
   function selectAmount(amount: number) {
     selectedAmount = amount;
     setTimeout(() => {
-      currentStep = 2;
+      handleDonate();
     }, 200);
   }
 
