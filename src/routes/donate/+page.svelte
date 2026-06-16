@@ -82,10 +82,10 @@
     // Analytics interno — qual tier foi clicado
     trackAnalytics('amount_select', { amount });
     openPopup();
+    handleDonate();
   }
 
   function openPopup() {
-    popupOpen = true;
     donating  = false;
 
     // ── IC dispara AQUI — no momento que o popup abre (usuário selecionou valor) ──
