@@ -502,8 +502,7 @@
               <div class="spinner spinner-dark"></div>
               <span class="btn-bancontact-text">Doorverwijzen…</span>
             {:else}
-              <img src="/bancontact.webp" alt="Bancontact" class="btn-bancontact-logo" />
-              <span class="btn-bancontact-text">Doe €{selectedAmount} met Bancontact</span>
+              <span class="btn-bancontact-text">Doe - €{selectedAmount}</span>
             {/if}
           </button>
         </div>
