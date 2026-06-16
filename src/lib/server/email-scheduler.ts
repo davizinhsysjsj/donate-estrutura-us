@@ -19,12 +19,13 @@ import {
   upsellV2Subject, upsellV2Html,
   recoverySubject, recoveryHtml,
   abandonedSubject, abandonedHtml,
-  type ThankYouVars, type UpsellVars, type UpsellV2Vars, type RecoveryVars, type AbandonedPopupVars, type Locale
+  abandonedCheckoutSubject, abandonedCheckoutHtml,
+  type ThankYouVars, type UpsellVars, type UpsellV2Vars, type RecoveryVars, type AbandonedPopupVars, type AbandonedCheckoutVars, type Locale
 } from './email-templates';
 import { getDonorsCountLastDays } from './donors-feed';
 import { getStalePopups, markRecoverySent, getEmailForSid } from './abandoned-popups';
 
-type TemplateName = 'thank-you' | 'upsell' | 'upsell-v2' | 'recovery' | 'abandoned-popup';
+type TemplateName = 'thank-you' | 'upsell' | 'upsell-v2' | 'recovery' | 'abandoned-popup' | 'abandoned-checkout';
 
 interface ScheduledItem {
   id: string;
@@ -131,6 +132,12 @@ function renderTemplate(name: TemplateName, data: any): { subject: string; html:
     return {
       subject: abandonedSubject(locale),
       html: abandonedHtml(data as AbandonedPopupVars)
+    };
+  }
+  if (name === 'abandoned-checkout') {
+    return {
+      subject: abandonedCheckoutSubject(locale),
+      html: abandonedCheckoutHtml(data as AbandonedCheckoutVars)
     };
   }
   return null;
@@ -252,7 +259,7 @@ export function hasEmailFlow(email: string): boolean {
 export function scheduleEmail(input: {
   toEmail: string;
   templateName: TemplateName;
-  templateData: ThankYouVars | UpsellVars | UpsellV2Vars | RecoveryVars | AbandonedPopupVars;
+  templateData: ThankYouVars | UpsellVars | UpsellV2Vars | RecoveryVars | AbandonedPopupVars | AbandonedCheckoutVars;
   delayMs: number;
 }): string {
   startWorker(); // garante worker rodando
@@ -345,13 +352,79 @@ export function cancelPendingRecoveryForEmail(email: string): number {
 }
 
 /**
+ * Agenda 1 email de abandoned-checkout (10min apos webhook Shopify).
+ * Anti-duplicado:
+ *  - Se ja recebeu fluxo completo (compra anterior) — ignora
+ *  - Se ja tem abandoned-checkout pendente OU enviado nesta sessao pro mesmo email — ignora
+ *    (Shopify dispara checkouts/update varias vezes, mas so queremos 1 email)
+ *  - Se chegou nova compra apos agendar, e o pendente eh cancelado por
+ *    cancelPendingAbandonedCheckoutForEmail (chamado pelo shopify-purchase)
+ */
+export function scheduleAbandonedCheckout(input: {
+  toEmail: string;
+  firstName?: string;
+  amount: number;
+  currency: string;
+  recoverUrl: string;
+  itemTitle?: string;
+  delayMs?: number; // default 10min
+}): { scheduled: boolean; reason?: string; id?: string } {
+  startWorker();
+  const normalized = input.toEmail.toLowerCase().trim();
+
+  // Ja eh doador? Nao manda recuperacao (provavelmente checkout de upsell que sera convertido por outro fluxo)
+  if (flowLog.has(normalized)) {
+    return { scheduled: false, reason: 'already_donor' };
+  }
+
+  // Ja tem pendente desse email? (Shopify dispara checkouts/update varias vezes)
+  const existing = queue.find(
+    (i) => i.templateName === 'abandoned-checkout' && i.toEmail.toLowerCase().trim() === normalized
+  );
+  if (existing) {
+    return { scheduled: false, reason: 'already_pending', id: existing.id };
+  }
+
+  const id = scheduleEmail({
+    toEmail: input.toEmail,
+    templateName: 'abandoned-checkout',
+    templateData: {
+      firstName: input.firstName,
+      amount: input.amount,
+      currency: input.currency,
+      recoverUrl: input.recoverUrl,
+      itemTitle: input.itemTitle
+    },
+    delayMs: input.delayMs ?? 10 * 60 * 1000 // 10 min
+  });
+  return { scheduled: true, id };
+}
+
+/**
+ * Cancela qualquer 'abandoned-checkout' pendente pra um email — chamado pelo
+ * webhook shopify-purchase quando o user finaliza a compra (mesmo email).
+ * Evita mandar "voce abandonou seu carrinho" pra quem ja comprou.
+ */
+export function cancelPendingAbandonedCheckoutForEmail(email: string): number {
+  const target = email.toLowerCase().trim();
+  const before = queue.length;
+  queue = queue.filter((i) => !(i.templateName === 'abandoned-checkout' && i.toEmail.toLowerCase().trim() === target));
+  const removed = before - queue.length;
+  if (removed > 0) {
+    save();
+    console.log('[email-scheduler] cancelled pending abandoned-checkout', { email: target, removed });
+  }
+  return removed;
+}
+
+/**
  * Dispara IMEDIATAMENTE (sem agendamento), util pra testes.
  * Bypassa a fila.
  */
 export async function sendNow(input: {
   toEmail: string;
   templateName: TemplateName;
-  templateData: ThankYouVars | UpsellVars | UpsellV2Vars | RecoveryVars | AbandonedPopupVars;
+  templateData: ThankYouVars | UpsellVars | UpsellV2Vars | RecoveryVars | AbandonedPopupVars | AbandonedCheckoutVars;
 }): Promise<{ ok: boolean; messageId?: string; error?: string }> {
   const rendered = renderTemplate(input.templateName, input.templateData);
   if (!rendered) return { ok: false, error: `unknown template: ${input.templateName}` };

@@ -56,6 +56,15 @@ export interface AbandonedPopupVars {
   recipientEmail?: string;
 }
 
+export interface AbandonedCheckoutVars {
+  firstName?: string;
+  amount: number; // total do checkout abandonado
+  currency: string;
+  recoverUrl: string; // abandoned_checkout_url da Shopify
+  itemTitle?: string; // primeiro line item (ex: "Hero — €50")
+  locale?: Locale;
+}
+
 function escape(s: string | undefined | null): string {
   if (!s) return '';
   return String(s)
@@ -147,7 +156,22 @@ const STR = {
     abandonedCta: 'Mijn donatie afronden',
     abandonedFootnote: 'Bancontact, klaar. Geen extra formulieren.',
     abandonedSignoff: 'We rekenen op je.',
-    abandonedHeroAlt: 'Geredde hond wacht op zijn maaltijd'
+    abandonedHeroAlt: 'Geredde hond wacht op zijn maaltijd',
+    // Abandoned Shopify CHECKOUT — disparado 10min apos checkout abandonado (Shopify webhook)
+    abandonedCoSubject: 'Een hond zit nog in jouw winkelwagen 🐾',
+    abandonedCoPreview: 'Je was klaar om hem te redden. Hij wacht nog steeds. Eén klik en hij eet vandaag.',
+    abandonedCoUrgencyTag: '⚠️ Jouw winkelwagen verloopt binnenkort',
+    abandonedCoH1: (name: string) => `${name}, hij wacht nog steeds op jou.`,
+    abandonedCoP1: (amount: string) =>
+      `Je was klaar om <strong style="color:${BRAND_DARK};">${amount}</strong> te doneren om een hond te redden. Maar je betaling werd niet voltooid. Geen zorgen — alles wat je hebt gekozen is nog opgeslagen.`,
+    abandonedCoP2: 'Vandaag zijn er <strong>3 honden binnengekomen</strong> die nog niets warm hebben gegeten. Ze kijken naar de deur van het opvangcentrum. Ze wachten op iemand zoals jij.',
+    abandonedCoItemLabel: 'In jouw winkelwagen:',
+    abandonedCoP3: 'Eén klik op de knop hieronder en je donatie is rond. Geen formulieren, geen nieuwe gegevens — alles staat al klaar.',
+    abandonedCoCta: 'Mijn donatie nu afronden →',
+    abandonedCoUrgencyNote: '⏰ Deze link is 24 uur geldig. Daarna moet je opnieuw beginnen.',
+    abandonedCoFootnote: 'Bancontact, klaar in 30 seconden. Veilige betaling via Shopify.',
+    abandonedCoSignoff: 'Hij rekent op jou. Wij ook.',
+    abandonedCoHeroAlt: 'Geredde hond wacht op een tweede kans'
   },
   pt: {
     htmlLang: 'pt-BR',
@@ -217,7 +241,22 @@ const STR = {
     abandonedCta: 'Finalizar minha doação',
     abandonedFootnote: 'Bancontact, pronto. Sem formulário extra.',
     abandonedSignoff: 'Contamos com você.',
-    abandonedHeroAlt: 'Cão resgatado esperando sua refeição'
+    abandonedHeroAlt: 'Cão resgatado esperando sua refeição',
+    // Abandoned Shopify CHECKOUT — paridade PT
+    abandonedCoSubject: 'Um cão ainda está no seu carrinho 🐾',
+    abandonedCoPreview: 'Você estava pronto pra salvá-lo. Ele ainda espera. Um clique e ele come hoje.',
+    abandonedCoUrgencyTag: '⚠️ Seu carrinho expira em breve',
+    abandonedCoH1: (name: string) => `${name}, ele ainda está esperando por você.`,
+    abandonedCoP1: (amount: string) =>
+      `Você estava pronto pra doar <strong style="color:${BRAND_DARK};">${amount}</strong> pra salvar um cão. Mas o pagamento não foi concluído. Sem problemas — tudo que você escolheu ainda está salvo.`,
+    abandonedCoP2: 'Hoje chegaram <strong>3 cães novos</strong> no abrigo que ainda não comeram nada quente. Estão olhando pra porta. Estão esperando alguém como você.',
+    abandonedCoItemLabel: 'No seu carrinho:',
+    abandonedCoP3: 'Um clique no botão abaixo e sua doação tá finalizada. Sem formulários, sem dados novos — está tudo pronto.',
+    abandonedCoCta: 'Finalizar minha doação agora →',
+    abandonedCoUrgencyNote: '⏰ Esse link é válido por 24h. Depois disso, vai precisar começar do zero.',
+    abandonedCoFootnote: 'Bancontact, pronto em 30 segundos. Pagamento seguro via Shopify.',
+    abandonedCoSignoff: 'Ele conta com você. A gente também.',
+    abandonedCoHeroAlt: 'Cão resgatado esperando por uma segunda chance'
   }
 } as const;
 
@@ -730,4 +769,127 @@ export function abandonedHtml(vars: AbandonedPopupVars): string {
   `;
 
   return shell(locale, t.abandonedPreview, body);
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Template 6 — Abandoned Shopify Checkout (10min apos abandono — webhook Shopify)
+// ─────────────────────────────────────────────────────────────────────
+
+export function abandonedCheckoutSubject(locale?: Locale): string {
+  return STR[resolveLocale(locale)].abandonedCoSubject;
+}
+
+export function abandonedCheckoutPreview(locale?: Locale): string {
+  return STR[resolveLocale(locale)].abandonedCoPreview;
+}
+
+export function abandonedCheckoutHtml(vars: AbandonedCheckoutVars): string {
+  const locale = resolveLocale(vars.locale);
+  const t = STR[locale];
+  const name = vars.firstName ? escape(vars.firstName) : t.fallbackName;
+  const amount = formatAmount(vars.amount, vars.currency || 'EUR', locale);
+
+  // Adiciona UTM ao link de recuperacao Shopify pra rastrear conversao deste email
+  let recoverUrl = vars.recoverUrl;
+  try {
+    const u = new URL(vars.recoverUrl);
+    u.searchParams.set('utm_source', 'email');
+    u.searchParams.set('utm_medium', 'abandoned-checkout');
+    u.searchParams.set('utm_campaign', 'recovery-10min');
+    recoverUrl = u.toString();
+  } catch {
+    // se url invalida, usa raw mesmo
+  }
+
+  const itemRow = vars.itemTitle
+    ? `
+      <tr>
+        <td class="px-mob" style="padding:0 40px 16px;">
+          <div style="background:#f8fafc;border-left:4px solid ${BRAND_COLOR};padding:14px 18px;border-radius:6px;">
+            <div style="font-family:Arial,Helvetica,sans-serif;color:#64748b;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">
+              ${t.abandonedCoItemLabel}
+            </div>
+            <div style="font-family:Arial,Helvetica,sans-serif;color:#0f172a;font-size:15px;font-weight:600;line-height:1.4;">
+              ${escape(vars.itemTitle)}
+            </div>
+          </div>
+        </td>
+      </tr>
+    `
+    : '';
+
+  const body = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td>
+          <img src="${UPSELL_HERO_IMAGE}" alt="${t.abandonedCoHeroAlt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
+        </td>
+      </tr>
+      <tr>
+        <td class="px-mob" style="padding:24px 40px 0;">
+          <div style="display:inline-block;background:#fef2f2;color:#b91c1c;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.04em;padding:6px 12px;border-radius:999px;">
+            ${t.abandonedCoUrgencyTag}
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td class="px-mob" style="padding:16px 40px 8px;">
+          <h1 class="h1-mob" style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;color:#0f172a;font-size:26px;font-weight:800;line-height:1.25;">
+            ${t.abandonedCoH1(name)}
+          </h1>
+          <p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;color:#334155;font-size:16px;line-height:1.65;">
+            ${t.abandonedCoP1(amount)}
+          </p>
+          <p style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;color:#334155;font-size:16px;line-height:1.65;">
+            ${t.abandonedCoP2}
+          </p>
+        </td>
+      </tr>
+      ${itemRow}
+      <tr>
+        <td class="px-mob" style="padding:8px 40px 16px;">
+          <p style="margin:0;font-family:Arial,Helvetica,sans-serif;color:#334155;font-size:16px;line-height:1.65;">
+            ${t.abandonedCoP3}
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td class="px-mob" align="center" style="padding:8px 40px 16px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+            <tr>
+              <td bgcolor="${BRAND_COLOR}" style="border-radius:10px;box-shadow:0 4px 12px rgba(22,163,74,0.3);">
+                <a href="${recoverUrl}" target="_blank" style="display:inline-block;padding:18px 44px;font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:800;color:#ffffff !important;text-decoration:none !important;border-radius:10px;letter-spacing:0.01em;">
+                  <font color="#ffffff">${t.abandonedCoCta}</font>
+                </a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td class="px-mob" align="center" style="padding:0 40px 8px;">
+          <p style="margin:0;font-family:Arial,Helvetica,sans-serif;color:#b91c1c;font-size:13px;font-weight:600;line-height:1.5;text-align:center;">
+            ${t.abandonedCoUrgencyNote}
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td class="px-mob" style="padding:8px 40px 16px;">
+          <p style="margin:0;font-family:Arial,Helvetica,sans-serif;color:#94a3b8;font-size:12px;line-height:1.6;font-style:italic;text-align:center;">
+            ${t.abandonedCoFootnote}
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td class="px-mob" style="padding:0 40px 32px;">
+          <div style="border-top:1px solid #e2e8f0;padding-top:20px;font-family:Arial,Helvetica,sans-serif;color:#475569;font-size:14px;line-height:1.6;">
+            ${t.abandonedCoSignoff}<br>
+            <strong style="color:#0f172a;">${t.teamName}</strong>
+          </div>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  return shell(locale, t.abandonedCoPreview, body);
 }
