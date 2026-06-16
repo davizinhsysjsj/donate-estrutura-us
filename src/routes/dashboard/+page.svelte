@@ -1994,7 +1994,7 @@
           {:else}
             <div class="live-table">
               <div class="lt-head">
-                <span>Visitante</span><span>Rota</span><span>Local</span><span>Device</span><span>Origem</span><span>Tempo</span><span>Estado</span>
+                <span>Visitante</span><span>Rota</span><span>Local</span><span>Device</span><span>Origem</span><span>Campanha</span><span>Tempo</span><span>Estado</span>
               </div>
               {#each snap.liveSessions as s}
                 <button
@@ -2009,6 +2009,7 @@
                   <span>{flagFor(s.countryCode)} {s.city || s.country || '—'}</span>
                   <span>{devIcon(s.device)} {s.device}</span>
                   <span class="muted">{s.utm_source || '(direct)'}</span>
+                  <span class="campaign-cell" title={s.utm_campaign || ''}>{s.utm_campaign || '—'}</span>
                   <span>{fmtDuration(s.durationSec)}</span>
                   <span>
                     {#if s.purchaseAmount}<span class="tag tag-gold">€{s.purchaseAmount} paid</span>
@@ -2199,7 +2200,7 @@
           <h2>Todas as sessões na janela</h2>
           <div class="live-table">
             <div class="lt-head">
-              <span>Visitante</span><span>Landing</span><span>Local</span><span>Device</span><span>Origem</span><span>Tempo</span><span>Estado</span>
+              <span>Visitante</span><span>Landing</span><span>Local</span><span>Device</span><span>Origem</span><span>Campanha</span><span>Tempo</span><span>Estado</span>
             </div>
             {#each snap.liveSessions as s}
               <button
@@ -2214,6 +2215,7 @@
                 <span>{flagFor(s.countryCode)} {s.city || '—'}</span>
                 <span>{devIcon(s.device)} {s.browser || s.device}</span>
                 <span class="muted">{s.utm_source || '(direct)'}</span>
+                <span class="campaign-cell" title={s.utm_campaign || ''}>{s.utm_campaign || '—'}</span>
                 <span>{fmtDuration(s.durationSec)}</span>
                 <span>
                   {#if s.purchaseAmount}<span class="tag tag-gold">€{s.purchaseAmount}</span>
@@ -3445,8 +3447,13 @@
   /* Live table */
   .live-table { display: flex; flex-direction: column; gap: 3px; }
   .lt-head, .lt-row {
-    display: grid; grid-template-columns: 110px 1.5fr 1.3fr 1fr 1fr 80px 110px;
+    display: grid; grid-template-columns: 110px 1.2fr 1.1fr 0.85fr 0.75fr 1.3fr 75px 105px;
     gap: 10px; padding: 9px 12px; align-items: center;
+  }
+  .campaign-cell {
+    color: #c9b6ff; font-size: 0.75rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    min-width: 0;
   }
   .lt-head { color: #8b94a4; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
   .lt-row {
@@ -3581,7 +3588,7 @@
   @media (max-width: 1024px) {
     .main { padding: 20px 22px; }
     .lt-head, .lt-row {
-      grid-template-columns: 90px 1.2fr 1fr 90px 80px 70px 90px;
+      grid-template-columns: 90px 1.1fr 0.9fr 80px 70px 1.1fr 65px 85px;
       gap: 8px; padding: 8px 10px; font-size: 0.75rem;
     }
     .feed-row {
