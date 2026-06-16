@@ -68,6 +68,23 @@ export const POST: RequestHandler = async ({ request }) => {
     return json(r, { status: r.ok ? 200 : 502 });
   }
 
+  if (action === 'send-abandoned-checkout') {
+    const amount = Number(body.amount ?? 50);
+    const firstName = body.firstName as string | undefined;
+    const currency = (body.currency as string | undefined) ?? 'EUR';
+    const locale = (body.locale === 'pt' ? 'pt' : body.locale === 'nl' ? 'nl' : undefined) as
+      | 'pt' | 'nl' | undefined;
+    const recoverUrl = (body.recoverUrl as string | undefined) ??
+      'https://inigualavelshop.myshopify.com/recover/sample';
+    const itemTitle = (body.itemTitle as string | undefined) ?? 'Hero — Voer 1 hond een hele week';
+    const r = await sendNow({
+      toEmail: to,
+      templateName: 'abandoned-checkout',
+      templateData: { firstName, amount, currency, recoverUrl, itemTitle, locale }
+    });
+    return json(r, { status: r.ok ? 200 : 502 });
+  }
+
   // Default: send (debug basico)
   const r = await sendMail({
     to,
