@@ -135,6 +135,40 @@
   let menuOpen = $state(false);
   let donorsModalOpen = $state(false);
 
+  // ── Carousel de cães resgatados ──
+  const rescuedDogs = [
+    { src: '/dogs/dog1.png' },
+    { src: '/dogs/dog2.png' },
+    { src: '/dogs/dog3.png' },
+    { src: '/dogs/dog4.png' },
+    { src: '/dogs/dog5.png' },
+  ];
+  let rescuedIndex = $state(0);
+
+  function carouselPrev() {
+    rescuedIndex = (rescuedIndex - 1 + rescuedDogs.length) % rescuedDogs.length;
+  }
+  function carouselNext() {
+    rescuedIndex = (rescuedIndex + 1) % rescuedDogs.length;
+  }
+  let dragStartX = 0;
+  function carouselDragStart(e: MouseEvent) {
+    dragStartX = e.clientX;
+    function onUp(ev: MouseEvent) {
+      const dx = ev.clientX - dragStartX;
+      if (Math.abs(dx) > 40) dx < 0 ? carouselNext() : carouselPrev();
+      window.removeEventListener('mouseup', onUp);
+    }
+    window.addEventListener('mouseup', onUp);
+  }
+  let touchStartX = 0;
+  function carouselTouchStart(e: TouchEvent) { touchStartX = e.touches[0].clientX; }
+  function carouselTouchMove(e: TouchEvent) { e.preventDefault(); }
+  function carouselTouchEnd(e: TouchEvent) {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 40) dx < 0 ? carouselNext() : carouselPrev();
+  }
+
   const MENU_ITEMS = [
     { id: 'story-section', label: 'Verhaal' },
     { id: 'testimonials-section', label: 'Supporters' },
@@ -344,6 +378,55 @@
         </button>
       {/if}
     </div>
+
+    <!-- Geredde honden carousel -->
+    <section class="section rescued-section" data-section="rescued-dogs">
+      <div class="section-eyebrow">Deze week</div>
+      <h2 class="section-title">Geredde honden deze week</h2>
+
+      <div
+        class="carousel-wrap"
+        role="region"
+        aria-label="Geredde honden"
+        onmousedown={carouselDragStart}
+        ontouchstart={carouselTouchStart}
+        ontouchmove={carouselTouchMove}
+        ontouchend={carouselTouchEnd}
+      >
+        <div class="carousel-track" style="transform: translateX(-{rescuedIndex * 100}%)">
+          {#each rescuedDogs as dog, i}
+            <div class="carousel-slide">
+              <img
+                src={dog.src}
+                alt="Gered hondje {i + 1}"
+                class="carousel-img"
+                loading="lazy"
+                draggable="false"
+              />
+            </div>
+          {/each}
+        </div>
+
+        <button class="carousel-btn carousel-btn-prev" onclick={carouselPrev} aria-label="Vorige">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="carousel-btn carousel-btn-next" onclick={carouselNext} aria-label="Volgende">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+
+      <div class="carousel-dots">
+        {#each rescuedDogs as _, i}
+          <button
+            class="carousel-dot {i === rescuedIndex ? 'active' : ''}"
+            onclick={() => (rescuedIndex = i)}
+            aria-label="Afbeelding {i + 1}"
+          ></button>
+        {/each}
+      </div>
+
+      <p class="rescued-caption">Ze hebben voedsel nodig.</p>
+    </section>
 
     {#if descExpanded}
       <section class="section">
