@@ -15,6 +15,7 @@
     captureAndPersistFbclid, getFbp, trackEvent, uuid, buildShopifyCartUrl,
     type UtmData
   } from '$lib/utils/fbtracking';
+  import { initTaboola, trackTaboola, getTblci } from '$lib/utils/taboola';
   import { getSid } from '$lib/utils/analytics';
   import {
     SHOPIFY_SHOP_DOMAIN, TIER_NAME_BY_AMOUNT, pickVariantForAmount
@@ -29,11 +30,12 @@
   const donationsCount = $derived(data.donationsCount ?? CAMPAIGN.donationsCount);
   const daysLeft = $derived(data.daysLeft ?? CAMPAIGN.daysLeft);
 
-  // Estado de tracking Meta (preenchido no onMount, usado no handleDonate)
+  // Estado de tracking (preenchido no onMount, usado no handleDonate)
   let fbclid: string | null = $state(null);
   let fbc: string | null = $state(null);
   let fbp: string | null = $state(null);
   let utm: UtmData | null = $state(null);
+  let tblci: string | null = $state(null);
 
   // Personalização por UTM: copy diferente para visitantes vindos do Facebook
   let utmSource = $state<string | null>(null);
@@ -69,6 +71,10 @@
     utmSource = tracking.utm?.utm_source ?? null;
     // fbp e setado pelo Pixel JS via cookie — le com pequeno delay pro Pixel inicializar
     setTimeout(() => { fbp = getFbp(); }, 500);
+
+    // Taboola pixel: init + pageview + captura tblci
+    initTaboola();
+    tblci = getTblci();
 
     donorTimer = setInterval(() => {
       donorIdx = (donorIdx + 1) % donorsList.length;
@@ -156,7 +162,7 @@
     // 1. Gera event_id pra dedup com Omega CAPI server-side
     const eventId = uuid();
 
-    // 2. Dispara InitiateCheckout no Pixel client-side
+    // 2. Dispara InitiateCheckout no Pixel client-side (Meta + Taboola)
     trackEvent('InitiateCheckout', {
       value: selectedAmount,
       currency: 'EUR',
@@ -164,6 +170,7 @@
       content_type: 'product',
       num_items: 1
     }, eventId);
+    trackTaboola('IC', selectedAmount);
 
     // 3. Decide destino: Shopify real (se variant ID preenchido) ou fallback /supporter
     //    Sorteia entre as variantes disponiveis pro tier (rotacao multi-produto)
@@ -186,7 +193,8 @@
           fbp,
           eventId,
           utm,
-          sid: getSid()
+          sid: getSid(),
+          tblci
         });
       }
     }, 800);

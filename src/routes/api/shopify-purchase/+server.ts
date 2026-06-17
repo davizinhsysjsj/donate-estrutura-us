@@ -73,6 +73,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	const fbp = readNoteAttr(noteAttrs, 'fbp');
 	const eventIdAttr = readNoteAttr(noteAttrs, 'event_id');
 	const bpSid = readNoteAttr(noteAttrs, 'bp_sid');
+	const tblci = readNoteAttr(noteAttrs, 'tblci');
 
 	// Analytics interno (Vitrack): grava purchase SEMPRE — mesmo sem bp_sid.
 	// Se nao tem bp_sid, gera sid sintetico baseado no orderId (sessao isolada
@@ -174,6 +175,17 @@ export const POST: RequestHandler = async ({ request }) => {
 	if (testEventCode) payload.test_event_code = testEventCode;
 
 	const metaUrl = `https://graph.facebook.com/${META_CAPI_VERSION}/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`;
+
+	// ── Taboola S2S — dispara "Compra" se tblci disponível ──
+	if (tblci) {
+		const taboolaUrl = `https://api.taboola.com/1.0/json/track/conversionEvent` +
+			`?client-id=2057325&click-id=${encodeURIComponent(tblci)}` +
+			`&name=Compra&revenue=${value}&currency=${currency}` +
+			`&timestamp=${Math.floor(Date.now() / 1000)}`;
+		fetch(taboolaUrl)
+			.then((r) => { if (!r.ok) console.error('[shopify-purchase] taboola s2s error', r.status); else console.log('[shopify-purchase] taboola ok', { tblci, value }); })
+			.catch((e) => console.error('[shopify-purchase] taboola fetch failed', e));
+	}
 
 	// ── Meta CAPI + UTMify webhook em paralelo (nenhum bloqueia o outro) ──
 	const metaPromise = fetch(metaUrl, {

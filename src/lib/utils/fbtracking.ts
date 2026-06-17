@@ -139,6 +139,7 @@ export function buildShopifyCartUrl(opts: {
   eventId: string;
   utm?: UtmData | null;
   sid?: string | null; // analytics session id (atrelado pro webhook achar a sessao)
+  tblci?: string | null; // Taboola click-id (para S2S server-side)
 }): string {
   const params = new URLSearchParams();
 
@@ -166,6 +167,7 @@ export function buildShopifyCartUrl(opts: {
   if (utmContent)  params.set('attributes[utm_content]',  utmContent);
   if (utmTerm)     params.set('attributes[utm_term]',     utmTerm);
   if (opts.sid)    params.set('attributes[bp_sid]',       opts.sid);
+  if (opts.tblci)  params.set('attributes[tblci]',        opts.tblci);
 
   return `https://${opts.shopDomain}/cart/${opts.variantId}:1?${params.toString()}`;
 }
