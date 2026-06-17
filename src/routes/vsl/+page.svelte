@@ -137,11 +137,11 @@
 
   // ── Carousel de cães resgatados ──
   const rescuedDogs = [
-    { src: '/dogs/dog1.png' },
-    { src: '/dogs/dog2.png' },
-    { src: '/dogs/dog3.png' },
-    { src: '/dogs/dog4.png' },
-    { src: '/dogs/dog5.png' },
+    { src: '/dogs/dog1.webp' },
+    { src: '/dogs/dog2.webp' },
+    { src: '/dogs/dog3.webp' },
+    { src: '/dogs/dog4.webp' },
+    { src: '/dogs/dog5.webp' },
   ];
   let rescuedIndex = $state(0);
 

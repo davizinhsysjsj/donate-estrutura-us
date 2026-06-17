@@ -52,10 +52,10 @@
 
   // ── Hero carousel ──
   const heroImages = [
-    '/hero1.png',
+    '/hero1.webp',
     '/hero-rescue.webp',
-    '/hero3.png',
-    '/hero4.png',
+    '/hero3.webp',
+    '/hero4.webp',
   ];
   let heroIdx = $state(0);
   let heroTimer: ReturnType<typeof setInterval> | null = null;
