@@ -4,6 +4,7 @@
     captureAndPersistFbclid, getFbp, trackEvent, uuid, buildShopifyCartUrl,
     type UtmData
   } from '$lib/utils/fbtracking';
+  import { initTaboola, trackTaboola, getTblci } from '$lib/utils/taboola';
   import { track as trackAnalytics, getSid } from '$lib/utils/analytics';
   import { SHOPIFY_SHOP_DOMAIN, pickVariantForAmount } from '$lib/data/variants';
   import { CAMPAIGN } from '$lib/data/campaign';
@@ -51,6 +52,7 @@
   let fbc:    string | null = $state(null);
   let fbp:    string | null = $state(null);
   let utm:    UtmData | null = $state(null);
+  let tblci:  string | null = $state(null);
 
   // UI state
   let selectedAmount  = $state<number | null>(null);
@@ -66,6 +68,9 @@
     fbc    = tracking.fbc;
     utm    = tracking.utm;
     setTimeout(() => { fbp = getFbp(); }, 500);
+
+    initTaboola();
+    tblci = getTblci();
 
     // Auto-seleciona valor se vier de link com ?amount= (sticky bar, abandoned recovery)
     const params = new URLSearchParams(window.location.search);
@@ -100,6 +105,9 @@
       content_type: 'product',
       num_items: 1
     }, eid);
+
+    // Taboola IC client-side
+    trackTaboola('IC', selectedAmount ?? 0);
 
     // 2) Meta CAPI server-side — mesmo event_id = dedup automático com #1
     //    + dispara notificação push (Pushcut) via mesmo endpoint
@@ -169,7 +177,8 @@
           fbp,
           eventId,
           utm,
-          sid: getSid()
+          sid: getSid(),
+          tblci
         });
       }
     }, 600);
