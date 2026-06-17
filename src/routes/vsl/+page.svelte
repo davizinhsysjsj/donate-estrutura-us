@@ -160,24 +160,15 @@
   ];
   let rescuedIndex = $state(0);
 
-  let carouselTrackEl: HTMLElement | null = $state(null);
+  let cTouchX = 0;
 
   function carouselPrev() {
     rescuedIndex = (rescuedIndex - 1 + rescuedDogs.length) % rescuedDogs.length;
-    carouselTrackEl?.scrollTo({ left: rescuedIndex * carouselTrackEl.offsetWidth, behavior: 'smooth' });
   }
   function carouselNext() {
     rescuedIndex = (rescuedIndex + 1) % rescuedDogs.length;
-    carouselTrackEl?.scrollTo({ left: rescuedIndex * carouselTrackEl.offsetWidth, behavior: 'smooth' });
   }
-  function carouselGoTo(i: number) {
-    rescuedIndex = i;
-    carouselTrackEl?.scrollTo({ left: i * (carouselTrackEl?.offsetWidth ?? 0), behavior: 'smooth' });
-  }
-  function onTrackScroll() {
-    if (!carouselTrackEl) return;
-    rescuedIndex = Math.round(carouselTrackEl.scrollLeft / carouselTrackEl.offsetWidth);
-  }
+  function carouselGoTo(i: number) { rescuedIndex = i; }
 
   const MENU_ITEMS = [
     { id: 'story-section', label: 'Verhaal' },
@@ -405,24 +396,22 @@
       <div class="section-eyebrow">Deze week</div>
       <h2 class="section-title">Geredde honden deze week</h2>
 
-      <div class="carousel-wrap" role="region" aria-label="Geredde honden">
-        <div
-          class="carousel-track"
-          bind:this={carouselTrackEl}
-          onscroll={onTrackScroll}
-        >
-          {#each rescuedDogs as dog, i}
-            <div class="carousel-slide">
-              <img
-                src={dog.src}
-                alt="Gered hondje {i + 1}"
-                class="carousel-img"
-                loading="lazy"
-                draggable="false"
-              />
-            </div>
-          {/each}
-        </div>
+      <div
+        class="carousel-wrap"
+        role="region"
+        aria-label="Geredde honden"
+        ontouchstart={(e) => { cTouchX = e.touches[0].clientX; }}
+        ontouchend={(e) => { const dx = e.changedTouches[0].clientX - cTouchX; if (dx > 40) carouselPrev(); else if (dx < -40) carouselNext(); }}
+      >
+        {#each rescuedDogs as dog, i}
+          <img
+            src={dog.src}
+            alt="Gered hondje {i + 1}"
+            class="carousel-img {i === rescuedIndex ? 'carousel-img-active' : ''}"
+            loading={i === 0 ? 'eager' : 'lazy'}
+            draggable="false"
+          />
+        {/each}
 
         <button class="carousel-btn carousel-btn-prev" onclick={carouselPrev} aria-label="Vorige">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
