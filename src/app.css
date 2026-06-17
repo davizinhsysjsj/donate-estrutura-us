@@ -179,19 +179,27 @@ body {
 
 /* ─── Hero full-width (sem border-radius — o hero-block branco sobe e cobre embaixo) ─── */
 .hero-image-wrap {
+  position: relative;
   width: 100%;
   background: #EEF1F4;
   overflow: hidden;
   aspect-ratio: 4 / 3;
 }
 .hero-image {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center 35%;
   display: block;
+  opacity: 0;
+  transition: opacity 0.9s ease;
 }
-.hero-image.img-placeholder { aspect-ratio: 4 / 3; }
+.hero-slide-active {
+  opacity: 1;
+}
+.hero-image.img-placeholder { aspect-ratio: 4 / 3; position: relative; opacity: 1; }
 
 /* ─── VSL player (substitui hero-image-wrap em /vsl) ─── */
 .vsl-wrap {
