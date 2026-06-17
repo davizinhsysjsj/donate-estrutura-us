@@ -10,25 +10,15 @@
 
 export const TABOOLA_PIXEL_ID = 2057325;
 
-/** Inicializa o pixel Taboola e dispara Pageview. Chama no onMount. */
+/**
+ * Captura e persiste o tblci (Taboola click-id) da URL.
+ * O pixel e o page_view já são disparados globalmente via app.html.
+ * Chama no onMount das páginas que recebem tráfego Taboola.
+ */
 export function initTaboola() {
 	if (typeof window === 'undefined') return;
-
-	// Captura e persiste tblci da URL
-	const params = new URLSearchParams(window.location.search);
-	const tblci = params.get('tblci');
+	const tblci = new URLSearchParams(window.location.search).get('tblci');
 	if (tblci) localStorage.setItem('tblci', tblci);
-
-	(window as any)._tfa = (window as any)._tfa || [];
-	(window as any)._tfa.push({ notify: 'event', name: 'page_view', id: TABOOLA_PIXEL_ID });
-
-	if (!document.getElementById('tb_tfa_script')) {
-		const s = document.createElement('script');
-		s.async = true;
-		s.src = `//cdn.taboola.com/libtrc/unip/${TABOOLA_PIXEL_ID}/tfa.js`;
-		s.id = 'tb_tfa_script';
-		document.head.appendChild(s);
-	}
 }
 
 /** Dispara evento Taboola client-side (ex: IC, Compra). */
