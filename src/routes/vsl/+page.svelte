@@ -160,28 +160,23 @@
   ];
   let rescuedIndex = $state(0);
 
+  let carouselTrackEl: HTMLElement | null = $state(null);
+
   function carouselPrev() {
     rescuedIndex = (rescuedIndex - 1 + rescuedDogs.length) % rescuedDogs.length;
+    carouselTrackEl?.scrollTo({ left: rescuedIndex * carouselTrackEl.offsetWidth, behavior: 'smooth' });
   }
   function carouselNext() {
     rescuedIndex = (rescuedIndex + 1) % rescuedDogs.length;
+    carouselTrackEl?.scrollTo({ left: rescuedIndex * carouselTrackEl.offsetWidth, behavior: 'smooth' });
   }
-  let dragStartX = 0;
-  function carouselDragStart(e: MouseEvent) {
-    dragStartX = e.clientX;
-    function onUp(ev: MouseEvent) {
-      const dx = ev.clientX - dragStartX;
-      if (Math.abs(dx) > 40) dx < 0 ? carouselNext() : carouselPrev();
-      window.removeEventListener('mouseup', onUp);
-    }
-    window.addEventListener('mouseup', onUp);
+  function carouselGoTo(i: number) {
+    rescuedIndex = i;
+    carouselTrackEl?.scrollTo({ left: i * (carouselTrackEl?.offsetWidth ?? 0), behavior: 'smooth' });
   }
-  let touchStartX = 0;
-  function carouselTouchStart(e: TouchEvent) { touchStartX = e.touches[0].clientX; }
-  function carouselTouchMove(e: TouchEvent) { e.preventDefault(); }
-  function carouselTouchEnd(e: TouchEvent) {
-    const dx = e.changedTouches[0].clientX - touchStartX;
-    if (Math.abs(dx) > 40) dx < 0 ? carouselNext() : carouselPrev();
+  function onTrackScroll() {
+    if (!carouselTrackEl) return;
+    rescuedIndex = Math.round(carouselTrackEl.scrollLeft / carouselTrackEl.offsetWidth);
   }
 
   const MENU_ITEMS = [
@@ -410,16 +405,12 @@
       <div class="section-eyebrow">Deze week</div>
       <h2 class="section-title">Geredde honden deze week</h2>
 
-      <div
-        class="carousel-wrap"
-        role="region"
-        aria-label="Geredde honden"
-        onmousedown={carouselDragStart}
-        ontouchstart={carouselTouchStart}
-        ontouchmove={carouselTouchMove}
-        ontouchend={carouselTouchEnd}
-      >
-        <div class="carousel-track" style="transform: translateX(-{rescuedIndex * 100}%)">
+      <div class="carousel-wrap" role="region" aria-label="Geredde honden">
+        <div
+          class="carousel-track"
+          bind:this={carouselTrackEl}
+          onscroll={onTrackScroll}
+        >
           {#each rescuedDogs as dog, i}
             <div class="carousel-slide">
               <img
@@ -445,7 +436,7 @@
         {#each rescuedDogs as _, i}
           <button
             class="carousel-dot {i === rescuedIndex ? 'active' : ''}"
-            onclick={() => (rescuedIndex = i)}
+            onclick={() => carouselGoTo(i)}
             aria-label="Afbeelding {i + 1}"
           ></button>
         {/each}
