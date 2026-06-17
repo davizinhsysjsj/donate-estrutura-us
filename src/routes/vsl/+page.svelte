@@ -77,6 +77,10 @@
       donorIdx = (donorIdx + 1) % donorsList.length;
     }, 4200);
 
+    heroTimer = setInterval(() => {
+      heroIdx = (heroIdx + 1) % heroImages.length;
+    }, 3000);
+
     // Back guard: mesmo comportamento da LP
     if (typeof history !== 'undefined') {
       history.pushState({ pawsBackGuard: true }, '', window.location.pathname + window.location.search);
@@ -91,6 +95,7 @@
 
   onDestroy(() => {
     if (donorTimer) clearInterval(donorTimer);
+    if (heroTimer) clearInterval(heroTimer);
   });
 
   let exitPopupVsl: ReturnType<typeof ExitIntentPopup> | null = $state(null);
@@ -134,6 +139,16 @@
   let toastVisible = $state(false);
   let menuOpen = $state(false);
   let donorsModalOpen = $state(false);
+
+  // ── Hero carousel ──
+  const heroImages = [
+    '/hero1.webp',
+    '/hero-rescue.webp',
+    '/hero3.webp',
+    '/hero4.webp',
+  ];
+  let heroIdx = $state(0);
+  let heroTimer: ReturnType<typeof setInterval> | null = null;
 
   // ── Carousel de cães resgatados ──
   const rescuedDogs = [
@@ -302,22 +317,34 @@
 
 <div class="page">
   <div class="container-app">
-    <!-- Hero full-width com curva inferior -->
+    <!-- Hero carousel com setas -->
     <div class="hero-image-wrap" data-section="hero-image">
-      {#if CAMPAIGN.heroImage}
-        <img class="hero-image" src={CAMPAIGN.heroImage} alt={CAMPAIGN.title} loading="eager" fetchpriority="high" decoding="async" width="900" height="600" />
-      {:else}
-        <div class="hero-image img-placeholder">
-          <div class="img-placeholder-stack">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="3" y="5" width="18" height="14" rx="2" />
-              <circle cx="9" cy="11" r="2" />
-              <path d="m21 17-5-5-9 9" />
-            </svg>
-            <span class="img-placeholder-label">Foto komt binnenkort</span>
-          </div>
-        </div>
-      {/if}
+      {#each heroImages as src, i}
+        <img
+          class="hero-image hero-slide {i === heroIdx ? 'hero-slide-active' : ''}"
+          {src}
+          alt={CAMPAIGN.title}
+          loading={i === 0 ? 'eager' : 'lazy'}
+          fetchpriority={i === 0 ? 'high' : 'auto'}
+          decoding="async"
+          width="900"
+          height="600"
+        />
+      {/each}
+      <button
+        class="hero-arrow hero-arrow-prev"
+        onclick={() => { heroIdx = (heroIdx - 1 + heroImages.length) % heroImages.length; }}
+        aria-label="Vorige"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button
+        class="hero-arrow hero-arrow-next"
+        onclick={() => { heroIdx = (heroIdx + 1) % heroImages.length; }}
+        aria-label="Volgende"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
     </div>
 
     <!-- Bloco principal: titulo + progress card + descricao curta -->

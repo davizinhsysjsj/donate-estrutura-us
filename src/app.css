@@ -199,6 +199,27 @@ body {
 .hero-slide-active {
   opacity: 1;
 }
+.hero-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  background: rgba(0,0,0,0.32);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  backdrop-filter: blur(2px);
+  transition: background 0.2s;
+}
+.hero-arrow:hover { background: rgba(0,0,0,0.52); }
+.hero-arrow-prev { left: 10px; }
+.hero-arrow-next { right: 10px; }
 .hero-image.img-placeholder { aspect-ratio: 4 / 3; position: relative; opacity: 1; }
 
 /* ─── VSL player (substitui hero-image-wrap em /vsl) ─── */
