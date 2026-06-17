@@ -3,78 +3,57 @@
 
   interface Props {
     onDonate: () => void;
-    onBack?: () => void; // chamado ao fechar popup via tentativa de sair (back/exit)
+    onBack?: () => void;
   }
   const { onDonate, onBack }: Props = $props();
 
   let visible = $state(false);
   let dismissed = $state(false);
-  let wasBackPress = $state(false); // se true, fechar leva pra /wacht; se false, só fecha
+  let wasBackPress = $state(false);
 
-  // Tracking de velocidade do mouse pra evitar falso positivo (cursor parado no topo)
-  let lastY = 0;
-  let lastT = 0;
+  const INACTIVITY_MS = 5 * 60 * 1000; // 5 minutos
+  let inactivityTimer: ReturnType<typeof setTimeout>;
 
-  // Exposto para o pai chamar via bind:this ou ação direta (back press mobile)
   export function triggerBackExit() {
-    if (dismissed) {
-      // Já foi mostrado e fechado — vai direto pro destino
-      onBack?.();
-      return;
-    }
+    if (dismissed) { onBack?.(); return; }
+    clearTimeout(inactivityTimer);
     wasBackPress = true;
     dismissed = true;
     visible = true;
-    removeListeners();
   }
 
   function show() {
     if (dismissed) return;
     dismissed = true;
     visible = true;
-    removeListeners();
   }
 
-  function removeListeners() {
-    document.removeEventListener('mouseleave', handleMouseLeave);
-    document.removeEventListener('mousemove', handleMouseMove);
+  function resetInactivity() {
+    clearTimeout(inactivityTimer);
+    if (!dismissed) inactivityTimer = setTimeout(show, INACTIVITY_MS);
   }
-
-  function handleMouseMove(e: MouseEvent) {
-    lastY = e.clientY;
-    lastT = performance.now();
-  }
-
-  // Exit intent: cursor sai pelo topo COM velocidade pra cima — desktop real
-  function handleMouseLeave(e: MouseEvent) {
-    // Precisa sair pela borda superior
-    if (e.clientY > 5) return;
-    // Precisa estar se movendo pra cima rápido (>200 px/s)
-    const dt = performance.now() - lastT;
-    if (dt > 250) return; // sem movimento recente, ignora
-    const dy = e.clientY - lastY;
-    const velocity = dy / (dt / 1000); // px/s
-    if (velocity < -200) show();
-  }
-
-  let exitTimer: ReturnType<typeof setTimeout>;
 
   onMount(() => {
-    // Exit intent via mouse: ativa após 10s (desktop apenas — mobile não dispara mouseleave)
-    exitTimer = setTimeout(() => {
-      document.addEventListener('mousemove', handleMouseMove, { passive: true });
-      document.addEventListener('mouseleave', handleMouseLeave);
-    }, 10000);
+    resetInactivity();
+    const opts = { passive: true };
+    window.addEventListener('click',      resetInactivity, opts);
+    window.addEventListener('keydown',    resetInactivity, opts);
+    window.addEventListener('touchstart', resetInactivity, opts);
+    window.addEventListener('scroll',     resetInactivity, opts);
+    window.addEventListener('mousemove',  resetInactivity, opts);
 
     return () => {
-      clearTimeout(exitTimer);
-      removeListeners();
+      clearTimeout(inactivityTimer);
+      window.removeEventListener('click',      resetInactivity);
+      window.removeEventListener('keydown',    resetInactivity);
+      window.removeEventListener('touchstart', resetInactivity);
+      window.removeEventListener('scroll',     resetInactivity);
+      window.removeEventListener('mousemove',  resetInactivity);
     };
   });
 
   function close() {
     visible = false;
-    // Só vai pra /wacht se foi back press real (mobile). Fechamento por X/overlay/skip só fecha.
     if (wasBackPress) onBack?.();
   }
 

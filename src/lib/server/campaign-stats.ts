@@ -41,8 +41,8 @@ function load(): CampaignStats {
 		const parsed = JSON.parse(raw);
 		// Garante que os valores sao >= ao seed (nunca abaixo do inicial hardcoded)
 		return {
-			raisedEur: Math.max(parsed.raisedEur ?? 0, SEED.raisedEur),
-			donationsCount: Math.max(parsed.donationsCount ?? 0, SEED.donationsCount),
+			raisedEur: parsed.raisedEur ?? SEED.raisedEur,
+			donationsCount: parsed.donationsCount ?? SEED.donationsCount,
 			updatedAt: parsed.updatedAt ?? Date.now()
 		};
 	} catch (e) {
