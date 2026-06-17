@@ -177,13 +177,21 @@ export const POST: RequestHandler = async ({ request }) => {
 	const metaUrl = `https://graph.facebook.com/${META_CAPI_VERSION}/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`;
 
 	// ── Taboola S2S — dispara "Compra" se tblci disponível ──
+	// Endpoint documentado: trc.taboola.com/actions-handler/log/3/s2s-actions (sem auth)
 	if (tblci) {
-		const taboolaUrl = `https://api.taboola.com/1.0/json/track/conversionEvent` +
-			`?client-id=2057325&click-id=${encodeURIComponent(tblci)}` +
-			`&name=Compra&revenue=${value}&currency=${currency}` +
-			`&timestamp=${Math.floor(Date.now() / 1000)}`;
-		fetch(taboolaUrl)
-			.then((r) => { if (!r.ok) console.error('[shopify-purchase] taboola s2s error', r.status); else console.log('[shopify-purchase] taboola ok', { tblci, value }); })
+		const taboolaParams = new URLSearchParams({
+			'click-id': tblci,
+			'name': 'Compra',
+			'revenue': String(value),
+			'currency': currency,
+			'timestamp': String(Math.floor(Date.now() / 1000))
+		});
+		fetch(`https://trc.taboola.com/actions-handler/log/3/s2s-actions?${taboolaParams}`)
+			.then(async (r) => {
+				const body = await r.text().catch(() => '');
+				if (!r.ok) console.error('[shopify-purchase] taboola s2s error', r.status, body);
+				else console.log('[shopify-purchase] taboola ok', { tblci, value, status: r.status });
+			})
 			.catch((e) => console.error('[shopify-purchase] taboola fetch failed', e));
 	}
 
