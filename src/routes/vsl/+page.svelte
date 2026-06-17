@@ -282,8 +282,7 @@
 
 <header class="header">
   <a href="/" class="header-logo">
-    <img src="/logo.webp" alt="Officiële Donaties België" class="logo-img" />
-    <span class="header-flag" aria-hidden="true">🇧🇪</span>
+    <img src="/logo-new.webp" alt="HelpAnimals.be" class="logo-img logo-img-round" />
   </a>
   <button
     class="header-menu-btn"
