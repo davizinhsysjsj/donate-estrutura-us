@@ -224,8 +224,11 @@ export const POST: RequestHandler = async ({ request }) => {
 						currency,
 						value,
 						content_type: 'product',
+						content_id: contentIds[0] || String(orderId),
+						content_name: `Donation`,
 						contents: contents.map((c: any) => ({
 							content_id: c.id,
+							content_type: 'product',
 							quantity: c.quantity,
 							price: c.item_price
 						})),

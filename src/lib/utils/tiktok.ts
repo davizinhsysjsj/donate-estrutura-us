@@ -64,12 +64,36 @@ export function initTikTok() {
 	if (ttclid) localStorage.setItem('ttclid', ttclid);
 }
 
-/** Dispara evento TikTok client-side (ex: InitiateCheckout, CompletePayment). */
-export function trackTikTok(name: string, value?: number) {
+/**
+ * Dispara evento TikTok client-side (ex: InitiateCheckout, CompletePayment).
+ * `contentId` é obrigatório para Video Shopping Ads (VSA). Passe o id do tier (ex: "25").
+ */
+export function trackTikTok(name: string, value?: number, contentId?: string) {
 	if (typeof window === 'undefined') return;
 	const ttq = (window as any).ttq;
 	if (!ttq || typeof ttq.track !== 'function') return;
-	ttq.track(name, value ? { value, currency: 'EUR' } : {});
+	const params: Record<string, any> = {};
+	if (value) {
+		params.value = value;
+		params.currency = 'EUR';
+	}
+	if (contentId) {
+		params.content_id = contentId;
+		params.content_type = 'product';
+		params.content_name = `Donation €${contentId}`;
+		params.quantity = 1;
+		params.price = value;
+		params.contents = [
+			{
+				content_id: contentId,
+				content_type: 'product',
+				content_name: `Donation €${contentId}`,
+				quantity: 1,
+				price: value
+			}
+		];
+	}
+	ttq.track(name, params);
 }
 
 /** Retorna ttclid persistido (URL atual ou localStorage). */

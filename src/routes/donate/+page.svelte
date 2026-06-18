@@ -116,8 +116,8 @@
     // Taboola IC client-side
     trackTaboola('IC', selectedAmount ?? 0);
 
-    // TikTok IC client-side
-    trackTikTok('InitiateCheckout', selectedAmount ?? 0);
+    // TikTok IC client-side — content_id obrigatorio pra Video Shopping Ads (VSA)
+    trackTikTok('InitiateCheckout', selectedAmount ?? 0, String(selectedAmount ?? 0));
 
     // 2) Meta CAPI server-side — mesmo event_id = dedup automático com #1
     //    + dispara notificação push (Pushcut) via mesmo endpoint
