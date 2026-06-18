@@ -74,6 +74,8 @@ export const POST: RequestHandler = async ({ request }) => {
 	const eventIdAttr = readNoteAttr(noteAttrs, 'event_id');
 	const bpSid = readNoteAttr(noteAttrs, 'bp_sid');
 	const tblci = readNoteAttr(noteAttrs, 'tblci');
+	const ttclid = readNoteAttr(noteAttrs, 'ttclid');
+	const ttp = readNoteAttr(noteAttrs, 'ttp');
 
 	// Analytics interno (Vitrack): grava purchase SEMPRE — mesmo sem bp_sid.
 	// Se nao tem bp_sid, gera sid sintetico baseado no orderId (sessao isolada
@@ -193,6 +195,67 @@ export const POST: RequestHandler = async ({ request }) => {
 				else console.log('[shopify-purchase] taboola ok', { tblci, value, status: r.status });
 			})
 			.catch((e) => console.error('[shopify-purchase] taboola fetch failed', e));
+	}
+
+	// ── TikTok Events API V2 — dispara "CompletePayment" se houver atribuição ──
+	// Endpoint: business-api.tiktok.com/open_api/v1.3/event/track/
+	// Requer TIKTOK_PIXEL_ID + TIKTOK_ACCESS_TOKEN. Se ausentes, pula silenciosamente.
+	const TIKTOK_PIXEL_ID = env.TIKTOK_PIXEL_ID || 'D8PI2QBC77U8IPSBIFU0';
+	const TIKTOK_ACCESS_TOKEN = env.TIKTOK_ACCESS_TOKEN;
+	if (TIKTOK_ACCESS_TOKEN && (ttclid || ttp || email || phone)) {
+		const ttPayload = {
+			event_source: 'web',
+			event_source_id: TIKTOK_PIXEL_ID,
+			data: [
+				{
+					event: 'CompletePayment',
+					event_time: Math.floor(Date.now() / 1000),
+					event_id: eventId,
+					user: {
+						email: email ? sha256Lower(email) : undefined,
+						phone: phone ? sha256Lower(String(phone).replace(/\D/g, '')) : undefined,
+						external_id: email ? sha256Lower(email) : undefined,
+						ttclid: ttclid || undefined,
+						ttp: ttp || undefined,
+						ip: order.client_details?.browser_ip || undefined,
+						user_agent: order.client_details?.user_agent || undefined
+					},
+					properties: {
+						currency,
+						value,
+						content_type: 'product',
+						contents: contents.map((c: any) => ({
+							content_id: c.id,
+							quantity: c.quantity,
+							price: c.item_price
+						})),
+						order_id: String(orderId)
+					},
+					page: {
+						url: order.order_status_url || undefined
+					}
+				}
+			]
+		};
+		Object.keys(ttPayload.data[0].user).forEach(
+			(k) => (ttPayload.data[0].user as any)[k] === undefined && delete (ttPayload.data[0].user as any)[k]
+		);
+		fetch('https://business-api.tiktok.com/open_api/v1.3/event/track/', {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/json',
+				'Access-Token': TIKTOK_ACCESS_TOKEN
+			},
+			body: JSON.stringify(ttPayload)
+		})
+			.then(async (r) => {
+				const body = await r.text().catch(() => '');
+				if (!r.ok) console.error('[shopify-purchase] tiktok events api error', r.status, body);
+				else console.log('[shopify-purchase] tiktok ok', { ttclid: !!ttclid, ttp: !!ttp, value, status: r.status });
+			})
+			.catch((e) => console.error('[shopify-purchase] tiktok fetch failed', e));
+	} else if (!TIKTOK_ACCESS_TOKEN) {
+		console.warn('[shopify-purchase] TIKTOK_ACCESS_TOKEN ausente — pulando S2S TikTok');
 	}
 
 	// ── Meta CAPI + UTMify webhook em paralelo (nenhum bloqueia o outro) ──

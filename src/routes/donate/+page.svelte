@@ -5,6 +5,7 @@
     type UtmData
   } from '$lib/utils/fbtracking';
   import { initTaboola, trackTaboola, getTblci } from '$lib/utils/taboola';
+  import { initTikTok, trackTikTok, getTtclid, getTtp } from '$lib/utils/tiktok';
   import { track as trackAnalytics, getSid } from '$lib/utils/analytics';
   import { SHOPIFY_SHOP_DOMAIN, pickVariantForAmount } from '$lib/data/variants';
   import { CAMPAIGN } from '$lib/data/campaign';
@@ -53,6 +54,8 @@
   let fbp:    string | null = $state(null);
   let utm:    UtmData | null = $state(null);
   let tblci:  string | null = $state(null);
+  let ttclid: string | null = $state(null);
+  let ttp:    string | null = $state(null);
 
   // UI state
   let selectedAmount  = $state<number | null>(null);
@@ -71,6 +74,10 @@
 
     initTaboola();
     tblci = getTblci();
+
+    initTikTok();
+    ttclid = getTtclid();
+    setTimeout(() => { ttp = getTtp(); }, 500);
 
     // Auto-seleciona valor se vier de link com ?amount= (sticky bar, abandoned recovery)
     const params = new URLSearchParams(window.location.search);
@@ -108,6 +115,9 @@
 
     // Taboola IC client-side
     trackTaboola('IC', selectedAmount ?? 0);
+
+    // TikTok IC client-side
+    trackTikTok('InitiateCheckout', selectedAmount ?? 0);
 
     // 2) Meta CAPI server-side — mesmo event_id = dedup automático com #1
     //    + dispara notificação push (Pushcut) via mesmo endpoint
@@ -178,7 +188,9 @@
           eventId,
           utm,
           sid: getSid(),
-          tblci
+          tblci,
+          ttclid,
+          ttp
         });
       }
     }, 600);

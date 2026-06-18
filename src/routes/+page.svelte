@@ -16,6 +16,7 @@
     type UtmData
   } from '$lib/utils/fbtracking';
   import { initTaboola, trackTaboola, getTblci } from '$lib/utils/taboola';
+  import { initTikTok, trackTikTok, getTtclid, getTtp } from '$lib/utils/tiktok';
   import { getSid } from '$lib/utils/analytics';
   import {
     SHOPIFY_SHOP_DOMAIN, TIER_NAME_BY_AMOUNT, pickVariantForAmount
@@ -36,6 +37,8 @@
   let fbp: string | null = $state(null);
   let utm: UtmData | null = $state(null);
   let tblci: string | null = $state(null);
+  let ttclid: string | null = $state(null);
+  let ttp: string | null = $state(null);
 
   // Personalização por UTM: copy diferente para visitantes vindos do Facebook
   let utmSource = $state<string | null>(null);
@@ -75,6 +78,11 @@
     // Taboola pixel: init + pageview + captura tblci
     initTaboola();
     tblci = getTblci();
+
+    // TikTok pixel: carrega + pageview + captura ttclid (ttp vem do cookie _ttp com delay)
+    initTikTok();
+    ttclid = getTtclid();
+    setTimeout(() => { ttp = getTtp(); }, 500);
 
     donorTimer = setInterval(() => {
       donorIdx = (donorIdx + 1) % donorsList.length;
@@ -171,6 +179,7 @@
       num_items: 1
     }, eventId);
     trackTaboola('IC', selectedAmount);
+    trackTikTok('InitiateCheckout', selectedAmount);
 
     // 3. Decide destino: Shopify real (se variant ID preenchido) ou fallback /supporter
     //    Sorteia entre as variantes disponiveis pro tier (rotacao multi-produto)
@@ -194,7 +203,9 @@
           eventId,
           utm,
           sid: getSid(),
-          tblci
+          tblci,
+          ttclid,
+          ttp
         });
       }
     }, 800);
