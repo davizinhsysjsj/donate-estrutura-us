@@ -34,9 +34,11 @@
   const KATTEN = {
     title: 'Shadow heeft 8 dagen. Een tumor groeit op zijn kop.',
     subtitle: 'Hij is 14 jaar oud, zwart, en al 487 dagen vergeten in de opvang.',
-    story: [
+    storyPreview: [
       "Dit is Shadow 🖤",
-      "Hij werd binnengebracht toen zijn baasje overleed. Niemand kwam hem ooit ophalen. 487 dagen later zit hij nog steeds in dezelfde kooi. Niemand wil een oude zwarte kat.",
+      "Hij werd binnengebracht toen zijn baasje overleed. Niemand kwam hem ooit ophalen. 487 dagen later zit hij nog steeds in dezelfde kooi. Niemand wil een oude zwarte kat."
+    ],
+    storyRest: [
       "Vorige week ontdekte onze dierenarts een tumor op zijn schedel. De operatie kost €890 en moet binnen 8 dagen gebeuren — daarna is het te laat.",
       "Shadow heeft niemand. Niemand behalve jou. Een donatie van €25 betekent dat hij vannacht eten en pijnstillers krijgt. €40 betekent dat hij de operatie kan halen."
     ],
@@ -323,10 +325,15 @@
         <span>8 dagen voor Shadow</span>
       </div>
 
-      <div id="story-section" data-section="story" class="story-text" class:story-text-collapsed={!descExpanded}>
-        {#each KATTEN.story as paragraph}
+      <div id="story-section" data-section="story" class="story-text">
+        {#each KATTEN.storyPreview as paragraph}
           <p>{paragraph}</p>
         {/each}
+        {#if descExpanded}
+          {#each KATTEN.storyRest as paragraph}
+            <p>{paragraph}</p>
+          {/each}
+        {/if}
       </div>
       <button class="read-more" onclick={() => (descExpanded = !descExpanded)}>
         {descExpanded ? 'Minder lezen' : 'Meer lezen'}
