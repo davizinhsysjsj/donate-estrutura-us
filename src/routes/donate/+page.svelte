@@ -197,7 +197,7 @@
   }
 
   function goBack() {
-    window.location.href = '/';
+    window.location.href = '/katten';
   }
 </script>
 
