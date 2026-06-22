@@ -30,11 +30,11 @@
   // Linha 1: €50, €100 · Linha 2: €200, €300 · Linha 3: €25*, €500
   // Linha 4: €80, €35 · Linha 5: €30, €20 · Linha 6: €15, €10
   const AMOUNTS: AmountOption[] = [
-    { amount: 50,  desc: "Voorbereiding op Shadow's operatie." },
+    { amount: 50,  recommended: true, desc: "Voorbereiding op Shadow's operatie." },
     { amount: 100, desc: 'Operatiekamer en steriel materiaal voor de ingreep.' },
     { amount: 200, desc: "Een vierde van Shadow's tumor-operatie (€890 totaal)." },
     { amount: 300, desc: 'Operatie en 2 dagen herstel onder toezicht.' },
-    { amount: 25,  recommended: true, desc: 'Eerste dierenarts-controle voor Shadow.' },
+    { amount: 25,  desc: 'Eerste dierenarts-controle voor Shadow.' },
     { amount: 500, desc: 'Volledige operatie en nazorg voor Shadow.' },
     { amount: 80,  desc: 'Anesthesie tijdens de tumor-operatie.' },
     { amount: 35,  desc: 'Bloedonderzoek om de tumor op te volgen.' },
