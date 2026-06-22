@@ -1,0 +1,732 @@
+<script lang="ts">
+  import {
+    ChevronRight, Calendar, Shield, Heart,
+    Facebook, Youtube, Twitter, Instagram,
+    Menu, X
+  } from 'lucide-svelte';
+  import { onMount, onDestroy } from 'svelte';
+  import { goto, preloadData, preloadCode } from '$app/navigation';
+  import ExitIntentPopup from '$lib/components/ExitIntentPopup.svelte';
+  import { CAMPAIGN } from '$lib/data/campaign';
+  import ProgressCard from '$lib/components/ProgressCard.svelte';
+  import StickyBottomBar from '$lib/components/StickyBottomBar.svelte';
+  import {
+    captureAndPersistFbclid, getFbp, trackEvent, uuid, buildShopifyCartUrl,
+    type UtmData
+  } from '$lib/utils/fbtracking';
+  import { initTaboola, trackTaboola, getTblci } from '$lib/utils/taboola';
+  import { initTikTok, trackTikTok, getTtclid, getTtp } from '$lib/utils/tiktok';
+  import { attachVslTracking, getSid } from '$lib/utils/analytics';
+  import {
+    SHOPIFY_SHOP_DOMAIN, TIER_NAME_BY_AMOUNT, pickVariantForAmount
+  } from '$lib/data/variants';
+  import type { PageData } from './$types';
+
+  const { data } = $props<{ data: PageData }>();
+  const donorsList = $derived(data.donors);
+  const raisedEur = $derived(data.raisedEur ?? 2157);
+  const donationsCount = $derived(data.donationsCount ?? 412);
+  const daysLeft = $derived(data.daysLeft ?? 21);
+
+  // ──────────────────────────────────────────────────────────────
+  // Campanha: GATO PRETO IDOSO COM TUMOR
+  // ──────────────────────────────────────────────────────────────
+  const KATTEN = {
+    title: 'Shadow heeft 8 dagen. Een tumor groeit op zijn kop.',
+    subtitle: 'Hij is 14 jaar oud, zwart, en al 487 dagen vergeten in de opvang.',
+    story: [
+      "Dit is Shadow 🖤",
+      "Hij werd binnengebracht toen zijn baasje overleed. Niemand kwam hem ooit ophalen. 487 dagen later zit hij nog steeds in dezelfde kooi. Niemand wil een oude zwarte kat.",
+      "Vorige week ontdekte onze dierenarts een tumor op zijn schedel. De operatie kost €890 en moet binnen 8 dagen gebeuren — daarna is het te laat.",
+      "Shadow heeft niemand. Niemand behalve jou. Een donatie van €25 betekent dat hij vannacht eten en pijnstillers krijgt. €40 betekent dat hij de operatie kan halen."
+    ],
+    highlight: 'Shadow heeft 8 dagen. Wij hebben €890 nodig.',
+    goalEur: 890,
+    heroCaption: 'Ze hebben dringend hulp nodig.',
+    shareTitle: 'Help Shadow zijn tumor-operatie te betalen',
+    shareUrl: 'https://belgianpawshelter.help/vsl-katten'
+  };
+
+  // Tiers especificos pra gatos: copy NL "X katten redden"
+  const TIERS = [
+    { amount: 10, cats: 2 },
+    { amount: 25, cats: 5 },
+    { amount: 40, cats: 8 },
+    { amount: 100, cats: 20 }
+  ];
+  const DEFAULT_TIER = 25;
+
+  function catsForAmount(amount: number): number {
+    const t = TIERS.find((x) => x.amount === amount);
+    if (t) return t.cats;
+    return Math.max(1, Math.round(amount / 5));
+  }
+
+  // Estado de tracking
+  let fbclid: string | null = $state(null);
+  let fbc: string | null = $state(null);
+  let fbp: string | null = $state(null);
+  let utm: UtmData | null = $state(null);
+  let tblci: string | null = $state(null);
+  let ttclid: string | null = $state(null);
+  let ttp: string | null = $state(null);
+
+  let donorIdx = $state(0);
+  let donorTimer: ReturnType<typeof setInterval> | null = null;
+  const lastDonor = $derived(donorsList[donorIdx % donorsList.length]);
+
+  onMount(() => {
+    const tracking = captureAndPersistFbclid();
+    fbclid = tracking.fbclid;
+    fbc = tracking.fbc;
+    utm = tracking.utm;
+    setTimeout(() => { fbp = getFbp(); }, 500);
+
+    initTaboola();
+    tblci = getTblci();
+
+    initTikTok();
+    ttclid = getTtclid();
+    setTimeout(() => { ttp = getTtp(); }, 500);
+
+    preloadCode('/donate').catch(() => {});
+    setTimeout(() => { preloadData('/donate').catch(() => {}); }, 1200);
+
+    const vslWrap = document.querySelector('.vsl-wrap');
+    if (vslWrap && 'IntersectionObserver' in window) {
+      const obs = new IntersectionObserver(
+        ([entry], o) => {
+          if (entry.isIntersecting) {
+            videoSrc = VSL_URL;
+            o.disconnect();
+          }
+        },
+        { rootMargin: '400px' }
+      );
+      obs.observe(vslWrap);
+    } else {
+      videoSrc = VSL_URL;
+    }
+
+    donorTimer = setInterval(() => {
+      donorIdx = (donorIdx + 1) % donorsList.length;
+    }, 4200);
+
+    heroTimer = setInterval(() => {
+      heroIdx = (heroIdx + 1) % heroImages.length;
+    }, 3000);
+
+    if (typeof history !== 'undefined') {
+      history.pushState({ pawsBackGuard: true }, '', window.location.pathname + window.location.search);
+      const handlePopState = () => {
+        window.removeEventListener('popstate', handlePopState);
+        history.pushState({ pawsBackGuard: true }, '', window.location.pathname + window.location.search);
+        exitPopupVsl?.triggerBackExit();
+      };
+      window.addEventListener('popstate', handlePopState);
+    }
+  });
+
+  onDestroy(() => {
+    if (donorTimer) clearInterval(donorTimer);
+    if (heroTimer) clearInterval(heroTimer);
+  });
+
+  let exitPopupVsl: ReturnType<typeof ExitIntentPopup> | null = $state(null);
+
+  function scrollToDonors() {
+    const el = document.getElementById('donations');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // VSL player (mesmo video por enquanto)
+  const VSL_URL = 'https://belgianpaws-vsl.vercel.app/vsl.mp4';
+  let videoEl: HTMLVideoElement | null = $state(null);
+  let audioEnabled = $state(false);
+  let videoSrc = $state<string>('');
+
+  function enableAudio() {
+    if (!videoEl) return;
+    if (!videoSrc) videoSrc = VSL_URL;
+    videoEl.muted = false;
+    videoEl.currentTime = 0;
+    videoEl.play().catch(() => {});
+    audioEnabled = true;
+  }
+
+  $effect(() => {
+    if (videoEl) attachVslTracking(videoEl);
+  });
+
+  let descExpanded = $state(false);
+  let donationOpen = $state(false);
+  let shareOpen = $state(false);
+  let currentStep = $state<1 | 2>(1);
+  let selectedAmount = $state<number>(DEFAULT_TIER);
+  let donating = $state(false);
+  let toastMessage = $state('');
+  let toastVisible = $state(false);
+  let menuOpen = $state(false);
+  let donorsModalOpen = $state(false);
+
+  // Hero carousel — gatos pretos
+  const heroImages = [
+    '/katten/hero1.jpg',
+    '/katten/hero2.jpg',
+    '/katten/hero3.jpg',
+    '/katten/hero4.jpg'
+  ];
+  let heroIdx = $state(0);
+  let heroTimer: ReturnType<typeof setInterval> | null = null;
+
+  // Carrossel de gatos resgatados
+  const rescuedCats = [
+    { src: '/katten/cat1.jpg' },
+    { src: '/katten/cat2.jpg' },
+    { src: '/katten/cat3.jpg' },
+    { src: '/katten/cat4.jpg' },
+    { src: '/katten/cat5.jpg' }
+  ];
+  let rescuedIndex = $state(0);
+  let cTouchX = 0;
+
+  function carouselPrev() {
+    rescuedIndex = (rescuedIndex - 1 + rescuedCats.length) % rescuedCats.length;
+  }
+  function carouselNext() {
+    rescuedIndex = (rescuedIndex + 1) % rescuedCats.length;
+  }
+  function carouselGoTo(i: number) { rescuedIndex = i; }
+
+  const MENU_ITEMS = [
+    { id: 'story-section', label: 'Verhaal' },
+    { id: 'testimonials-section', label: 'Supporters' },
+    { id: 'donations', label: 'Donaties' },
+    { id: 'organizer-section', label: 'Organisator' }
+  ];
+
+  function scrollToSection(id: string) {
+    menuOpen = false;
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function showToast(msg: string) {
+    toastMessage = msg;
+    toastVisible = true;
+    setTimeout(() => (toastVisible = false), 2500);
+  }
+
+  function openDonation() {
+    goto('/donate');
+  }
+
+  function selectAmount(amount: number) {
+    selectedAmount = amount;
+    setTimeout(() => {
+      currentStep = 2;
+    }, 200);
+  }
+
+  function handleDonate() {
+    donating = true;
+
+    const eventId = uuid();
+    const contentId = `cat-${selectedAmount}`;
+
+    // Meta + Taboola + TikTok IC com content_id especifico de gato pra distinguir do funil de cachorro
+    trackEvent('InitiateCheckout', {
+      value: selectedAmount,
+      currency: 'EUR',
+      content_ids: [contentId],
+      content_type: 'product',
+      num_items: 1
+    }, eventId);
+    trackTaboola('IC', selectedAmount);
+    trackTikTok('InitiateCheckout', selectedAmount, contentId);
+
+    const variantId = pickVariantForAmount(selectedAmount);
+    const isPlaceholder = !variantId || variantId.startsWith('PLACEHOLDER');
+    const tierName = TIER_NAME_BY_AMOUNT[selectedAmount] || String(selectedAmount);
+
+    setTimeout(() => {
+      if (isPlaceholder) {
+        window.location.href = `/supporter?tier=${selectedAmount}&event_id=${eventId}`;
+      } else {
+        window.location.href = buildShopifyCartUrl({
+          shopDomain: SHOPIFY_SHOP_DOMAIN,
+          variantId,
+          fbclid,
+          fbp,
+          eventId,
+          utm,
+          sid: getSid(),
+          tblci,
+          ttclid,
+          ttp
+        });
+      }
+    }, 800);
+  }
+
+  function shareTo(target: 'whatsapp' | 'facebook' | 'copy') {
+    const text = `${KATTEN.shareTitle} ${KATTEN.shareUrl}`;
+    if (target === 'whatsapp') {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    } else if (target === 'facebook') {
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(KATTEN.shareUrl)}`, '_blank');
+    } else {
+      navigator.clipboard?.writeText(KATTEN.shareUrl).then(() => {
+        showToast('Link gekopieerd!');
+        shareOpen = false;
+      });
+    }
+  }
+</script>
+
+<svelte:head>
+  <title>{KATTEN.title}</title>
+  <meta name="description" content={KATTEN.subtitle} />
+  <link rel="preconnect" href="https://belgianpaws-vsl.vercel.app" crossorigin />
+  <link rel="dns-prefetch" href="https://belgianpaws-vsl.vercel.app" />
+</svelte:head>
+
+<header class="header">
+  <a href="/" class="header-logo">
+    <img src="/logo.webp" alt="Officiële Donaties België" class="logo-img" />
+    <span class="header-flag" aria-hidden="true">🇧🇪</span>
+  </a>
+  <button
+    class="header-menu-btn"
+    aria-label="Menu openen"
+    aria-expanded={menuOpen}
+    onclick={() => (menuOpen = !menuOpen)}
+  >
+    {#if menuOpen}
+      <X size={22} strokeWidth={2} />
+    {:else}
+      <Menu size={22} strokeWidth={2} />
+    {/if}
+  </button>
+
+  {#if menuOpen}
+    <button
+      class="header-menu-backdrop"
+      aria-label="Menu sluiten"
+      onclick={() => (menuOpen = false)}
+    ></button>
+    <nav class="header-menu-dropdown" aria-label="Sitenavigatie">
+      {#each MENU_ITEMS as item}
+        <button class="header-menu-item" onclick={() => scrollToSection(item.id)}>
+          {item.label}
+          <ChevronRight size={16} strokeWidth={2} />
+        </button>
+      {/each}
+    </nav>
+  {/if}
+</header>
+
+<div class="page">
+  <div class="container-app">
+    <!-- Hero carousel -->
+    <div class="hero-image-wrap" data-section="hero-image">
+      {#each heroImages as src, i}
+        <img
+          class="hero-image hero-slide {i === heroIdx ? 'hero-slide-active' : ''}"
+          {src}
+          alt={KATTEN.title}
+          loading={i === 0 ? 'eager' : 'lazy'}
+          fetchpriority={i === 0 ? 'high' : 'auto'}
+          decoding="async"
+          width="900"
+          height="600"
+        />
+      {/each}
+      <button
+        class="hero-arrow hero-arrow-prev"
+        onclick={() => { heroIdx = (heroIdx - 1 + heroImages.length) % heroImages.length; }}
+        aria-label="Vorige"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button
+        class="hero-arrow hero-arrow-next"
+        onclick={() => { heroIdx = (heroIdx + 1) % heroImages.length; }}
+        aria-label="Volgende"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
+    <!-- Bloco principal -->
+    <section class="hero-block" data-section="hero-block">
+      <h1 class="campaign-title">{KATTEN.title}</h1>
+
+      <div id="progress-anchor">
+        <ProgressCard
+          raised={raisedEur}
+          goal={KATTEN.goalEur}
+          lastDonorName={lastDonor.anonymous ? 'Anoniem' : lastDonor.name}
+          lastDonorAmount={lastDonor.amount}
+          lastDonorAgo={lastDonor.ago}
+          onDonate={openDonation}
+          onShare={() => (shareOpen = true)}
+          onDonorsClick={scrollToDonors}
+        />
+      </div>
+
+      <div class="progress-stats-row">
+        <span><span class="donations-count">{donationsCount}</span> donaties</span>
+        <span>8 dagen voor Shadow</span>
+      </div>
+
+      <div id="story-section" data-section="story" class="story-text" class:story-text-collapsed={!descExpanded}>
+        {#each KATTEN.story as paragraph}
+          <p>{paragraph}</p>
+        {/each}
+      </div>
+      <button class="read-more" onclick={() => (descExpanded = !descExpanded)}>
+        {descExpanded ? 'Minder lezen' : 'Meer lezen'}
+      </button>
+    </section>
+
+    <!-- VSL player -->
+    <div class="vsl-wrap" data-section="vsl-video">
+      <video
+        bind:this={videoEl}
+        src={videoSrc || undefined}
+        poster={heroImages[0]}
+        autoplay
+        muted
+        playsinline
+        preload="none"
+        width="900"
+        height="506"
+        class="vsl-video"
+      ></video>
+
+      {#if !audioEnabled}
+        <button class="vsl-overlay" onclick={enableAudio} aria-label="Klik om te horen">
+          <div class="vsl-play-circle">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
+              <polygon points="6,4 20,12 6,20" />
+            </svg>
+          </div>
+          <span class="vsl-click-label">Klik om te horen</span>
+        </button>
+      {/if}
+    </div>
+
+    <!-- Geredde katten carousel -->
+    <section class="section rescued-section" data-section="rescued-cats">
+      <div class="section-eyebrow">Deze week</div>
+      <h2 class="section-title">Geredde katten deze week</h2>
+
+      <div
+        class="carousel-wrap"
+        role="region"
+        aria-label="Geredde katten"
+        ontouchstart={(e) => { cTouchX = e.touches[0].clientX; }}
+        ontouchend={(e) => { const dx = e.changedTouches[0].clientX - cTouchX; if (dx > 40) carouselPrev(); else if (dx < -40) carouselNext(); }}
+      >
+        {#each rescuedCats as cat, i}
+          <img
+            src={cat.src}
+            alt="Geredde kat {i + 1}"
+            class="carousel-img {i === rescuedIndex ? 'carousel-img-active' : ''}"
+            loading={i === 0 ? 'eager' : 'lazy'}
+            draggable="false"
+          />
+        {/each}
+
+        <button class="carousel-btn carousel-btn-prev" onclick={carouselPrev} aria-label="Vorige">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="carousel-btn carousel-btn-next" onclick={carouselNext} aria-label="Volgende">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+
+      <div class="carousel-dots">
+        {#each rescuedCats as _, i}
+          <button
+            class="carousel-dot {i === rescuedIndex ? 'active' : ''}"
+            onclick={() => carouselGoTo(i)}
+            aria-label="Afbeelding {i + 1}"
+          ></button>
+        {/each}
+      </div>
+
+      <p class="rescued-caption">{KATTEN.heroCaption}</p>
+    </section>
+
+    {#if descExpanded}
+      <section class="section">
+        <span class="story-highlight">{KATTEN.highlight}</span>
+      </section>
+    {/if}
+
+    <!-- Testimonials -->
+    <section class="section" id="testimonials-section" data-section="testimonials">
+      <div class="section-eyebrow">Steunbetuigingen</div>
+      <h2 class="section-title">Van supporters in heel België.</h2>
+      <div class="testimonial-row">
+        {#each CAMPAIGN.testimonials as t}
+          <div class="testimonial-card">
+            <div class="testimonial-head">
+              <img src={t.avatar} alt={t.name} class="testimonial-avatar-img" loading="lazy" width="80" height="80" decoding="async" />
+              <div>
+                <div class="testimonial-name">{t.name}</div>
+                <div class="testimonial-meta">{t.city}</div>
+              </div>
+            </div>
+            <p class="testimonial-quote">"{t.quote}"</p>
+          </div>
+        {/each}
+      </div>
+    </section>
+
+    <!-- Donors -->
+    <div class="donations" id="donations">
+      <div class="donations-header">
+        <div class="donations-title">
+          Donaties
+          <span class="donations-badge">{donationsCount}</span>
+        </div>
+        <button class="donations-link" onclick={() => (donorsModalOpen = true)}>Alles bekijken</button>
+      </div>
+      <ul class="donor-list">
+        {#each donorsList.slice(0, 5) as d}
+          <li class="donor-item">
+            <div class="donor-avatar {d.color}">
+              {#if d.anonymous}
+                <Heart size={16} fill="currentColor" />
+              {:else}
+                {d.initials}
+              {/if}
+            </div>
+            <div class="donor-info">
+              <div class="donor-name">{d.name}</div>
+              <div class="donor-meta">{d.ago}</div>
+            </div>
+            <div class="donor-amount">€{d.amount}</div>
+          </li>
+        {/each}
+      </ul>
+      <button class="btn-see-all" onclick={() => (donorsModalOpen = true)}>
+        Bekijk alle {donorsList.length}+ donaties
+      </button>
+    </div>
+
+    <!-- Organizer -->
+    <div class="organizer" id="organizer-section">
+      <h3>Organisator</h3>
+      <div class="organizer-row">
+        <div class="organizer-avatar">
+          {#if CAMPAIGN.organizerImage}
+            <img src={CAMPAIGN.organizerImage} alt={CAMPAIGN.organizer} loading="lazy" />
+          {:else}
+            {CAMPAIGN.organizer.split(' ').map((s) => s[0]).join('').slice(0, 2)}
+          {/if}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="organizer-name">{CAMPAIGN.organizer}</div>
+          <div class="organizer-sub">Organisator</div>
+          <div class="organizer-sub">{CAMPAIGN.organizerCity}</div>
+        </div>
+      </div>
+
+      <div class="campaign-extras">
+        <div class="campaign-extras-row">
+          <Calendar size={14} />
+          {CAMPAIGN.createdMonth} ·
+          <a href="#">{CAMPAIGN.category}</a>
+        </div>
+        <div class="badge-protected">
+          <Shield size={14} />
+          Donatie beschermd
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-social">
+        <a href="#" aria-label="Facebook"><Facebook size={20} /></a>
+        <a href="#" aria-label="YouTube"><Youtube size={20} /></a>
+        <a href="#" aria-label="Twitter"><Twitter size={20} /></a>
+        <a href="#" aria-label="Instagram"><Instagram size={20} /></a>
+      </div>
+
+      <div class="footer-copy">© 2026 {CAMPAIGN.brand} Opvang</div>
+
+      <div class="footer-links">
+        <a href="#">Voorwaarden</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terugbetalingen</a>
+        <a href="#">Cookies</a>
+        <a href="mailto:hello@pawsco.com">Contact</a>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<!-- Sticky bottom bar -->
+<StickyBottomBar
+  raised={raisedEur}
+  goal={KATTEN.goalEur}
+  lastDonorName={lastDonor.anonymous ? 'Anoniem' : lastDonor.name}
+  lastDonorAmount={lastDonor.amount}
+  lastDonorAgo={lastDonor.ago}
+  onDonate={openDonation}
+  onShare={() => (shareOpen = true)}
+  onDonorsClick={scrollToDonors}
+/>
+
+<!-- Donation Sheet -->
+<div
+  class="overlay"
+  class:open={donationOpen}
+  role="dialog"
+  aria-modal="true"
+  aria-label="Donatie"
+  onclick={(e) => e.target === e.currentTarget && (donationOpen = false)}
+>
+  <div class="sheet" role="document">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">
+      {currentStep === 1 ? 'Doneer voor Shadow' : 'Bevestig je donatie'}
+    </div>
+    {#if currentStep === 1}
+      <p class="sheet-subtitle">Elke euro gaat rechtstreeks naar Shadow's operatie en eten voor de andere katten.</p>
+    {/if}
+
+    {#if currentStep === 1}
+      <div class="step-form active">
+        <div class="step-label">Kies een bedrag</div>
+        <div class="amount-grid amount-grid-2x2">
+          {#each TIERS as tier}
+            <button
+              type="button"
+              class="amount-btn amount-btn-tier"
+              class:selected={selectedAmount === tier.amount}
+              class:popular={tier.amount === 25}
+              onclick={() => selectAmount(tier.amount)}
+            >
+              {#if tier.amount === 25}
+                <span class="amount-btn-badge">Meest gekozen</span>
+              {/if}
+              <span class="amount-btn-value">€{tier.amount}</span>
+              <span class="amount-btn-sub">voedt {tier.cats} {tier.cats === 1 ? 'kat' : 'katten'}</span>
+            </button>
+          {/each}
+        </div>
+      </div>
+    {:else}
+      <div class="step-form active">
+        <button class="btn-back" onclick={() => (currentStep = 1)}>← Terug</button>
+        <div class="confirm-screen">
+          <div class="step-label">Jouw donatie</div>
+          <div class="confirm-amount">€{selectedAmount}</div>
+          <p class="confirm-sub">Vandaag red je {catsForAmount(selectedAmount)} {catsForAmount(selectedAmount) === 1 ? 'kat' : 'katten'}.</p>
+
+          <p class="confirm-direct-note">
+            Jouw donatie gaat rechtstreeks naar Shadow's operatie en de zorg voor andere opvangkatten in België.
+          </p>
+
+          <button class="btn-bancontact" onclick={handleDonate} disabled={donating}>
+            {#if donating}
+              <div class="spinner spinner-dark"></div>
+              <span class="btn-bancontact-text">Doorverwijzen…</span>
+            {:else}
+              <img src="/bancontact.webp" alt="Bancontact" class="btn-bancontact-logo" />
+              <span class="btn-bancontact-text">Doe €{selectedAmount} met Bancontact</span>
+            {/if}
+          </button>
+        </div>
+      </div>
+    {/if}
+  </div>
+</div>
+
+<!-- Share Sheet -->
+<div
+  class="overlay"
+  class:open={shareOpen}
+  role="dialog"
+  aria-modal="true"
+  aria-label="Delen"
+  onclick={(e) => e.target === e.currentTarget && (shareOpen = false)}
+>
+  <div class="sheet" role="document">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Deel deze campagne</div>
+    <div class="share-grid">
+      <button class="share-btn" onclick={() => shareTo('whatsapp')}>
+        <div class="share-icon" style="background:var(--primary-soft)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="#25D366">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+            <path d="M11.997 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.878-1.417A9.944 9.944 0 0 0 11.997 22C17.52 22 22 17.523 22 12c0-5.522-4.48-10-10.003-10zm0 18.18a8.154 8.154 0 0 1-4.158-1.138l-.297-.178-3.087.897.923-3.01-.196-.309A8.145 8.145 0 0 1 3.817 12c0-4.516 3.664-8.18 8.18-8.18s8.18 3.664 8.18 8.18c0 4.517-3.664 8.18-8.18 8.18z" />
+          </svg>
+        </div>
+        <span class="share-label">WhatsApp</span>
+      </button>
+      <button class="share-btn" onclick={() => shareTo('facebook')}>
+        <div class="share-icon" style="background:var(--primary-soft)">
+          <Facebook size={22} color="#1877F2" />
+        </div>
+        <span class="share-label">Facebook</span>
+      </button>
+      <button class="share-btn" onclick={() => shareTo('copy')}>
+        <div class="share-icon" style="background:#F3F4F6">
+          <svg width="22" height="22" fill="none" stroke="#374151" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+          </svg>
+        </div>
+        <span class="share-label">Link kopiëren</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- All Donors Sheet -->
+<div
+  class="overlay"
+  class:open={donorsModalOpen}
+  role="dialog"
+  aria-modal="true"
+  aria-label="Alle donaties"
+  onclick={(e) => e.target === e.currentTarget && (donorsModalOpen = false)}
+>
+  <div class="sheet sheet-donors" role="document">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Alle donaties ({donationsCount})</div>
+    <p class="sheet-subtitle">Laatste supporters die Belgische opvangcentra helpen.</p>
+    <ul class="donor-list donor-list-full">
+      {#each donorsList as d}
+        <li class="donor-item">
+          <div class="donor-avatar {d.color}">
+            {#if d.anonymous}
+              <Heart size={16} fill="currentColor" />
+            {:else}
+              {d.initials}
+            {/if}
+          </div>
+          <div class="donor-info">
+            <div class="donor-name">{d.name}</div>
+            <div class="donor-meta">{d.ago}</div>
+          </div>
+          <div class="donor-amount">€{d.amount}</div>
+        </li>
+      {/each}
+    </ul>
+    <button class="sheet-close-btn" onclick={() => (donorsModalOpen = false)}>Sluiten</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" class:show={toastVisible}>{toastMessage}</div>
+
+<!-- Exit intent popup -->
+<ExitIntentPopup bind:this={exitPopupVsl} onDonate={openDonation} onBack={() => goto('/wacht')} />
