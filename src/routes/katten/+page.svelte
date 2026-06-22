@@ -42,9 +42,8 @@
     ],
     highlight: 'Shadow heeft 8 dagen. Wij hebben €890 nodig.',
     goalEur: 890,
-    heroCaption: 'Ze hebben dringend hulp nodig.',
     shareTitle: 'Help Shadow zijn tumor-operatie te betalen',
-    shareUrl: 'https://belgianpawshelter.help/vsl-katten'
+    shareUrl: 'https://belgianpawshelter.help/katten'
   };
 
   // Tiers especificos pra gatos: copy NL "X katten redden"
@@ -178,25 +177,6 @@
   ];
   let heroIdx = $state(0);
   let heroTimer: ReturnType<typeof setInterval> | null = null;
-
-  // Carrossel de gatos resgatados
-  const rescuedCats = [
-    { src: '/katten/cat1.jpg' },
-    { src: '/katten/cat2.jpg' },
-    { src: '/katten/cat3.jpg' },
-    { src: '/katten/cat4.jpg' },
-    { src: '/katten/cat5.jpg' }
-  ];
-  let rescuedIndex = $state(0);
-  let cTouchX = 0;
-
-  function carouselPrev() {
-    rescuedIndex = (rescuedIndex - 1 + rescuedCats.length) % rescuedCats.length;
-  }
-  function carouselNext() {
-    rescuedIndex = (rescuedIndex + 1) % rescuedCats.length;
-  }
-  function carouselGoTo(i: number) { rescuedIndex = i; }
 
   const MENU_ITEMS = [
     { id: 'story-section', label: 'Verhaal' },
@@ -416,49 +396,6 @@
         </button>
       {/if}
     </div>
-
-    <!-- Geredde katten carousel -->
-    <section class="section rescued-section" data-section="rescued-cats">
-      <div class="section-eyebrow">Deze week</div>
-      <h2 class="section-title">Geredde katten deze week</h2>
-
-      <div
-        class="carousel-wrap"
-        role="region"
-        aria-label="Geredde katten"
-        ontouchstart={(e) => { cTouchX = e.touches[0].clientX; }}
-        ontouchend={(e) => { const dx = e.changedTouches[0].clientX - cTouchX; if (dx > 40) carouselPrev(); else if (dx < -40) carouselNext(); }}
-      >
-        {#each rescuedCats as cat, i}
-          <img
-            src={cat.src}
-            alt="Geredde kat {i + 1}"
-            class="carousel-img {i === rescuedIndex ? 'carousel-img-active' : ''}"
-            loading={i === 0 ? 'eager' : 'lazy'}
-            draggable="false"
-          />
-        {/each}
-
-        <button class="carousel-btn carousel-btn-prev" onclick={carouselPrev} aria-label="Vorige">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
-        <button class="carousel-btn carousel-btn-next" onclick={carouselNext} aria-label="Volgende">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-      </div>
-
-      <div class="carousel-dots">
-        {#each rescuedCats as _, i}
-          <button
-            class="carousel-dot {i === rescuedIndex ? 'active' : ''}"
-            onclick={() => carouselGoTo(i)}
-            aria-label="Afbeelding {i + 1}"
-          ></button>
-        {/each}
-      </div>
-
-      <p class="rescued-caption">{KATTEN.heroCaption}</p>
-    </section>
 
     {#if descExpanded}
       <section class="section">
