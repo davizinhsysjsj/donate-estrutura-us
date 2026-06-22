@@ -16,7 +16,7 @@
   } from '$lib/utils/fbtracking';
   import { initTaboola, trackTaboola, getTblci } from '$lib/utils/taboola';
   import { initTikTok, trackTikTok, getTtclid, getTtp } from '$lib/utils/tiktok';
-  import { attachVslTracking, getSid } from '$lib/utils/analytics';
+  import { getSid } from '$lib/utils/analytics';
   import {
     SHOPIFY_SHOP_DOMAIN, TIER_NAME_BY_AMOUNT, pickVariantForAmount
   } from '$lib/data/variants';
@@ -91,22 +91,6 @@
     preloadCode('/donate').catch(() => {});
     setTimeout(() => { preloadData('/donate').catch(() => {}); }, 1200);
 
-    const vslWrap = document.querySelector('.vsl-wrap');
-    if (vslWrap && 'IntersectionObserver' in window) {
-      const obs = new IntersectionObserver(
-        ([entry], o) => {
-          if (entry.isIntersecting) {
-            videoSrc = VSL_URL;
-            o.disconnect();
-          }
-        },
-        { rootMargin: '400px' }
-      );
-      obs.observe(vslWrap);
-    } else {
-      videoSrc = VSL_URL;
-    }
-
     donorTimer = setInterval(() => {
       donorIdx = (donorIdx + 1) % donorsList.length;
     }, 4200);
@@ -137,25 +121,6 @@
     const el = document.getElementById('donations');
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
-
-  // VSL player (mesmo video por enquanto)
-  const VSL_URL = 'https://belgianpaws-vsl.vercel.app/vsl.mp4';
-  let videoEl: HTMLVideoElement | null = $state(null);
-  let audioEnabled = $state(false);
-  let videoSrc = $state<string>('');
-
-  function enableAudio() {
-    if (!videoEl) return;
-    if (!videoSrc) videoSrc = VSL_URL;
-    videoEl.muted = false;
-    videoEl.currentTime = 0;
-    videoEl.play().catch(() => {});
-    audioEnabled = true;
-  }
-
-  $effect(() => {
-    if (videoEl) attachVslTracking(videoEl);
-  });
 
   let descExpanded = $state(false);
   let donationOpen = $state(false);
@@ -267,8 +232,6 @@
 <svelte:head>
   <title>{KATTEN.title}</title>
   <meta name="description" content={KATTEN.subtitle} />
-  <link rel="preconnect" href="https://belgianpaws-vsl.vercel.app" crossorigin />
-  <link rel="dns-prefetch" href="https://belgianpaws-vsl.vercel.app" />
 </svelte:head>
 
 <header class="header">
@@ -369,33 +332,6 @@
         {descExpanded ? 'Minder lezen' : 'Meer lezen'}
       </button>
     </section>
-
-    <!-- VSL player -->
-    <div class="vsl-wrap" data-section="vsl-video">
-      <video
-        bind:this={videoEl}
-        src={videoSrc || undefined}
-        poster={heroImages[0]}
-        autoplay
-        muted
-        playsinline
-        preload="none"
-        width="900"
-        height="506"
-        class="vsl-video"
-      ></video>
-
-      {#if !audioEnabled}
-        <button class="vsl-overlay" onclick={enableAudio} aria-label="Klik om te horen">
-          <div class="vsl-play-circle">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
-              <polygon points="6,4 20,12 6,20" />
-            </svg>
-          </div>
-          <span class="vsl-click-label">Klik om te horen</span>
-        </button>
-      {/if}
-    </div>
 
     {#if descExpanded}
       <section class="section">
