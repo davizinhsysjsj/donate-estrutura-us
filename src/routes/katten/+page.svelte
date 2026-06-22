@@ -261,7 +261,7 @@
     <!-- Hero image -->
     <div class="hero-image-wrap" data-section="hero-image">
       <img
-        class="hero-image"
+        class="hero-image hero-slide-active"
         src="/katten/hero.jpg"
         alt={KATTEN.title}
         loading="eager"
