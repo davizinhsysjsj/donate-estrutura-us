@@ -30,18 +30,18 @@
   // Linha 1: €50, €100 · Linha 2: €200, €300 · Linha 3: €25*, €500
   // Linha 4: €80, €35 · Linha 5: €30, €20 · Linha 6: €15, €10
   const AMOUNTS: AmountOption[] = [
-    { amount: 50,  desc: 'Helpt 2 tot 3 dieren meerdere dagen te voeden.' },
-    { amount: 100, desc: 'Garandeert voeding voor meerdere honden en katten én basisverzorging.' },
-    { amount: 200, desc: 'Maakt het mogelijk om voer in grote hoeveelheden te kopen.' },
-    { amount: 300, desc: 'Continue voeding en verzorging voor meerdere geredde dieren.' },
-    { amount: 25,  recommended: true, desc: 'Vult lege bakjes en geeft troost aan wie honger heeft.' },
-    { amount: 500, desc: 'Voeding voor 1 maand voor al onze kleine vriendjes.' },
-    { amount: 80,  desc: 'Draagt bij aan de voeding van meerdere dieren gedurende 1 à 2 weken.' },
-    { amount: 35,  desc: 'Volledige verzorging voor meerdere dieren gedurende een week.' },
-    { amount: 30,  desc: 'Zorgt voor voer voor een hond gedurende circa 1 week.' },
-    { amount: 20,  desc: 'Helpt een gered dier bijna een week lang te voeden.' },
-    { amount: 15,  desc: 'Zorgt voor maaltijden voor een dier gedurende meerdere dagen.' },
-    { amount: 10,  desc: 'Geeft een maaltijd aan een gered dier.' },
+    { amount: 50,  desc: "Voorbereiding op Shadow's operatie." },
+    { amount: 100, desc: 'Operatiekamer en steriel materiaal voor de ingreep.' },
+    { amount: 200, desc: "Een vierde van Shadow's tumor-operatie (€890 totaal)." },
+    { amount: 300, desc: 'Operatie en 2 dagen herstel onder toezicht.' },
+    { amount: 25,  recommended: true, desc: 'Eerste dierenarts-controle voor Shadow.' },
+    { amount: 500, desc: 'Volledige operatie en nazorg voor Shadow.' },
+    { amount: 80,  desc: 'Anesthesie tijdens de tumor-operatie.' },
+    { amount: 35,  desc: 'Bloedonderzoek om de tumor op te volgen.' },
+    { amount: 30,  desc: 'Een week voeding voor Shadow en 2 andere oude katten.' },
+    { amount: 20,  desc: 'Voer en een zachte deken voor 3 vergeten katten.' },
+    { amount: 15,  desc: 'Pijnstillers zodat Shadow rustig kan slapen.' },
+    { amount: 10,  desc: 'Een warme maaltijd voor Shadow vannacht.' },
   ];
 
   function dogsForAmount(n: number): number {
