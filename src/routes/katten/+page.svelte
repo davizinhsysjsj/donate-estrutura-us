@@ -97,10 +97,6 @@
       donorIdx = (donorIdx + 1) % donorsList.length;
     }, 4200);
 
-    heroTimer = setInterval(() => {
-      heroIdx = (heroIdx + 1) % heroImages.length;
-    }, 3000);
-
     if (typeof history !== 'undefined') {
       history.pushState({ pawsBackGuard: true }, '', window.location.pathname + window.location.search);
       const handlePopState = () => {
@@ -114,7 +110,6 @@
 
   onDestroy(() => {
     if (donorTimer) clearInterval(donorTimer);
-    if (heroTimer) clearInterval(heroTimer);
   });
 
   let exitPopupVsl: ReturnType<typeof ExitIntentPopup> | null = $state(null);
@@ -134,16 +129,6 @@
   let toastVisible = $state(false);
   let menuOpen = $state(false);
   let donorsModalOpen = $state(false);
-
-  // Hero carousel — gatos pretos
-  const heroImages = [
-    '/katten/hero1.jpg',
-    '/katten/hero2.jpg',
-    '/katten/hero3.jpg',
-    '/katten/hero4.jpg'
-  ];
-  let heroIdx = $state(0);
-  let heroTimer: ReturnType<typeof setInterval> | null = null;
 
   const MENU_ITEMS = [
     { id: 'story-section', label: 'Verhaal' },
@@ -273,34 +258,18 @@
 
 <div class="page">
   <div class="container-app">
-    <!-- Hero carousel -->
+    <!-- Hero image -->
     <div class="hero-image-wrap" data-section="hero-image">
-      {#each heroImages as src, i}
-        <img
-          class="hero-image hero-slide {i === heroIdx ? 'hero-slide-active' : ''}"
-          {src}
-          alt={KATTEN.title}
-          loading={i === 0 ? 'eager' : 'lazy'}
-          fetchpriority={i === 0 ? 'high' : 'auto'}
-          decoding="async"
-          width="900"
-          height="600"
-        />
-      {/each}
-      <button
-        class="hero-arrow hero-arrow-prev"
-        onclick={() => { heroIdx = (heroIdx - 1 + heroImages.length) % heroImages.length; }}
-        aria-label="Vorige"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-      <button
-        class="hero-arrow hero-arrow-next"
-        onclick={() => { heroIdx = (heroIdx + 1) % heroImages.length; }}
-        aria-label="Volgende"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
+      <img
+        class="hero-image"
+        src="/katten/hero.jpg"
+        alt={KATTEN.title}
+        loading="eager"
+        fetchpriority="high"
+        decoding="async"
+        width="900"
+        height="600"
+      />
     </div>
 
     <!-- Bloco principal -->
