@@ -26,9 +26,7 @@
     compact = false
   }: Props = $props();
 
-  // Travado em 25% para preservar a urgencia visual (a campanha real ja passou
-  // dos 100%, o que reduzia o senso de necessidade e derrubava a conversao).
-  const percent = 25;
+  const percent = $derived(Math.min(100, Math.round((raised / goal) * 100)));
   const fmtRaised = $derived(raised.toLocaleString('nl-BE'));
   const fmtGoal = $derived(goal.toLocaleString('nl-BE'));
 </script>
