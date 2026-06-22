@@ -238,7 +238,7 @@
 
     <!-- Tax badge -->
     <div class="dn-tax">
-      🏅 Door <strong>€25 of meer</strong> te doneren, kun jij tot <strong>25% terugkrijgen</strong> via je belastingaangifte.
+      🏅 <strong>45% van jouw donatie</strong> krijg je terug via de Belgische fiscus — fiscaal aftrekbaar.
     </div>
 
     <!-- Amount grid -->
