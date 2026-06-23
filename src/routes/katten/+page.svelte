@@ -130,6 +130,44 @@
   let menuOpen = $state(false);
   let donorsModalOpen = $state(false);
 
+  // Adoption form
+  let adoptName = $state('');
+  let adoptCity = $state('');
+  let adoptEmail = $state('');
+  let adoptSubmitting = $state(false);
+  let adoptError = $state('');
+  let adoptThanksOpen = $state(false);
+
+  async function submitAdoption(e: Event) {
+    e.preventDefault();
+    adoptError = '';
+    if (!adoptName.trim() || !adoptCity.trim() || !adoptEmail.trim()) {
+      adoptError = 'Vul alle velden in.';
+      return;
+    }
+    adoptSubmitting = true;
+    try {
+      const r = await fetch('/api/adoption', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: adoptName, city: adoptCity, email: adoptEmail })
+      });
+      const data = await r.json();
+      if (!r.ok || !data.ok) {
+        adoptError = data.error === 'invalid email' ? 'Ongeldig e-mailadres.' : 'Er ging iets mis. Probeer opnieuw.';
+      } else {
+        adoptName = '';
+        adoptCity = '';
+        adoptEmail = '';
+        adoptThanksOpen = true;
+      }
+    } catch {
+      adoptError = 'Verbinding mislukt. Probeer opnieuw.';
+    } finally {
+      adoptSubmitting = false;
+    }
+  }
+
   const MENU_ITEMS = [
     { id: 'story-section', label: 'Verhaal' },
     { id: 'testimonials-section', label: 'Supporters' },
@@ -314,6 +352,41 @@
         <span class="story-highlight">{KATTEN.highlight}</span>
       </section>
     {/if}
+
+    <!-- Adoption form -->
+    <section class="section adopt-section" id="adopt-shadow">
+      <div class="section-eyebrow">Geef hem een thuis</div>
+      <h2 class="section-title">Adopteer Shadow</h2>
+      <p class="adopt-intro">Wil jij Shadow een veilige plek geven na zijn operatie? Laat je gegevens achter — wij nemen binnen 24 uur contact met je op.</p>
+
+      <form class="adopt-form" onsubmit={submitAdoption} novalidate>
+        <label class="adopt-field">
+          <span>Naam</span>
+          <input type="text" bind:value={adoptName} placeholder="Jouw volledige naam" autocomplete="name" required />
+        </label>
+        <label class="adopt-field">
+          <span>Stad</span>
+          <input type="text" bind:value={adoptCity} placeholder="Bijv. Antwerpen" autocomplete="address-level2" required />
+        </label>
+        <label class="adopt-field">
+          <span>E-mail</span>
+          <input type="email" bind:value={adoptEmail} placeholder="naam@email.be" autocomplete="email" required />
+        </label>
+
+        {#if adoptError}
+          <div class="adopt-error">{adoptError}</div>
+        {/if}
+
+        <button type="submit" class="adopt-submit" disabled={adoptSubmitting}>
+          {#if adoptSubmitting}
+            <span class="spinner spinner-dark"></span>
+            <span>Versturen…</span>
+          {:else}
+            Verstuur
+          {/if}
+        </button>
+      </form>
+    </section>
 
     <!-- Testimonials -->
     <section class="section" id="testimonials-section" data-section="testimonials">
@@ -577,5 +650,145 @@
 <!-- Toast -->
 <div class="toast" class:show={toastVisible}>{toastMessage}</div>
 
+<!-- Adoption thanks popup -->
+{#if adoptThanksOpen}
+  <button
+    class="adopt-thanks-backdrop"
+    aria-label="Sluiten"
+    onclick={() => (adoptThanksOpen = false)}
+  ></button>
+  <div class="adopt-thanks" role="dialog" aria-modal="true" aria-label="Bedankt">
+    <div class="adopt-thanks-icon" aria-hidden="true">🐾</div>
+    <h3>Bedankt!</h3>
+    <p>We hebben jouw aanvraag ontvangen. Het team van Belgian Paws Shelter neemt binnen <strong>24 uur</strong> contact met je op om de volgende stappen te bespreken.</p>
+    <button class="adopt-thanks-close" onclick={() => (adoptThanksOpen = false)}>Sluiten</button>
+  </div>
+{/if}
+
 <!-- Exit intent popup -->
 <ExitIntentPopup bind:this={exitPopupVsl} onDonate={openDonation} onBack={() => goto('/wacht')} />
+
+<style>
+  .adopt-section { padding-top: 18px; padding-bottom: 24px; }
+  .adopt-intro {
+    margin-top: 8px;
+    font-size: 0.9375rem;
+    color: #4b5563;
+    line-height: 1.5;
+  }
+  .adopt-form {
+    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .adopt-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .adopt-field span {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #111;
+  }
+  .adopt-field input {
+    width: 100%;
+    padding: 13px 14px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-family: inherit;
+    color: #111;
+    background: #fff;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .adopt-field input:focus {
+    outline: none;
+    border-color: #0E4B2C;
+    box-shadow: 0 0 0 3px rgba(14, 75, 44, 0.15);
+  }
+  .adopt-error {
+    color: #b91c1c;
+    font-size: 0.875rem;
+    background: #fee2e2;
+    border: 1px solid #fca5a5;
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .adopt-submit {
+    margin-top: 4px;
+    background: #0E4B2C;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 15px 20px;
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .adopt-submit:hover:not(:disabled) { background: #0A3A20; }
+  .adopt-submit:active:not(:disabled) { transform: scale(0.98); }
+  .adopt-submit:disabled { opacity: 0.7; cursor: progress; }
+
+  /* Thanks popup */
+  .adopt-thanks-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    z-index: 9998;
+  }
+  .adopt-thanks {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    border-radius: 20px;
+    width: calc(100% - 32px);
+    max-width: 380px;
+    padding: 32px 26px 26px;
+    text-align: center;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.35);
+    z-index: 9999;
+  }
+  .adopt-thanks-icon {
+    font-size: 44px;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .adopt-thanks h3 {
+    font-size: 1.375rem;
+    color: #0E4B2C;
+    margin-bottom: 10px;
+    font-weight: 700;
+  }
+  .adopt-thanks p {
+    font-size: 0.9375rem;
+    color: #374151;
+    line-height: 1.55;
+    margin-bottom: 22px;
+  }
+  .adopt-thanks-close {
+    background: #0E4B2C;
+    color: #fff;
+    border: none;
+    border-radius: 9999px;
+    padding: 12px 28px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .adopt-thanks-close:hover { background: #0A3A20; }
+</style>
