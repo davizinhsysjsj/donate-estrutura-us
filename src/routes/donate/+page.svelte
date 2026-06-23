@@ -571,13 +571,13 @@
     margin: 0 0 24px;
   }
 
-  /* ── Bancontact button ── */
+  /* ── Donate button ── */
   .dn-btn-bancontact {
     width: 100%;
     height: 56px;
-    background: #fff;
-    color: #003082;
-    border: 2px solid #E8EDF8;
+    background: #02a95c;
+    color: #fff;
+    border: none;
     border-radius: 14px;
     font-size: 1rem;
     font-weight: 700;
@@ -587,13 +587,13 @@
     align-items: center;
     justify-content: center;
     gap: 12px;
-    box-shadow: 0 2px 8px rgba(0,48,130,0.1);
+    box-shadow: 0 2px 8px rgba(2, 169, 92, 0.25);
     transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
     margin-bottom: 12px;
   }
   .dn-btn-bancontact:hover {
-    background: #F0F4FF;
-    box-shadow: 0 4px 16px rgba(0,48,130,0.18);
+    background: #028f4d;
+    box-shadow: 0 4px 16px rgba(2, 169, 92, 0.35);
   }
   .dn-btn-bancontact:active { transform: scale(0.98); }
   .dn-btn-bancontact:disabled { opacity: 0.6; pointer-events: none; }
