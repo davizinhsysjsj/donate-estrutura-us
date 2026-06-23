@@ -97,7 +97,9 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
       : undefined;
   const countryCode = url.searchParams.get('country') || undefined;
   const includeBots = url.searchParams.get('bots') === '1';
+  const liveWindowSecParam = Number(url.searchParams.get('liveWindow'));
+  const liveWindowSec = [120, 900, 3600].includes(liveWindowSecParam) ? liveWindowSecParam : undefined;
 
-  const data = snapshot({ windowMs, sinceTs, untilTs, pathFilter, device, countryCode, includeBots });
+  const data = snapshot({ windowMs, sinceTs, untilTs, pathFilter, device, countryCode, includeBots, liveWindowSec });
   return json(data, { headers: { 'cache-control': 'no-store' } });
 };

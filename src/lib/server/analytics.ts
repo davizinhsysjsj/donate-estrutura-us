@@ -483,6 +483,8 @@ export interface SnapshotOpts {
   device?: 'mobile' | 'desktop' | 'tablet';
   countryCode?: string;
   includeBots?: boolean;
+  /** Janela da aba Live em segundos (default 120 = 2min). Aceita 120, 900 (15min), 3600 (1h). */
+  liveWindowSec?: number;
 }
 
 export function snapshot(opts: SnapshotOpts) {
@@ -528,8 +530,11 @@ export function snapshot(opts: SnapshotOpts) {
     return true;
   });
 
-  // Live (2 min)
-  const liveCutoff = now - 2 * 60 * 1000;
+  // Live (default 2 min; aceita 120/900/3600 via opts.liveWindowSec)
+  const liveWindowSec = [120, 900, 3600].includes(opts.liveWindowSec as number)
+    ? (opts.liveWindowSec as number)
+    : 120;
+  const liveCutoff = now - liveWindowSec * 1000;
   const liveSessions = sessionsInWindow.filter((s) => s.lastSeenAt >= liveCutoff);
 
   // Contagem de online por rota (path atual da sessao)
@@ -802,13 +807,14 @@ export function snapshot(opts: SnapshotOpts) {
       rageClicks: s.rageClicks
     }));
 
-  // Live feed
+  // Live feed — janela igual a liveWindowSec, mas mantem teto de eventos pra UI
+  const liveFeedCutoff = now - liveWindowSec * 1000;
   const liveFeed = events
-    .slice(-300)
-    .filter((e) => e.ts >= now - 5 * 60 * 1000)
+    .slice(-1500)
+    .filter((e) => e.ts >= liveFeedCutoff)
     .filter((e) => e.ev !== 'heartbeat' && e.ev !== 'web_vital')
     .filter((e) => sidsInWindow.has(e.sid))
-    .slice(-60)
+    .slice(-120)
     .reverse()
     .map((e) => ({
       ts: e.ts,
@@ -888,6 +894,7 @@ export function snapshot(opts: SnapshotOpts) {
     heatmap: heatFiltered,
     liveSessions: liveSorted,
     liveFeed,
+    liveWindowSec,
     compare,
     capacity: {
       events: events.length,

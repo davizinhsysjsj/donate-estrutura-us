@@ -70,6 +70,8 @@
   let mobileFiltersOpen = $state(false);
   let detailSid = $state<string | null>(null);
   let detailData = $state<any>(null);
+  // Janela da aba Live em segundos: 120 (live = 2min, default), 900 (15min), 3600 (1h)
+  let liveWindowSec = $state<120 | 900 | 3600>(120);
 
   // ── Fetch ──
   async function pull() {
@@ -85,6 +87,7 @@
     if (deviceFilter) params.set('device', deviceFilter);
     if (countryFilter) params.set('country', countryFilter);
     if (includeBots) params.set('bots', '1');
+    params.set('liveWindow', String(liveWindowSec));
     // Cache-buster: iOS Safari ignora cache:'no-store' as vezes;
     // adicionar param unico forca request fresh.
     params.set('_t', String(Date.now()));
@@ -125,7 +128,7 @@
   $effect(() => {
     if (!data.authed) return;
     // Inclui period diretamente — win pode ser igual entre 'hoje' e 'ontem'
-    const _ = period + win + pathFilter + deviceFilter + countryFilter + includeBots;
+    const _ = period + win + pathFilter + deviceFilter + countryFilter + includeBots + liveWindowSec;
     pull();
   });
 
@@ -1987,7 +1990,25 @@
         <section class="card">
           <div class="card-head">
             <h2>Sessões ativas</h2>
-            <span class="muted small">{snap.liveSessions.length} visitantes nos últimos 2 minutos</span>
+            <div class="live-window-row">
+              <div class="live-window-seg" role="group" aria-label="Janela ao vivo">
+                <button class:active={liveWindowSec === 120} onclick={() => (liveWindowSec = 120)}>
+                  <span class="live-dot-pulse"></span> Live
+                </button>
+                <button class:active={liveWindowSec === 900} onclick={() => (liveWindowSec = 900)}>
+                  15 min
+                </button>
+                <button class:active={liveWindowSec === 3600} onclick={() => (liveWindowSec = 3600)}>
+                  1 hora
+                </button>
+              </div>
+              <span class="muted small">
+                {snap.liveSessions.length} visitantes
+                {#if liveWindowSec === 120}nos últimos 2 minutos
+                {:else if liveWindowSec === 900}nos últimos 15 minutos
+                {:else}na última hora{/if}
+              </span>
+            </div>
           </div>
           {#if !snap.liveSessions.length}
             <div class="empty"><span class="empty-emoji">∅</span><p>Ninguém na página agora.</p></div>
@@ -2025,7 +2046,11 @@
         </section>
 
         <section class="card">
-          <h2>Feed de eventos <span class="muted small">· últimos 5min</span></h2>
+          <h2>Feed de eventos <span class="muted small">·
+            {#if liveWindowSec === 120}últimos 2min
+            {:else if liveWindowSec === 900}últimos 15min
+            {:else}última hora{/if}
+          </span></h2>
           {#if !snap.liveFeed.length}
             <div class="empty"><span class="empty-emoji">∅</span><p>Sem eventos.</p></div>
           {:else}
@@ -3443,6 +3468,56 @@
   .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
   .legend-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .legend-val { color: #8b94a4; font-family: 'JetBrains Mono', monospace; }
+
+  /* Live window segmented control */
+  .live-window-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .live-window-seg {
+    display: inline-flex;
+    background: #1a1d22;
+    border: 1px solid #2a2e34;
+    border-radius: 9px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .live-window-seg button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    color: #9ca3af;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+  .live-window-seg button:hover { color: #fff; background: rgba(255,255,255,0.04); }
+  .live-window-seg button.active {
+    background: #02a95c;
+    color: #fff;
+  }
+  .live-window-seg button.active .live-dot-pulse { background: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,0.25); }
+  .live-dot-pulse {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #02a95c;
+    box-shadow: 0 0 0 3px rgba(2,169,92,0.25);
+    animation: pulse-dot 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.25); opacity: 0.7; }
+  }
 
   /* Live table */
   .live-table { display: flex; flex-direction: column; gap: 3px; }
