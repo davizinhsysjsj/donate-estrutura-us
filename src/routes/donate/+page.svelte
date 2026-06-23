@@ -295,16 +295,21 @@
             <div class="dn-spinner"></div>
             <span>Doorverwijzen…</span>
           {:else}
-            <img src="/bancontact.webp" alt="Bancontact" class="dn-bc-logo" />
-            <span>Doneer €{selectedAmount} met Bancontact</span>
+            <span>Doneer €{selectedAmount}</span>
           {/if}
         </button>
+
+        <div class="dn-payment-methods" aria-label="Betaalmethoden">
+          <div class="dn-pm-tile"><img src="/bancontact.webp" alt="Bancontact" /></div>
+          <div class="dn-pm-tile"><img src="/visa.webp" alt="Visa" /></div>
+          <div class="dn-pm-tile"><img src="/mastercard.webp" alt="Mastercard" /></div>
+        </div>
 
         <div class="dn-security">
           <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
-          100% veilige betaling via Bancontact
+          100% veilige betaling
         </div>
       </div>
 
@@ -597,6 +602,32 @@
     width: auto;
     display: block;
     flex-shrink: 0;
+  }
+
+  /* ── Payment methods row ── */
+  .dn-payment-methods {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin: 14px 0 10px;
+  }
+  .dn-pm-tile {
+    height: 40px;
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+  }
+  .dn-pm-tile img {
+    max-height: 100%;
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
   }
 
   /* ── Security note ── */
