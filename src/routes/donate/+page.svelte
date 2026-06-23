@@ -300,8 +300,8 @@
         </button>
 
         <div class="dn-payment-methods" aria-label="Betaalmethoden">
-          <div class="dn-pm-tile"><img src="/bancontact.webp" alt="Bancontact" /></div>
-          <div class="dn-pm-tile"><img src="/visa.webp" alt="Visa" /></div>
+          <div class="dn-pm-tile dn-pm-bc"><img src="/bancontact.webp" alt="Bancontact" /></div>
+          <div class="dn-pm-tile dn-pm-visa"><img src="/visa.webp" alt="Visa" /></div>
           <div class="dn-pm-tile"><img src="/mastercard.webp" alt="Mastercard" /></div>
         </div>
 
@@ -629,6 +629,8 @@
     object-fit: contain;
     display: block;
   }
+  .dn-pm-bc img { transform: scale(1.18); transform-origin: center; }
+  .dn-pm-visa img { transform: scale(0.82); transform-origin: center; }
 
   /* ── Security note ── */
   .dn-security {
