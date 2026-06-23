@@ -94,7 +94,7 @@
     // Analytics interno — qual tier foi clicado
     trackAnalytics('amount_select', { amount });
     openPopup();
-    handleDonate();
+    popupOpen = true;
   }
 
   function openPopup() {
@@ -281,13 +281,13 @@
       </button>
 
       <div class="dn-popup-inner">
-        <div class="dn-popup-label">Jouw donatie</div>
+        <div class="dn-popup-label">Jouw donatie voor Shadow</div>
         <div class="dn-popup-amount">€{selectedAmount}</div>
         <div class="dn-popup-animals">
-          Vandaag red je {dogsForAmount(selectedAmount ?? 0)}&nbsp;{dogsForAmount(selectedAmount ?? 0) === 1 ? 'dier' : 'dieren'}.
+          Vandaag help je Shadow zijn operatie te halen.
         </div>
         <p class="dn-popup-note">
-          Jouw donatie gaat rechtstreeks naar de voeding en verzorging van geredde dieren bij onze Belgische partneropvangen.
+          Jouw donatie gaat rechtstreeks naar Shadow's tumor-operatie en de zorg voor andere opvangkatten in België.
         </p>
 
         <button class="dn-btn-bancontact" onclick={handleDonate} disabled={donating}>
