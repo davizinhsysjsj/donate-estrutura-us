@@ -4061,6 +4061,7 @@
     text-align: left;
     background: #0b0f15;
     border-bottom: 1px solid #1a1f28;
+    border-right: 1px solid #161b22;
     color: #7a8493;
     font-weight: 700;
     font-size: 0.6875rem;
@@ -4068,14 +4069,17 @@
     text-transform: uppercase;
     white-space: nowrap;
   }
+  .sub-table th:last-child { border-right: none; }
   .sub-table th.th-num { text-align: right; }
   .sub-table th.th-creative { width: 96px; padding-left: 16px; }
   .sub-table td {
     padding: 16px 14px;
     border-bottom: 1px solid #161b22;
+    border-right: 1px solid #161b22;
     color: #e6e9ef;
     vertical-align: middle;
   }
+  .sub-table td:last-child { border-right: none; }
   .sub-table tbody tr:last-child td { border-bottom: none; }
   .sub-table td.td-num {
     text-align: right;
@@ -5568,13 +5572,17 @@
     font-size: 0.6875rem; font-weight: 700; text-transform: uppercase;
     letter-spacing: 0.08em; color: #7a8493; white-space: nowrap;
     background: #0b0f15;
+    border-right: 1px solid #161b22;
   }
+  .camp-utmfy th:last-child { border-right: none; }
   .camp-utmfy th.th-num { text-align: right; }
   .camp-tr td {
     padding: 18px 18px;
     border-bottom: 1px solid #161b22;
+    border-right: 1px solid #161b22;
     vertical-align: middle;
   }
+  .camp-tr td:last-child { border-right: none; }
   .camp-tr:last-child td { border-bottom: none; }
   .camp-tr:hover td { background: rgba(255,255,255,0.018); }
   .td-status { width: 48px; }
@@ -5721,8 +5729,10 @@
   .camp-val-red   { color: #ff5b5b; }
   .camp-tr-total td {
     padding: 16px 18px; border-top: 1px solid #2a3340;
+    border-right: 1px solid #161b22;
     background: #060a10;
   }
+  .camp-tr-total td:last-child { border-right: none; }
   .camp-tr-total .camp-val-main { color: #f3f5f8; font-size: 1rem; }
   .camp-utmfy tfoot .td-num { text-align: right; color: #6b7787; font-size: 0.875rem; }
 
