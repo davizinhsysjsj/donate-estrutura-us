@@ -1072,6 +1072,58 @@
   let campErrorMsg = $state('');
   let campSuccessMsg = $state('');
 
+  // Drill-down: conjuntos de anuncios (adsets) e anuncios (ads)
+  type SubLevel = 'adset' | 'ad';
+  type SubCrumb = { level: 'campaign' | 'adset'; id: string; name: string; accountId: string };
+  let subLevel = $state<SubLevel | null>(null);
+  let subItems = $state<any[]>([]);
+  let subLoading = $state(false);
+  let subChain = $state<SubCrumb[]>([]);
+  // Preview do criativo (modal)
+  let previewItem = $state<any>(null);
+
+  async function openSubLevel(parent: SubCrumb, level: SubLevel) {
+    subLoading = true;
+    subItems = [];
+    subLevel = level;
+    // adiciona ao breadcrumb (se ja existe um nivel acima, mantem; senao adiciona)
+    if (parent.level === 'campaign') {
+      subChain = [parent];
+    } else {
+      // adset: mantem o pai campaign + adiciona adset
+      subChain = [subChain[0] ?? { level: 'campaign', id: '', name: '—', accountId: parent.accountId }, parent];
+    }
+    try {
+      const q = parent.accountId ? `&account_id=${encodeURIComponent(parent.accountId)}` : '';
+      const r = await fetch(`/api/fb-ads/level?level=${level}&parent=${encodeURIComponent(parent.id)}&window=${fbWin}${q}&nocache=1`, { cache: 'no-store' });
+      if (r.ok) {
+        const d = await r.json();
+        subItems = (d.items || []).map((it: any) => ({ ...it, _accountId: parent.accountId }));
+      }
+    } catch {}
+    subLoading = false;
+  }
+
+  function backToCampaigns() {
+    subLevel = null;
+    subItems = [];
+    subChain = [];
+  }
+  function backToAdsets() {
+    if (subChain.length >= 1 && subChain[0].id) {
+      openSubLevel(subChain[0], 'adset');
+    } else {
+      backToCampaigns();
+    }
+  }
+
+  function openCreativePreview(ad: any) {
+    previewItem = ad;
+  }
+  function closeCreativePreview() {
+    previewItem = null;
+  }
+
   async function pullCampaigns(force = false) {
     campaignsLoading = true;
     fbCampaigns = [];
@@ -2609,6 +2661,96 @@
 
         {#if campaignsLoading}
           <div class="loading"><div class="spinner"></div><span>Carregando campanhas…</span></div>
+        {:else if subLevel}
+          <!-- ── DRILL-DOWN: Conjuntos (adsets) ou Anúncios (ads) ── -->
+          <div class="sub-breadcrumb">
+            <button class="sub-crumb" onclick={backToCampaigns}>← Campanhas</button>
+            {#each subChain as crumb, i}
+              <span class="sub-sep">›</span>
+              {#if i === subChain.length - 1}
+                <span class="sub-crumb-current" title={crumb.name}>
+                  {crumb.name.length > 40 ? crumb.name.slice(0, 40) + '…' : crumb.name}
+                </span>
+              {:else}
+                <button class="sub-crumb" onclick={backToAdsets} title={crumb.name}>
+                  {crumb.name.length > 28 ? crumb.name.slice(0, 28) + '…' : crumb.name}
+                </button>
+              {/if}
+            {/each}
+            <span class="sub-level-tag">{subLevel === 'adset' ? 'Conjuntos de anúncios' : 'Anúncios'}</span>
+          </div>
+
+          {#if subLoading}
+            <div class="loading"><div class="spinner"></div><span>Carregando {subLevel === 'adset' ? 'conjuntos' : 'anúncios'}…</span></div>
+          {:else if !subItems.length}
+            <div class="empty"><span class="empty-emoji">∅</span><p>Sem {subLevel === 'adset' ? 'conjuntos' : 'anúncios'} no período.</p></div>
+          {:else}
+            <div class="sub-table-wrap">
+              <table class="sub-table">
+                <thead>
+                  <tr>
+                    {#if subLevel === 'ad'}<th class="th-creative">Criativo</th>{/if}
+                    <th>Nome</th>
+                    <th class="th-num">Gastos</th>
+                    <th class="th-num">Impressões</th>
+                    <th class="th-num">CTR</th>
+                    <th class="th-num">Cliques</th>
+                    <th class="th-num">LPV</th>
+                    <th class="th-num">IC</th>
+                    <th class="th-num">Vendas</th>
+                    <th class="th-num">Receita</th>
+                    <th class="th-num">CPA</th>
+                    <th class="th-num">ROAS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each [...subItems].sort((a,b) => b.spend - a.spend) as it (it.id)}
+                    <tr class:sub-tr-paused={it.status === 'PAUSED'}>
+                      {#if subLevel === 'ad'}
+                        <td class="td-creative">
+                          {#if it.creative?.thumbnailUrl}
+                            <button class="creative-thumb" onclick={() => openCreativePreview(it)} title="Abrir criativo">
+                              <img src={it.creative.thumbnailUrl} alt="" loading="lazy" referrerpolicy="no-referrer" />
+                              {#if it.creative.videoId}<span class="creative-play">▶</span>{/if}
+                            </button>
+                          {:else}
+                            <div class="creative-empty">—</div>
+                          {/if}
+                        </td>
+                      {/if}
+                      <td>
+                        {#if subLevel === 'adset'}
+                          <button
+                            class="camp-name-link"
+                            title="Ver anúncios desse conjunto"
+                            onclick={() => openSubLevel({ level: 'adset', id: it.id, name: it.name, accountId: it._accountId }, 'ad')}
+                          >
+                            <span class="camp-name-txt">{it.name}</span>
+                            <span class="camp-drill-arrow">›</span>
+                          </button>
+                        {:else}
+                          <span class="sub-name">{it.name}</span>
+                        {/if}
+                        <span class="sub-status sub-status-{(it.effectiveStatus || it.status || 'unknown').toLowerCase()}">
+                          {(it.effectiveStatus || it.status || '—').replace(/_/g, ' ').toLowerCase()}
+                        </span>
+                      </td>
+                      <td class="td-num">{fmtSpendDisplay(it.spend)}</td>
+                      <td class="td-num">{fmtNum(it.impressions)}</td>
+                      <td class="td-num">{it.ctr.toFixed(2)}%</td>
+                      <td class="td-num">{fmtNum(it.clicks)}</td>
+                      <td class="td-num">{fmtNum(it.landingPageViews)}</td>
+                      <td class="td-num">{fmtNum(it.initiateCheckout)}</td>
+                      <td class="td-num">{fmtNum(it.purchases)}</td>
+                      <td class="td-num">{fmtSpendDisplay(it.purchaseValue)}</td>
+                      <td class="td-num">{it.purchases > 0 ? fmtSpendDisplay(it.cpa) : '—'}</td>
+                      <td class="td-num"><strong class={it.roas >= 1 ? 'roas-pos' : 'roas-neg'}>{it.roas.toFixed(2)}x</strong></td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          {/if}
         {:else if fbCampaigns.length === 0}
           <div class="empty"><span class="empty-emoji">◎</span><p>Sem campanhas no período. Tente outro intervalo.</p></div>
         {:else}
@@ -2682,7 +2824,14 @@
                   </td>
                   <!-- NOME -->
                   <td class="td-name">
-                    <span class="camp-name-txt" title={c.name}>{c.name}</span>
+                    <button
+                      class="camp-name-link"
+                      title="Ver conjuntos de anúncios"
+                      onclick={() => openSubLevel({ level: 'campaign', id: c.id, name: c.name, accountId: c._accountId }, 'adset')}
+                    >
+                      <span class="camp-name-txt">{c.name}</span>
+                      <span class="camp-drill-arrow">›</span>
+                    </button>
                     {#if c.objective}<span class="camp-objective">{c.objective.replace('OUTCOME_','').toLowerCase()}</span>{/if}
                   </td>
                   <!-- ORÇAMENTO inline -->
@@ -2817,6 +2966,34 @@
           </div>
         {/if}
       </div><!-- /tab-content campanhas -->
+      {/if}
+
+      <!-- ── Modal preview do criativo ── -->
+      {#if previewItem}
+        <button class="creative-overlay" aria-label="Fechar" onclick={closeCreativePreview}></button>
+        <div class="creative-modal" role="dialog" aria-modal="true" aria-label="Preview do criativo">
+          <button class="creative-close" onclick={closeCreativePreview} aria-label="Fechar">✕</button>
+          <div class="creative-modal-body">
+            {#if previewItem.creative?.videoSourceUrl}
+              <!-- svelte-ignore a11y_media_has_caption -->
+              <video src={previewItem.creative.videoSourceUrl} controls autoplay playsinline class="creative-video"></video>
+            {:else if previewItem.creative?.imageUrl}
+              <img src={previewItem.creative.imageUrl} alt="" class="creative-image" referrerpolicy="no-referrer" />
+            {:else if previewItem.creative?.thumbnailUrl}
+              <img src={previewItem.creative.thumbnailUrl} alt="" class="creative-image" referrerpolicy="no-referrer" />
+            {:else}
+              <div class="creative-empty-modal">Sem preview disponível</div>
+            {/if}
+          </div>
+          <div class="creative-modal-foot">
+            <div class="creative-name">{previewItem.name}</div>
+            {#if previewItem.creative?.title}<div class="creative-title">{previewItem.creative.title}</div>{/if}
+            {#if previewItem.creative?.body}<div class="creative-body">{previewItem.creative.body}</div>{/if}
+            {#if previewItem.creative?.permalinkUrl}
+              <a href={previewItem.creative.permalinkUrl} target="_blank" rel="noopener" class="creative-open-fb">Abrir no Facebook ↗</a>
+            {/if}
+          </div>
+        </div>
       {/if}
 
       {#if activeTab === 'contas'}
@@ -3521,6 +3698,257 @@
 
   /* Live table */
   .live-table { display: flex; flex-direction: column; gap: 3px; }
+
+  /* ── Drill-down: campanhas → adsets → ads ── */
+  .camp-name-link {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    text-align: left;
+    width: 100%;
+  }
+  .camp-name-link:hover .camp-name-txt { color: #02a95c; }
+  .camp-name-link:hover .camp-drill-arrow { color: #02a95c; transform: translateX(2px); }
+  .camp-drill-arrow {
+    color: #6b7280;
+    font-weight: 700;
+    font-size: 0.95em;
+    transition: transform 0.15s, color 0.15s;
+  }
+
+  .sub-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 12px 14px;
+    background: #11151c;
+    border: 1px solid #2a2e34;
+    border-radius: 10px;
+    margin-bottom: 14px;
+    font-size: 0.875rem;
+  }
+  .sub-crumb {
+    background: transparent;
+    border: 1px solid #2a2e34;
+    color: #9ca3af;
+    padding: 6px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    font: inherit;
+    transition: background 0.15s, color 0.15s;
+  }
+  .sub-crumb:hover { background: rgba(2,169,92,0.1); color: #fff; border-color: #02a95c; }
+  .sub-crumb-current {
+    color: #fff;
+    font-weight: 600;
+    padding: 6px 4px;
+    max-width: 380px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sub-sep { color: #4b5563; }
+  .sub-level-tag {
+    margin-left: auto;
+    background: #02a95c;
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .sub-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid #2a2e34; }
+  .sub-table { width: 100%; border-collapse: collapse; background: #0e1117; font-size: 0.875rem; }
+  .sub-table th {
+    padding: 12px 10px;
+    text-align: left;
+    background: #11151c;
+    border-bottom: 1px solid #2a2e34;
+    color: #9ca3af;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .sub-table th.th-num { text-align: right; }
+  .sub-table th.th-creative { width: 100px; }
+  .sub-table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #1a1d22;
+    color: #e5e7eb;
+    vertical-align: middle;
+  }
+  .sub-table td.td-num { text-align: right; font-variant-numeric: tabular-nums; }
+  .sub-table td.td-creative { padding: 8px 10px; width: 100px; }
+  .sub-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .sub-table tr.sub-tr-paused { opacity: 0.6; }
+  .sub-name { display: block; color: #fff; font-weight: 500; }
+  .sub-status {
+    display: inline-block;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .sub-status-active { background: rgba(2,169,92,0.15); color: #02a95c; }
+  .sub-status-paused { background: rgba(107,114,128,0.15); color: #9ca3af; }
+  .sub-status-unknown, .sub-status- { background: rgba(107,114,128,0.15); color: #6b7280; }
+  .roas-pos { color: #02a95c; }
+  .roas-neg { color: #ef4444; }
+
+  /* Creative thumb */
+  .creative-thumb {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    background: #000;
+    border: 1px solid #2a2e34;
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    padding: 0;
+    display: block;
+    transition: border-color 0.15s, transform 0.1s;
+  }
+  .creative-thumb:hover { border-color: #02a95c; transform: scale(1.04); }
+  .creative-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .creative-play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.65);
+    color: #fff;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    padding-left: 2px;
+  }
+  .creative-empty {
+    width: 80px;
+    height: 80px;
+    border: 1px dashed #2a2e34;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4b5563;
+    font-size: 1.5rem;
+  }
+
+  /* Creative preview modal */
+  .creative-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    border: none;
+    cursor: pointer;
+    z-index: 9998;
+  }
+  .creative-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #0e1117;
+    border: 1px solid #2a2e34;
+    border-radius: 14px;
+    width: calc(100% - 32px);
+    max-width: 520px;
+    max-height: calc(100vh - 48px);
+    z-index: 9999;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .creative-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #fff;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    z-index: 2;
+    transition: background 0.15s;
+  }
+  .creative-close:hover { background: rgba(0,0,0,0.85); }
+  .creative-modal-body {
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 320px;
+    max-height: 60vh;
+    overflow: hidden;
+  }
+  .creative-video, .creative-image {
+    max-width: 100%;
+    max-height: 60vh;
+    width: auto;
+    height: auto;
+    display: block;
+  }
+  .creative-empty-modal { color: #6b7280; padding: 40px; text-align: center; }
+  .creative-modal-foot {
+    padding: 18px 20px 20px;
+    background: #11151c;
+    border-top: 1px solid #2a2e34;
+    color: #e5e7eb;
+    overflow-y: auto;
+  }
+  .creative-name {
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+  .creative-title {
+    font-size: 0.875rem;
+    color: #d1d5db;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .creative-body {
+    font-size: 0.8125rem;
+    color: #9ca3af;
+    margin-bottom: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    max-height: 140px;
+    overflow-y: auto;
+  }
+  .creative-open-fb {
+    display: inline-block;
+    color: #02a95c;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+  }
+  .creative-open-fb:hover { color: #fff; border-color: #fff; }
   .lt-head, .lt-row {
     display: grid; grid-template-columns: 110px 1.2fr 1.1fr 0.85fr 0.75fr 1.3fr 75px 105px;
     gap: 10px; padding: 9px 12px; align-items: center;
