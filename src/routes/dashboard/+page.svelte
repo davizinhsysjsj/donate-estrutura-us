@@ -118,6 +118,80 @@
     detailData = null;
   }
 
+  // ── Svelte action: torna colunas da tabela redimensionáveis (drag na borda direita do <th>) ──
+  function resizableTable(node: HTMLTableElement, opts: { storageKey: string }) {
+    let handles: Array<{ th: HTMLElement; el: HTMLElement; down: (e: MouseEvent) => void }> = [];
+    let mo: MutationObserver | null = null;
+    let saved: Record<string, number> = {};
+    try { saved = JSON.parse(localStorage.getItem(opts.storageKey) || '{}'); } catch {}
+
+    function attach() {
+      teardown();
+      node.style.tableLayout = 'fixed';
+      const ths = Array.from(node.querySelectorAll<HTMLElement>('thead th'));
+      ths.forEach((th, idx) => {
+        const key = th.dataset.colKey
+          || (th.className.split(' ').find(c => c.startsWith('th-')) ?? `col-${idx}`);
+        th.dataset.colKey = key;
+        if (saved[key] && saved[key] > 30) {
+          th.style.width = saved[key] + 'px';
+        } else {
+          requestAnimationFrame(() => {
+            if (!th.style.width) th.style.width = th.offsetWidth + 'px';
+          });
+        }
+        if (idx === ths.length - 1) return; // sem handle na última
+        if (!th.style.position) th.style.position = 'relative';
+        const el = document.createElement('span');
+        el.className = 'col-resize-handle';
+        el.setAttribute('aria-hidden', 'true');
+        const down = (e: MouseEvent) => {
+          e.preventDefault(); e.stopPropagation();
+          const sx = e.clientX;
+          const sw = th.offsetWidth;
+          document.body.style.cursor = 'col-resize';
+          document.body.style.userSelect = 'none';
+          el.classList.add('dragging');
+          const move = (m: MouseEvent) => {
+            const w = Math.max(50, sw + (m.clientX - sx));
+            th.style.width = w + 'px';
+          };
+          const up = () => {
+            window.removeEventListener('mousemove', move);
+            window.removeEventListener('mouseup', up);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            el.classList.remove('dragging');
+            const all: Record<string, number> = {};
+            ths.forEach(t => {
+              const k = t.dataset.colKey;
+              if (k && t.style.width) {
+                const v = parseFloat(t.style.width);
+                if (v > 0) all[k] = v;
+              }
+            });
+            saved = all;
+            try { localStorage.setItem(opts.storageKey, JSON.stringify(all)); } catch {}
+          };
+          window.addEventListener('mousemove', move);
+          window.addEventListener('mouseup', up);
+        };
+        el.addEventListener('mousedown', down);
+        th.appendChild(el);
+        handles.push({ th, el, down });
+      });
+    }
+    function teardown() {
+      handles.forEach(({ el, down }) => { el.removeEventListener('mousedown', down); el.remove(); });
+      handles = [];
+    }
+    attach();
+    mo = new MutationObserver(() => attach());
+    const thead = node.querySelector('thead');
+    if (thead) mo.observe(thead, { childList: true, subtree: true });
+    return { destroy() { teardown(); mo?.disconnect(); } };
+  }
+
   onMount(() => {
     if (!data.authed) return;
     pull();
@@ -2781,7 +2855,7 @@
               <span class="sub-count">{adsetItems.length} conjuntos</span>
             </div>
             <div class="sub-table-wrap">
-              <table class="sub-table">
+              <table class="sub-table" use:resizableTable={{ storageKey: 'colw-sub-adset' }}>
                 <thead>
                   <tr>
                     <th class="th-check"></th>
@@ -2840,7 +2914,7 @@
               <span class="sub-count">{adItems.length} anúncios</span>
             </div>
             <div class="sub-table-wrap">
-              <table class="sub-table">
+              <table class="sub-table" use:resizableTable={{ storageKey: 'colw-sub-ad' }}>
                 <thead>
                   <tr>
                     <th class="th-creative">Criativo</th>
@@ -2916,7 +2990,7 @@
           {@const campTotalIC     = fbCampaigns.reduce((s, c) => s + (c.initiateCheckout || 0), 0)}
           {@const campTotalATC    = fbCampaigns.reduce((s, c) => s + (c.addToCart || 0), 0)}
           <div class="camp-utmfy-wrap">
-            <table class="camp-utmfy camp-utmfy-{campView}">
+            <table class="camp-utmfy camp-utmfy-{campView}" use:resizableTable={{ storageKey: 'colw-camp-utmfy' }}>
               <thead>
                 <tr>
                   <th class="th-toggle">Status</th>
@@ -4042,6 +4116,41 @@
   .sub-status-unknown, .sub-status- { background: rgba(107,114,128,0.12); color: #6b7280; }
   .roas-pos { color: #00d971; }
   .roas-neg { color: #ff5b5b; }
+
+  /* ── Resize de colunas (drag handle no canto direito do th) ── */
+  .col-resize-handle {
+    position: absolute;
+    top: 0;
+    right: -3px;
+    width: 7px;
+    height: 100%;
+    cursor: col-resize;
+    background: transparent;
+    z-index: 3;
+    user-select: none;
+    touch-action: none;
+  }
+  .col-resize-handle::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 28%;
+    width: 1px;
+    height: 44%;
+    background: rgba(255,255,255,0.08);
+    transform: translateX(-50%);
+    transition: background 0.15s, width 0.15s;
+  }
+  .col-resize-handle:hover::after,
+  .col-resize-handle.dragging::after {
+    background: #02a95c;
+    width: 2px;
+    top: 0;
+    height: 100%;
+    box-shadow: 0 0 8px rgba(2,169,92,0.5);
+  }
+  /* th tem `text-transform: uppercase` — handle não deve herdar */
+  .col-resize-handle, .col-resize-handle::after { text-transform: none; }
 
   /* Creative thumb */
   .creative-thumb {
