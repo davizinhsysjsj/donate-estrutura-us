@@ -1072,49 +1072,110 @@
   let campErrorMsg = $state('');
   let campSuccessMsg = $state('');
 
-  // Drill-down: conjuntos de anuncios (adsets) e anuncios (ads)
-  type SubLevel = 'adset' | 'ad';
-  type SubCrumb = { level: 'campaign' | 'adset'; id: string; name: string; accountId: string };
-  let subLevel = $state<SubLevel | null>(null);
-  let subItems = $state<any[]>([]);
-  let subLoading = $state(false);
-  let subChain = $state<SubCrumb[]>([]);
-  // Preview do criativo (modal)
+  // ── Sub-tabs estilo Meta Ads Manager: Campanhas | Conjuntos | Anúncios ──
+  type CampSubTab = 'campaigns' | 'adsets' | 'ads';
+  let campSubTab = $state<CampSubTab>('campaigns');
+  let selectedCampaignIds = $state<Set<string>>(new Set());
+  let selectedAdsetIds = $state<Set<string>>(new Set());
+  let adsetItems = $state<any[]>([]);
+  let adItems = $state<any[]>([]);
+  let adsetsLoading = $state(false);
+  let adsLoading = $state(false);
   let previewItem = $state<any>(null);
 
-  async function openSubLevel(parent: SubCrumb, level: SubLevel) {
-    subLoading = true;
-    subItems = [];
-    subLevel = level;
-    // adiciona ao breadcrumb (se ja existe um nivel acima, mantem; senao adiciona)
-    if (parent.level === 'campaign') {
-      subChain = [parent];
-    } else {
-      // adset: mantem o pai campaign + adiciona adset
-      subChain = [subChain[0] ?? { level: 'campaign', id: '', name: '—', accountId: parent.accountId }, parent];
-    }
+  // Toggles de seleção
+  function toggleCampaignSel(id: string) {
+    const s = new Set(selectedCampaignIds);
+    if (s.has(id)) s.delete(id); else s.add(id);
+    selectedCampaignIds = s;
+  }
+  function toggleAdsetSel(id: string) {
+    const s = new Set(selectedAdsetIds);
+    if (s.has(id)) s.delete(id); else s.add(id);
+    selectedAdsetIds = s;
+  }
+  function selectAllCampaigns() {
+    selectedCampaignIds = new Set(fbCampaigns.map((c) => c.id));
+  }
+  function clearCampaignSel() { selectedCampaignIds = new Set(); }
+  function selectAllAdsets() {
+    selectedAdsetIds = new Set(adsetItems.map((a) => a.id));
+  }
+  function clearAdsetSel() { selectedAdsetIds = new Set(); }
+
+  // Carrega adsets / ads filtrando por seleção (ou tudo da conta se nada selecionado)
+  async function pullAdsets() {
+    adsetsLoading = true;
+    adsetItems = [];
     try {
-      const q = parent.accountId ? `&account_id=${encodeURIComponent(parent.accountId)}` : '';
-      const r = await fetch(`/api/fb-ads/level?level=${level}&parent=${encodeURIComponent(parent.id)}&window=${fbWin}${q}&nocache=1`, { cache: 'no-store' });
-      if (r.ok) {
-        const d = await r.json();
-        subItems = (d.items || []).map((it: any) => ({ ...it, _accountId: parent.accountId }));
-      }
+      const accounts = fbAccountIds.length ? fbAccountIds : [''];
+      const results = await Promise.all(accounts.map(async (acct) => {
+        const q = acct ? `&account_id=${encodeURIComponent(acct)}` : '';
+        // Se há campanhas selecionadas E elas vieram dessa conta, filtra
+        const campsThisAccount = fbCampaigns.filter((c) => (!acct || c._accountId === acct) && selectedCampaignIds.has(c.id));
+        const parents = selectedCampaignIds.size === 0
+          ? ''
+          : campsThisAccount.map((c) => c.id).join(',');
+        // Se houve filtro mas nenhuma campanha dessa conta foi selecionada, skipa
+        if (selectedCampaignIds.size > 0 && !parents) return null;
+        const r = await fetch(`/api/fb-ads/level?level=adset&parents=${parents}&window=${fbWin}${q}&nocache=1`, { cache: 'no-store' });
+        return r.ok ? { acct, data: await r.json() } : null;
+      }));
+      adsetItems = results
+        .filter(Boolean)
+        .flatMap((r: any) => (r.data.items || []).map((it: any) => ({ ...it, _accountId: r.acct })));
     } catch {}
-    subLoading = false;
+    adsetsLoading = false;
   }
 
-  function backToCampaigns() {
-    subLevel = null;
-    subItems = [];
-    subChain = [];
+  async function pullAds() {
+    adsLoading = true;
+    adItems = [];
+    try {
+      const accounts = fbAccountIds.length ? fbAccountIds : [''];
+      // Se tem adsets selecionados, filtra por eles. Senão filtra por campanhas selecionadas (via adsets já carregados).
+      // Se nada selecionado, busca tudo.
+      const results = await Promise.all(accounts.map(async (acct) => {
+        const q = acct ? `&account_id=${encodeURIComponent(acct)}` : '';
+        let parents = '';
+        if (selectedAdsetIds.size > 0) {
+          parents = adsetItems
+            .filter((a) => (!acct || a._accountId === acct) && selectedAdsetIds.has(a.id))
+            .map((a) => a.id).join(',');
+          if (!parents) return null;
+        } else if (selectedCampaignIds.size > 0) {
+          // Sem adsets selecionados, mas com campanhas: precisa pegar todos adsets dessas campanhas primeiro
+          const campIds = fbCampaigns
+            .filter((c) => (!acct || c._accountId === acct) && selectedCampaignIds.has(c.id))
+            .map((c) => c.id);
+          if (campIds.length === 0) return null;
+          // Busca adsets dessas campanhas
+          const adsetR = await fetch(`/api/fb-ads/level?level=adset&parents=${campIds.join(',')}&window=${fbWin}${q}&nocache=1`, { cache: 'no-store' });
+          if (!adsetR.ok) return null;
+          const adsetD = await adsetR.json();
+          parents = (adsetD.items || []).map((a: any) => a.id).join(',');
+          if (!parents) return null;
+        }
+        // parents pode ser '' (busca tudo da conta)
+        const r = await fetch(`/api/fb-ads/level?level=ad&parents=${parents}&window=${fbWin}${q}&nocache=1`, { cache: 'no-store' });
+        return r.ok ? { acct, data: await r.json() } : null;
+      }));
+      adItems = results
+        .filter(Boolean)
+        .flatMap((r: any) => (r.data.items || []).map((it: any) => ({ ...it, _accountId: r.acct })));
+    } catch {}
+    adsLoading = false;
   }
-  function backToAdsets() {
-    if (subChain.length >= 1 && subChain[0].id) {
-      openSubLevel(subChain[0], 'adset');
-    } else {
-      backToCampaigns();
-    }
+
+  function switchCampSubTab(t: CampSubTab) {
+    campSubTab = t;
+    if (t === 'adsets' && !adsetItems.length) pullAdsets();
+    if (t === 'ads' && !adItems.length) pullAds();
+  }
+  function refreshCurrentSubTab() {
+    if (campSubTab === 'campaigns') pullCampaigns(true);
+    else if (campSubTab === 'adsets') pullAdsets();
+    else pullAds();
   }
 
   function openCreativePreview(ad: any) {
@@ -1123,6 +1184,15 @@
   function closeCreativePreview() {
     previewItem = null;
   }
+
+  // Reset cache de sub-tabs quando seleção ou janela muda
+  $effect(() => {
+    const _ = selectedCampaignIds.size + selectedAdsetIds.size + fbWin;
+    adsetItems = [];
+    adItems = [];
+    if (campSubTab === 'adsets') pullAdsets();
+    else if (campSubTab === 'ads') pullAds();
+  });
 
   async function pullCampaigns(force = false) {
     campaignsLoading = true;
@@ -2659,37 +2729,62 @@
       {#if activeTab === 'campanhas'}
       <div class="tab-content">
 
-        {#if campaignsLoading}
-          <div class="loading"><div class="spinner"></div><span>Carregando campanhas…</span></div>
-        {:else if subLevel}
-          <!-- ── DRILL-DOWN: Conjuntos (adsets) ou Anúncios (ads) ── -->
-          <div class="sub-breadcrumb">
-            <button class="sub-crumb" onclick={backToCampaigns}>← Campanhas</button>
-            {#each subChain as crumb, i}
-              <span class="sub-sep">›</span>
-              {#if i === subChain.length - 1}
-                <span class="sub-crumb-current" title={crumb.name}>
-                  {crumb.name.length > 40 ? crumb.name.slice(0, 40) + '…' : crumb.name}
-                </span>
-              {:else}
-                <button class="sub-crumb" onclick={backToAdsets} title={crumb.name}>
-                  {crumb.name.length > 28 ? crumb.name.slice(0, 28) + '…' : crumb.name}
-                </button>
-              {/if}
-            {/each}
-            <span class="sub-level-tag">{subLevel === 'adset' ? 'Conjuntos de anúncios' : 'Anúncios'}</span>
-          </div>
+        <!-- ── Sub-tabs estilo Meta Ads Manager ── -->
+        <div class="sub-tabs-bar">
+          <button
+            class="sub-tab"
+            class:active={campSubTab === 'campaigns'}
+            onclick={() => switchCampSubTab('campaigns')}
+          >
+            Campanhas
+            {#if selectedCampaignIds.size > 0}<span class="sub-tab-badge">{selectedCampaignIds.size}</span>{/if}
+          </button>
+          <button
+            class="sub-tab"
+            class:active={campSubTab === 'adsets'}
+            onclick={() => switchCampSubTab('adsets')}
+          >
+            Conjuntos
+            {#if selectedAdsetIds.size > 0}<span class="sub-tab-badge">{selectedAdsetIds.size}</span>{/if}
+          </button>
+          <button
+            class="sub-tab"
+            class:active={campSubTab === 'ads'}
+            onclick={() => switchCampSubTab('ads')}
+          >
+            Anúncios
+          </button>
+          <span class="sub-tabs-spacer"></span>
+          {#if (selectedCampaignIds.size + selectedAdsetIds.size) > 0}
+            <button class="sub-clear-btn" onclick={() => { clearCampaignSel(); clearAdsetSel(); }}>Limpar seleção</button>
+          {/if}
+          <button class="sub-refresh-btn" onclick={refreshCurrentSubTab} title="Atualizar">↻</button>
+        </div>
 
-          {#if subLoading}
-            <div class="loading"><div class="spinner"></div><span>Carregando {subLevel === 'adset' ? 'conjuntos' : 'anúncios'}…</span></div>
-          {:else if !subItems.length}
-            <div class="empty"><span class="empty-emoji">∅</span><p>Sem {subLevel === 'adset' ? 'conjuntos' : 'anúncios'} no período.</p></div>
+        {#if campSubTab === 'campaigns' && campaignsLoading}
+          <div class="loading"><div class="spinner"></div><span>Carregando campanhas…</span></div>
+        {:else if campSubTab === 'adsets'}
+          <!-- ── Tab CONJUNTOS ── -->
+          {#if selectedCampaignIds.size > 0}
+            <div class="sub-filter-note">Filtrado por {selectedCampaignIds.size} {selectedCampaignIds.size === 1 ? 'campanha' : 'campanhas'} selecionada{selectedCampaignIds.size === 1 ? '' : 's'}.</div>
+          {/if}
+          {#if adsetsLoading}
+            <div class="loading"><div class="spinner"></div><span>Carregando conjuntos…</span></div>
+          {:else if !adsetItems.length}
+            <div class="empty"><span class="empty-emoji">∅</span><p>Sem conjuntos no período.</p></div>
           {:else}
+            <div class="sub-actions-bar">
+              <label class="sub-select-all">
+                <input type="checkbox" checked={selectedAdsetIds.size === adsetItems.length && adsetItems.length > 0} onchange={(e) => (e.currentTarget as HTMLInputElement).checked ? selectAllAdsets() : clearAdsetSel()} />
+                Selecionar tudo
+              </label>
+              <span class="sub-count">{adsetItems.length} conjuntos</span>
+            </div>
             <div class="sub-table-wrap">
               <table class="sub-table">
                 <thead>
                   <tr>
-                    {#if subLevel === 'ad'}<th class="th-creative">Criativo</th>{/if}
+                    <th class="th-check"></th>
                     <th>Nome</th>
                     <th class="th-num">Gastos</th>
                     <th class="th-num">Impressões</th>
@@ -2704,33 +2799,79 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {#each [...subItems].sort((a,b) => b.spend - a.spend) as it (it.id)}
+                  {#each [...adsetItems].sort((a,b) => b.spend - a.spend) as it (it.id)}
                     <tr class:sub-tr-paused={it.status === 'PAUSED'}>
-                      {#if subLevel === 'ad'}
-                        <td class="td-creative">
-                          {#if it.creative?.thumbnailUrl}
-                            <button class="creative-thumb" onclick={() => openCreativePreview(it)} title="Abrir criativo">
-                              <img src={it.creative.thumbnailUrl} alt="" loading="lazy" referrerpolicy="no-referrer" />
-                              {#if it.creative.videoId}<span class="creative-play">▶</span>{/if}
-                            </button>
-                          {:else}
-                            <div class="creative-empty">—</div>
-                          {/if}
-                        </td>
-                      {/if}
+                      <td class="td-check"><input type="checkbox" checked={selectedAdsetIds.has(it.id)} onchange={() => toggleAdsetSel(it.id)} /></td>
                       <td>
-                        {#if subLevel === 'adset'}
-                          <button
-                            class="camp-name-link"
-                            title="Ver anúncios desse conjunto"
-                            onclick={() => openSubLevel({ level: 'adset', id: it.id, name: it.name, accountId: it._accountId }, 'ad')}
-                          >
-                            <span class="camp-name-txt">{it.name}</span>
-                            <span class="camp-drill-arrow">›</span>
+                        <span class="sub-name">{it.name}</span>
+                        <span class="sub-status sub-status-{(it.effectiveStatus || it.status || 'unknown').toLowerCase()}">
+                          {(it.effectiveStatus || it.status || '—').replace(/_/g, ' ').toLowerCase()}
+                        </span>
+                      </td>
+                      <td class="td-num">{fmtSpendDisplay(it.spend)}</td>
+                      <td class="td-num">{fmtNum(it.impressions)}</td>
+                      <td class="td-num">{it.ctr.toFixed(2)}%</td>
+                      <td class="td-num">{fmtNum(it.clicks)}</td>
+                      <td class="td-num">{fmtNum(it.landingPageViews)}</td>
+                      <td class="td-num">{fmtNum(it.initiateCheckout)}</td>
+                      <td class="td-num">{fmtNum(it.purchases)}</td>
+                      <td class="td-num">{fmtSpendDisplay(it.purchaseValue)}</td>
+                      <td class="td-num">{it.purchases > 0 ? fmtSpendDisplay(it.cpa) : '—'}</td>
+                      <td class="td-num"><strong class={it.roas >= 1 ? 'roas-pos' : 'roas-neg'}>{it.roas.toFixed(2)}x</strong></td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          {/if}
+        {:else if campSubTab === 'ads'}
+          <!-- ── Tab ANÚNCIOS ── -->
+          {#if selectedAdsetIds.size > 0}
+            <div class="sub-filter-note">Filtrado por {selectedAdsetIds.size} conjunto{selectedAdsetIds.size === 1 ? '' : 's'} selecionado{selectedAdsetIds.size === 1 ? '' : 's'}.</div>
+          {:else if selectedCampaignIds.size > 0}
+            <div class="sub-filter-note">Filtrado por {selectedCampaignIds.size} campanha{selectedCampaignIds.size === 1 ? '' : 's'} selecionada{selectedCampaignIds.size === 1 ? '' : 's'}.</div>
+          {/if}
+          {#if adsLoading}
+            <div class="loading"><div class="spinner"></div><span>Carregando anúncios…</span></div>
+          {:else if !adItems.length}
+            <div class="empty"><span class="empty-emoji">∅</span><p>Sem anúncios no período.</p></div>
+          {:else}
+            <div class="sub-actions-bar">
+              <span class="sub-count">{adItems.length} anúncios</span>
+            </div>
+            <div class="sub-table-wrap">
+              <table class="sub-table">
+                <thead>
+                  <tr>
+                    <th class="th-creative">Criativo</th>
+                    <th>Nome</th>
+                    <th class="th-num">Gastos</th>
+                    <th class="th-num">Impressões</th>
+                    <th class="th-num">CTR</th>
+                    <th class="th-num">Cliques</th>
+                    <th class="th-num">LPV</th>
+                    <th class="th-num">IC</th>
+                    <th class="th-num">Vendas</th>
+                    <th class="th-num">Receita</th>
+                    <th class="th-num">CPA</th>
+                    <th class="th-num">ROAS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each [...adItems].sort((a,b) => b.spend - a.spend) as it (it.id)}
+                    <tr class:sub-tr-paused={it.status === 'PAUSED'}>
+                      <td class="td-creative">
+                        {#if it.creative?.thumbnailUrl}
+                          <button class="creative-thumb" onclick={() => openCreativePreview(it)} title="Abrir criativo">
+                            <img src={it.creative.thumbnailUrl} alt="" loading="lazy" referrerpolicy="no-referrer" />
+                            {#if it.creative.videoId}<span class="creative-play">▶</span>{/if}
                           </button>
                         {:else}
-                          <span class="sub-name">{it.name}</span>
+                          <div class="creative-empty">—</div>
                         {/if}
+                      </td>
+                      <td>
+                        <span class="sub-name">{it.name}</span>
                         <span class="sub-status sub-status-{(it.effectiveStatus || it.status || 'unknown').toLowerCase()}">
                           {(it.effectiveStatus || it.status || '—').replace(/_/g, ' ').toLowerCase()}
                         </span>
@@ -2824,14 +2965,16 @@
                   </td>
                   <!-- NOME -->
                   <td class="td-name">
-                    <button
-                      class="camp-name-link"
-                      title="Ver conjuntos de anúncios"
-                      onclick={() => openSubLevel({ level: 'campaign', id: c.id, name: c.name, accountId: c._accountId }, 'adset')}
-                    >
-                      <span class="camp-name-txt">{c.name}</span>
-                      <span class="camp-drill-arrow">›</span>
-                    </button>
+                    <label class="camp-name-row">
+                      <input
+                        type="checkbox"
+                        class="camp-checkbox"
+                        checked={selectedCampaignIds.has(c.id)}
+                        onchange={() => toggleCampaignSel(c.id)}
+                        onclick={(e) => e.stopPropagation()}
+                      />
+                      <span class="camp-name-txt" title={c.name}>{c.name}</span>
+                    </label>
                     {#if c.objective}<span class="camp-objective">{c.objective.replace('OUTCOME_','').toLowerCase()}</span>{/if}
                   </td>
                   <!-- ORÇAMENTO inline -->
@@ -3699,76 +3842,110 @@
   /* Live table */
   .live-table { display: flex; flex-direction: column; gap: 3px; }
 
-  /* ── Drill-down: campanhas → adsets → ads ── */
-  .camp-name-link {
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    font: inherit;
-    color: inherit;
-    display: inline-flex;
-    align-items: baseline;
-    gap: 6px;
-    text-align: left;
-    width: 100%;
-  }
-  .camp-name-link:hover .camp-name-txt { color: #02a95c; }
-  .camp-name-link:hover .camp-drill-arrow { color: #02a95c; transform: translateX(2px); }
-  .camp-drill-arrow {
-    color: #6b7280;
-    font-weight: 700;
-    font-size: 0.95em;
-    transition: transform 0.15s, color 0.15s;
-  }
-
-  .sub-breadcrumb {
+  /* ── Sub-tabs estilo Meta Ads Manager ── */
+  .sub-tabs-bar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    padding: 12px 14px;
+    gap: 6px;
+    padding: 6px;
     background: #11151c;
     border: 1px solid #2a2e34;
     border-radius: 10px;
     margin-bottom: 14px;
-    font-size: 0.875rem;
   }
-  .sub-crumb {
+  .sub-tab {
     background: transparent;
-    border: 1px solid #2a2e34;
+    border: none;
     color: #9ca3af;
-    padding: 6px 12px;
+    padding: 9px 16px;
     border-radius: 7px;
     cursor: pointer;
     font: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     transition: background 0.15s, color 0.15s;
   }
-  .sub-crumb:hover { background: rgba(2,169,92,0.1); color: #fff; border-color: #02a95c; }
-  .sub-crumb-current {
-    color: #fff;
-    font-weight: 600;
-    padding: 6px 4px;
-    max-width: 380px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .sub-sep { color: #4b5563; }
-  .sub-level-tag {
-    margin-left: auto;
+  .sub-tab:hover { color: #fff; background: rgba(255,255,255,0.04); }
+  .sub-tab.active {
     background: #02a95c;
     color: #fff;
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 0.75rem;
+  }
+  .sub-tab-badge {
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+    border-radius: 9999px;
+    padding: 2px 8px;
+    font-size: 0.6875rem;
     font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    line-height: 1.2;
+  }
+  .sub-tab:not(.active) .sub-tab-badge {
+    background: rgba(2,169,92,0.18);
+    color: #02a95c;
+  }
+  .sub-tabs-spacer { flex: 1; }
+  .sub-clear-btn,
+  .sub-refresh-btn {
+    background: transparent;
+    border: 1px solid #2a2e34;
+    color: #9ca3af;
+    padding: 7px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.8125rem;
+    transition: background 0.15s, color 0.15s;
+  }
+  .sub-refresh-btn { padding: 7px 12px; font-size: 1rem; line-height: 1; }
+  .sub-clear-btn:hover, .sub-refresh-btn:hover { background: rgba(255,255,255,0.06); color: #fff; }
+
+  .sub-filter-note {
+    background: rgba(2,169,92,0.08);
+    border: 1px solid rgba(2,169,92,0.3);
+    color: #d1fae5;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    font-size: 0.8125rem;
+  }
+  .sub-actions-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 6px 4px 10px;
+    color: #9ca3af;
+    font-size: 0.8125rem;
+  }
+  .sub-select-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+  .sub-count { margin-left: auto; }
+
+  /* Checkbox em campanhas */
+  .camp-name-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+  }
+  .camp-checkbox {
+    width: 16px;
+    height: 16px;
+    accent-color: #02a95c;
+    cursor: pointer;
+    flex-shrink: 0;
   }
 
   .sub-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid #2a2e34; }
   .sub-table { width: 100%; border-collapse: collapse; background: #0e1117; font-size: 0.875rem; }
+  .sub-table th.th-check, .sub-table td.td-check { width: 36px; text-align: center; padding-left: 14px; padding-right: 4px; }
+  .sub-table td.td-check input { accent-color: #02a95c; width: 16px; height: 16px; cursor: pointer; }
   .sub-table th {
     padding: 12px 10px;
     text-align: left;

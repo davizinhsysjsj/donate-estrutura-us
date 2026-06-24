@@ -76,8 +76,9 @@ function parseInsight(d: any) {
 /**
  * GET /api/fb-ads/level
  * Params:
- *   - level: 'adset' | 'ad'           (obrigatorio)
- *   - parent: <campaign_id|adset_id>  (obrigatorio)
+ *   - level: 'adset' | 'ad'                    (obrigatorio)
+ *   - parents: CSV de campaign_ids ou adset_ids (opcional — se vazio, retorna TUDO da conta)
+ *   - parent: alias legacy de 1 id (compat)
  *   - account_id: 'act_...' (opcional, usa default)
  *   - window: '7d' | 'today' | ... (default 'today')
  *   - nocache=1 ignora cache
@@ -86,9 +87,13 @@ export const GET: RequestHandler = async ({ url }) => {
   const level = url.searchParams.get('level');
   if (level !== 'adset' && level !== 'ad') return json({ error: 'level invalido (use adset|ad)' }, { status: 400 });
 
-  let parent: string;
-  try { parent = normalizeId(url.searchParams.get('parent')); }
-  catch { return json({ error: 'parent invalido' }, { status: 400 }); }
+  // Aceita parents=CSV ou parent=ID (legacy). Vazio = todos da conta.
+  const rawParents = url.searchParams.get('parents') || url.searchParams.get('parent') || '';
+  const parents = rawParents
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .filter((s) => /^\d{6,25}$/.test(s));
 
   const FB_ACCT  = normalizeAcct(url.searchParams.get('account_id'));
   const FB_TOKEN = getFbToken();
@@ -97,7 +102,8 @@ export const GET: RequestHandler = async ({ url }) => {
   const skipCache = url.searchParams.get('nocache') === '1';
   maybeRefreshInBackground();
 
-  const cacheKey = `${FB_ACCT}-${level}-${parent}-${win}`;
+  const parentsKey = parents.length ? parents.slice().sort().join(',') : '__all__';
+  const cacheKey = `${FB_ACCT}-${level}-${parentsKey}-${win}`;
   if (!skipCache) {
     const cached = _cache[cacheKey];
     if (cached && Date.now() - cached.ts < CACHE_TTL) return json(cached.data);
@@ -111,42 +117,55 @@ export const GET: RequestHandler = async ({ url }) => {
     'ctr','cpm','cpc','actions','action_values',
   ].join(',');
 
-  // Encode filtering
-  const filtering = encodeURIComponent(JSON.stringify([{ field: filterField, operator: 'IN', value: [parent] }]));
+  // Se tem parents -> filtering. Senao -> sem filtering (tudo da conta).
+  const filteringQuery = parents.length
+    ? `&filtering=${encodeURIComponent(JSON.stringify([{ field: filterField, operator: 'IN', value: parents }]))}`
+    : '';
 
   try {
-    // Insights
+    // Insights (1 chamada agregada)
     const insightsBody = await fbFetch(
-      `${FB_ACCT}/insights?level=${level}&filtering=${filtering}&date_preset=${preset}&fields=${insightFields}&limit=500&access_token=${FB_TOKEN}`
+      `${FB_ACCT}/insights?level=${level}${filteringQuery}&date_preset=${preset}&fields=${insightFields}&limit=500&access_token=${FB_TOKEN}`
     );
 
-    // Metadata (status, budget) — vem do parent
+    // Metadata: se nao tem parents, busca tudo da conta. Se tem, busca por parent em paralelo.
     let metaMap = new Map<string, any>();
+    const metaSources: string[] = parents.length
+      ? parents.map((p) => p)
+      : [FB_ACCT]; // pra "tudo", uma so chamada no account-level
+
     if (level === 'adset') {
-      const metaBody = await fbFetch(
-        `${parent}/adsets?fields=id,name,status,effective_status,daily_budget,lifetime_budget,bid_amount,optimization_goal,created_time&limit=500&access_token=${FB_TOKEN}`
-      );
-      for (const a of metaBody.data || []) {
-        metaMap.set(a.id, {
-          status: a.status,
-          effectiveStatus: a.effective_status,
-          dailyBudget: a.daily_budget ? parseInt(a.daily_budget) / 100 : null,
-          lifetimeBudget: a.lifetime_budget ? parseInt(a.lifetime_budget) / 100 : null,
-          optimizationGoal: a.optimization_goal || null,
-          createdTime: a.created_time,
-        });
+      const metaBodies = await Promise.all(metaSources.map((src) =>
+        fbFetch(`${src}/adsets?fields=id,name,status,effective_status,daily_budget,lifetime_budget,bid_amount,optimization_goal,created_time,campaign_id&limit=500&access_token=${FB_TOKEN}`)
+          .catch(() => ({ data: [] }))
+      ));
+      for (const body of metaBodies) {
+        for (const a of body.data || []) {
+          metaMap.set(a.id, {
+            status: a.status,
+            effectiveStatus: a.effective_status,
+            dailyBudget: a.daily_budget ? parseInt(a.daily_budget) / 100 : null,
+            lifetimeBudget: a.lifetime_budget ? parseInt(a.lifetime_budget) / 100 : null,
+            optimizationGoal: a.optimization_goal || null,
+            createdTime: a.created_time,
+            parentId: a.campaign_id || null,
+          });
+        }
       }
     } else {
-      const metaBody = await fbFetch(
-        `${parent}/ads?fields=id,name,status,effective_status,created_time,creative{id,thumbnail_url,image_url,video_id,body,title,object_story_id,instagram_permalink_url,effective_object_story_id,object_story_spec,asset_feed_spec}&limit=500&access_token=${FB_TOKEN}`
-      );
+      const adFields = 'id,name,status,effective_status,created_time,adset_id,campaign_id,creative{id,thumbnail_url,image_url,video_id,body,title,object_story_id,instagram_permalink_url,effective_object_story_id,object_story_spec,asset_feed_spec}';
+      const metaBodies = await Promise.all(metaSources.map((src) =>
+        fbFetch(`${src}/ads?fields=${adFields}&limit=500&access_token=${FB_TOKEN}`)
+          .catch(() => ({ data: [] }))
+      ));
+      const allAds = metaBodies.flatMap((b) => b.data || []);
       // Coleta video_ids unicos pra batch fetch de URL do MP4
       const videoIds = new Set<string>();
-      for (const a of metaBody.data || []) {
+      for (const a of allAds) {
         const vid = a.creative?.video_id || a.creative?.asset_feed_spec?.videos?.[0]?.video_id;
         if (vid) videoIds.add(String(vid));
       }
-      // Fetch video sources em paralelo (graph permite 1 chamada por vez aqui)
+      // Fetch video sources em paralelo
       const videoSources = new Map<string, { source?: string; permalink?: string; picture?: string }>();
       await Promise.all([...videoIds].map(async (vid) => {
         try {
@@ -157,7 +176,7 @@ export const GET: RequestHandler = async ({ url }) => {
         }
       }));
 
-      for (const a of metaBody.data || []) {
+      for (const a of allAds) {
         const cr = a.creative || {};
         const vid = cr.video_id || cr.asset_feed_spec?.videos?.[0]?.video_id || null;
         const videoMeta = vid ? videoSources.get(String(vid)) : undefined;
@@ -166,6 +185,8 @@ export const GET: RequestHandler = async ({ url }) => {
           status: a.status,
           effectiveStatus: a.effective_status,
           createdTime: a.created_time,
+          parentId: a.adset_id || null,
+          campaignId: a.campaign_id || null,
           creative: {
             id: cr.id || null,
             thumbnailUrl: fallbackThumb,
@@ -193,6 +214,8 @@ export const GET: RequestHandler = async ({ url }) => {
         lifetimeBudget: meta.lifetimeBudget ?? null,
         optimizationGoal: meta.optimizationGoal ?? null,
         createdTime: meta.createdTime ?? null,
+        parentId: meta.parentId ?? null,         // campaign_id (adset) ou adset_id (ad)
+        campaignId: meta.campaignId ?? null,     // so para ads
         spend: p.spend, impressions: p.impressions, clicks: p.clicks, totalClicks: p.totalClicks,
         reach: p.reach, frequency: p.frequency,
         ctr: p.ctr, cpm: p.cpm, cpc: p.cpc,
@@ -204,7 +227,7 @@ export const GET: RequestHandler = async ({ url }) => {
       };
     });
 
-    const payload = { level, parent, accountId: FB_ACCT, datePreset: preset, items };
+    const payload = { level, parents, accountId: FB_ACCT, datePreset: preset, items };
     _cache[cacheKey] = { data: payload, ts: Date.now() };
     return json(payload);
   } catch (e: any) {
