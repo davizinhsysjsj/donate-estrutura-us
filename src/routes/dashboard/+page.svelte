@@ -122,10 +122,23 @@
   function resizableTable(node: HTMLTableElement, opts: { storageKey: string }) {
     let handles: Array<{ th: HTMLElement; el: HTMLElement; down: (e: MouseEvent) => void }> = [];
     let mo: MutationObserver | null = null;
+    let lastSig = '';
     let saved: Record<string, number> = {};
     try { saved = JSON.parse(localStorage.getItem(opts.storageKey) || '{}'); } catch {}
 
+    function colSignature(): string {
+      const ths = node.querySelectorAll<HTMLElement>('thead th');
+      const sig: string[] = [];
+      ths.forEach((th, idx) => {
+        const k = th.dataset.colKey
+          || (th.className.split(' ').find(c => c.startsWith('th-')) ?? `col-${idx}`);
+        sig.push(k);
+      });
+      return sig.join('|');
+    }
+
     function attach() {
+      mo?.disconnect();
       teardown();
       node.style.tableLayout = 'fixed';
       const ths = Array.from(node.querySelectorAll<HTMLElement>('thead th'));
@@ -135,10 +148,6 @@
         th.dataset.colKey = key;
         if (saved[key] && saved[key] > 30) {
           th.style.width = saved[key] + 'px';
-        } else {
-          requestAnimationFrame(() => {
-            if (!th.style.width) th.style.width = th.offsetWidth + 'px';
-          });
         }
         if (idx === ths.length - 1) return; // sem handle na última
         if (!th.style.position) th.style.position = 'relative';
@@ -180,15 +189,20 @@
         th.appendChild(el);
         handles.push({ th, el, down });
       });
+      lastSig = colSignature();
+      const thead = node.querySelector('thead');
+      if (thead) mo?.observe(thead, { childList: true, subtree: false });
     }
     function teardown() {
       handles.forEach(({ el, down }) => { el.removeEventListener('mousedown', down); el.remove(); });
       handles = [];
     }
+    // Observa só childList do thead (sem subtree) e re-aplica só se a assinatura
+    // das colunas mudar — evita loop infinito disparado pelas próprias mutações.
+    mo = new MutationObserver(() => {
+      if (colSignature() !== lastSig) attach();
+    });
     attach();
-    mo = new MutationObserver(() => attach());
-    const thead = node.querySelector('thead');
-    if (thead) mo.observe(thead, { childList: true, subtree: true });
     return { destroy() { teardown(); mo?.disconnect(); } };
   }
 
