@@ -218,6 +218,21 @@
 
 <div class="dn-page">
 
+  <!-- Alerta urgente: Shadow piorou -->
+  <div class="dn-urgent" role="alert">
+    <div class="dn-urgent-pulse" aria-hidden="true">
+      <span class="dn-urgent-dot"></span>
+    </div>
+    <div class="dn-urgent-body">
+      <div class="dn-urgent-title">URGENT · Update Shadow (laatste 24u)</div>
+      <div class="dn-urgent-text">
+        Shadow's toestand is sterk <strong>verslechterd</strong>. De dierenarts
+        dringt aan op de operatie <strong>binnen 48 uur</strong>. Elke donatie
+        telt nú.
+      </div>
+    </div>
+  </div>
+
   <div class="dn-card">
 
     <!-- Progress row (dinâmico) -->
@@ -364,6 +379,69 @@
     margin: 0 auto;
     padding: 8px 12px 60px;
   }
+
+  /* ── Urgent alert (Shadow's toestand) ── */
+  .dn-urgent {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 8px 0 14px;
+    padding: 12px 14px;
+    background: linear-gradient(135deg, #7a1212 0%, #5a0d0d 100%);
+    border-left: 4px solid #ff3b3b;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(122, 18, 18, 0.25);
+    color: #fff;
+  }
+  .dn-urgent-pulse {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 59, 59, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .dn-urgent-pulse::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: #ff3b3b;
+    opacity: 0.45;
+    animation: dn-urgent-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+  .dn-urgent-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ff3b3b;
+    box-shadow: 0 0 6px #ff3b3b;
+    position: relative;
+    z-index: 1;
+  }
+  @keyframes dn-urgent-ping {
+    0%   { transform: scale(0.7); opacity: 0.55; }
+    80%  { transform: scale(1.6); opacity: 0; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+  .dn-urgent-body { flex: 1; min-width: 0; }
+  .dn-urgent-title {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #ffb4b4;
+    margin-bottom: 4px;
+  }
+  .dn-urgent-text {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: #fff;
+  }
+  .dn-urgent-text strong { color: #ffd76e; }
 
   /* ── Card ── */
   .dn-card {
