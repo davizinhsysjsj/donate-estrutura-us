@@ -32,17 +32,17 @@
   // Campanha: GATO PRETO IDOSO COM TUMOR
   // ──────────────────────────────────────────────────────────────
   const KATTEN = {
-    title: 'Shadow heeft 8 dagen. Een tumor groeit op zijn kop.',
-    subtitle: 'Hij is 14 jaar oud, zwart, en al 487 dagen vergeten in de opvang.',
+    title: 'De tumor van Shadow stopt niet met groeien.',
+    subtitle: '14 jaar oud. Bang. En de tijd raakt op.',
     storyPreview: [
       "Dit is Shadow 🖤",
-      "Hij werd binnengebracht toen zijn baasje overleed. Niemand kwam hem ooit ophalen. 487 dagen later zit hij nog steeds in dezelfde kooi. Niemand wil een oude zwarte kat."
+      "Toen zijn baasje overleed, bleef Shadow alleen achter — met zijn neus tegen de tralies, wachtend op iemand die nooit terugkwam. 487 dagen later slaapt hij nog in dezelfde kooi. En vorige week kwam het nieuws dat we niet wilden horen."
     ],
     storyRest: [
-      "Vorige week ontdekte onze dierenarts een tumor op zijn schedel. De operatie kost €890 en moet binnen 8 dagen gebeuren — daarna is het te laat.",
-      "Shadow heeft niemand. Niemand behalve jou. Een donatie van €25 betekent dat hij vannacht eten en pijnstillers krijgt. €40 betekent dat hij de operatie kan halen."
+      "Onze dierenarts vond een tumor op zijn schedel. Hij groeit. Elke dag een beetje meer. De operatie kost €890 — en kan niet langer wachten. Daarna is het te laat voor Shadow.",
+      "Hij heeft niemand meer. Alleen ons — en wij alleen jou. €25 geeft hem vannacht eten en pijnstilling. €40 brengt hem één stap dichter bij de operatie die zijn leven kan redden."
     ],
-    highlight: 'Shadow heeft 8 dagen. Wij hebben €890 nodig.',
+    highlight: 'De tumor wacht niet. Help Shadow vandaag — €890.',
     goalEur: 890,
     shareTitle: 'Help Shadow zijn tumor-operatie te betalen',
     shareUrl: 'https://belgianpawshelter.help/katten'
