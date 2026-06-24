@@ -131,12 +131,22 @@
   let donorsModalOpen = $state(false);
 
   // Adoption form
+  let adoptFormOpen = $state(false);
   let adoptName = $state('');
   let adoptCity = $state('');
   let adoptEmail = $state('');
   let adoptSubmitting = $state(false);
   let adoptError = $state('');
   let adoptThanksOpen = $state(false);
+
+  function openAdoptForm() {
+    adoptFormOpen = true;
+    // foca o primeiro input no proximo tick
+    setTimeout(() => {
+      const el = document.querySelector<HTMLInputElement>('.adopt-form input');
+      el?.focus();
+    }, 100);
+  }
 
   async function submitAdoption(e: Event) {
     e.preventDefault();
@@ -359,33 +369,40 @@
       <h2 class="section-title">Adopteer Shadow</h2>
       <p class="adopt-intro">Wil jij Shadow een veilige plek geven na zijn operatie? Laat je gegevens achter — wij nemen binnen 24 uur contact met je op.</p>
 
-      <form class="adopt-form" onsubmit={submitAdoption} novalidate>
-        <label class="adopt-field">
-          <span>Naam</span>
-          <input type="text" bind:value={adoptName} placeholder="Jouw volledige naam" autocomplete="name" required />
-        </label>
-        <label class="adopt-field">
-          <span>Stad</span>
-          <input type="text" bind:value={adoptCity} placeholder="Bijv. Antwerpen" autocomplete="address-level2" required />
-        </label>
-        <label class="adopt-field">
-          <span>E-mail</span>
-          <input type="email" bind:value={adoptEmail} placeholder="naam@email.be" autocomplete="email" required />
-        </label>
-
-        {#if adoptError}
-          <div class="adopt-error">{adoptError}</div>
-        {/if}
-
-        <button type="submit" class="adopt-submit" disabled={adoptSubmitting}>
-          {#if adoptSubmitting}
-            <span class="spinner spinner-dark"></span>
-            <span>Versturen…</span>
-          {:else}
-            Verstuur
-          {/if}
+      {#if !adoptFormOpen}
+        <button type="button" class="adopt-cta" onclick={openAdoptForm}>
+          <span class="adopt-cta-icon" aria-hidden="true">🐾</span>
+          <span>Ik wil Shadow adopteren</span>
         </button>
-      </form>
+      {:else}
+        <form class="adopt-form" onsubmit={submitAdoption} novalidate>
+          <label class="adopt-field">
+            <span>Naam</span>
+            <input type="text" bind:value={adoptName} placeholder="Jouw volledige naam" autocomplete="name" required />
+          </label>
+          <label class="adopt-field">
+            <span>Stad</span>
+            <input type="text" bind:value={adoptCity} placeholder="Bijv. Antwerpen" autocomplete="address-level2" required />
+          </label>
+          <label class="adopt-field">
+            <span>E-mail</span>
+            <input type="email" bind:value={adoptEmail} placeholder="naam@email.be" autocomplete="email" required />
+          </label>
+
+          {#if adoptError}
+            <div class="adopt-error">{adoptError}</div>
+          {/if}
+
+          <button type="submit" class="adopt-submit" disabled={adoptSubmitting}>
+            {#if adoptSubmitting}
+              <span class="spinner spinner-dark"></span>
+              <span>Versturen…</span>
+            {:else}
+              Verstuur
+            {/if}
+          </button>
+        </form>
+      {/if}
     </section>
 
     <!-- Testimonials -->
@@ -676,6 +693,28 @@
     color: #4b5563;
     line-height: 1.5;
   }
+  .adopt-cta {
+    margin-top: 20px;
+    width: 100%;
+    background: #0E4B2C;
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 18px 20px;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 4px 14px rgba(14, 75, 44, 0.25);
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  }
+  .adopt-cta:hover { background: #0A3A20; box-shadow: 0 6px 18px rgba(14, 75, 44, 0.32); }
+  .adopt-cta:active { transform: translateY(1px); }
+  .adopt-cta-icon { font-size: 1.25rem; line-height: 1; }
   .adopt-form {
     margin-top: 18px;
     display: flex;
