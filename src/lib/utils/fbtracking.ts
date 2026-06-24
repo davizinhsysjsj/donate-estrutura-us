@@ -64,9 +64,10 @@ export function captureAndPersistFbclid(): { fbclid: string | null; fbc: string 
   const utmContent = params.get('utm_content');
   const utmTerm = params.get('utm_term');
 
-  // Persiste UTMs reais no localStorage E cookie (30 dias) se vieram da URL.
-  // Cookie sobrevive a diferentes abas/sessoes do mesmo browser — evita "sem parametros"
-  // quando usuario clica no anuncio hoje e compra amanha sem re-clicar.
+  // Persiste UTMs reais no localStorage + cookie (30d) + sessionStorage se vieram da URL.
+  // Triple-write defensivo: localStorage cobre o caso normal, cookie sobrevive a
+  // troca de aba/dia, sessionStorage e o ultimo fallback pra in-app browsers
+  // (FBIOS, Instagram, TikTok) onde localStorage as vezes nao persiste.
   if (utmSource) {
     const utmData: UtmData = {
       source: utmSource,
@@ -76,32 +77,70 @@ export function captureAndPersistFbclid(): { fbclid: string | null; fbc: string 
       term: utmTerm || undefined
     };
     const serialized = JSON.stringify(utmData);
-    localStorage.setItem('utm_data', serialized);
+    try { localStorage.setItem('utm_data', serialized); } catch {}
+    try { sessionStorage.setItem('utm_data', serialized); } catch {}
     setCookie('_bp_utm', serialized, 30); // 30 dias — atualiza a cada novo clique de anuncio
   }
 
   if (urlFbclid) {
     const fbc = `fb.1.${Date.now()}.${urlFbclid}`;
     setCookie('_fbc', fbc);
-    localStorage.setItem('fbclid', urlFbclid);
-    localStorage.setItem('_fbc', fbc);
-    const utm = utmSource ? { source: utmSource, medium: utmMedium || 'cpc', campaign: utmCampaign || undefined } : getStoredUtm();
+    try { localStorage.setItem('fbclid', urlFbclid); } catch {}
+    try { localStorage.setItem('_fbc', fbc); } catch {}
+    try { sessionStorage.setItem('fbclid', urlFbclid); } catch {}
+    try { sessionStorage.setItem('_fbc', fbc); } catch {}
+    const utm = utmSource
+      ? {
+          source: utmSource,
+          medium: utmMedium || 'cpc',
+          campaign: utmCampaign || undefined,
+          content: utmContent || undefined,
+          term: utmTerm || undefined
+        }
+      : getStoredUtm();
     return { fbclid: urlFbclid, fbc, utm };
   }
 
-  // Recupera de storage existente
-  const stored = localStorage.getItem('fbclid') || getCookie('_fbc')?.split('.').pop() || null;
-  const storedFbc = getCookie('_fbc') || localStorage.getItem('_fbc');
+  // Recupera de storage existente — tenta cada camada em ordem de frescor
+  let stored: string | null = null;
+  try { stored = localStorage.getItem('fbclid'); } catch {}
+  if (!stored) { try { stored = sessionStorage.getItem('fbclid'); } catch {} }
+  if (!stored) stored = getCookie('_fbc')?.split('.').pop() || null;
+  let storedFbc: string | null = getCookie('_fbc');
+  if (!storedFbc) { try { storedFbc = localStorage.getItem('_fbc'); } catch {} }
+  if (!storedFbc) { try { storedFbc = sessionStorage.getItem('_fbc'); } catch {} }
   return { fbclid: stored, fbc: storedFbc, utm: getStoredUtm() };
 }
 
-/** Recupera UTMs persistidas no localStorage ou cookie _bp_utm (fallback). */
+/** Recupera UTMs persistidas: localStorage > sessionStorage > cookie _bp_utm > bp_utm_* (analytics). */
 export function getStoredUtm(): UtmData | null {
   if (typeof window === 'undefined') return null;
   try {
-    // Prefere localStorage (mais recente) — cai no cookie se localStorage vazio
-    const raw = localStorage.getItem('utm_data') || getCookie('_bp_utm');
-    return raw ? (JSON.parse(raw) as UtmData) : null;
+    // 1) localStorage (fonte principal)
+    let raw: string | null = null;
+    try { raw = localStorage.getItem('utm_data'); } catch {}
+    // 2) sessionStorage (fallback pra in-app browsers que bloqueiam localStorage)
+    if (!raw) { try { raw = sessionStorage.getItem('utm_data'); } catch {} }
+    // 3) cookie _bp_utm (sobrevive a abas/dias diferentes)
+    if (!raw) raw = getCookie('_bp_utm');
+    if (raw) return JSON.parse(raw) as UtmData;
+
+    // 4) ultimo recurso: reconstroi a partir dos sessionStorage `bp_utm_*`
+    //    que o analytics.ts grava em paralelo (cobre o caso onde o /katten
+    //    rodou analytics.ts mas o localStorage do fbtracking falhou).
+    try {
+      const src = sessionStorage.getItem('bp_utm_source');
+      if (src) {
+        return {
+          source: src,
+          medium: sessionStorage.getItem('bp_utm_medium') || 'cpc',
+          campaign: sessionStorage.getItem('bp_utm_campaign') || undefined,
+          content: sessionStorage.getItem('bp_utm_content') || undefined,
+          term: sessionStorage.getItem('bp_utm_term') || undefined
+        };
+      }
+    } catch {}
+    return null;
   } catch {
     return null;
   }

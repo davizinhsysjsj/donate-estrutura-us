@@ -2,7 +2,7 @@ import type { RequestHandler } from './$types';
 import { json, error } from '@sveltejs/kit';
 import crypto from 'node:crypto';
 import { env } from '$env/dynamic/private';
-import { ingest as ingestAnalytics, parseDevice, initStore as initAnalyticsStore } from '$lib/server/analytics';
+import { ingest as ingestAnalytics, parseDevice, initStore as initAnalyticsStore, getSessionBySid } from '$lib/server/analytics';
 import { scheduleEmailFlow, initEmailScheduler, cancelPendingRecoveryForEmail, cancelPendingAbandonedCheckoutForEmail } from '$lib/server/email-scheduler';
 import { setSidEmail, removePopupBySid } from '$lib/server/abandoned-popups';
 import { addRealDonor } from '$lib/server/donors-feed';
@@ -77,6 +77,43 @@ export const POST: RequestHandler = async ({ request }) => {
 	const ttclid = readNoteAttr(noteAttrs, 'ttclid');
 	const ttp = readNoteAttr(noteAttrs, 'ttp');
 
+	// UTMs do webhook (podem vir nulos quando in-app browser bloqueia localStorage
+	// e o cart link e construido sem attributes[utm_*]).
+	const rawUtmSource   = readNoteAttr(noteAttrs, 'utm_source');
+	const rawUtmMedium   = readNoteAttr(noteAttrs, 'utm_medium');
+	const rawUtmCampaign = readNoteAttr(noteAttrs, 'utm_campaign');
+	const rawUtmContent  = readNoteAttr(noteAttrs, 'utm_content');
+	const rawUtmTerm     = readNoteAttr(noteAttrs, 'utm_term');
+
+	// Enriquecimento server-side: se webhook nao trouxe UTMs MAS tem bp_sid,
+	// faz lookup na sessao Vitrack (in-memory, sync) e recupera os UTMs
+	// originais do clique. Cobre o caso de in-app browser que perdeu storage
+	// entre /katten -> /donate.
+	let resolvedUtmSource   = rawUtmSource;
+	let resolvedUtmMedium   = rawUtmMedium;
+	let resolvedUtmCampaign = rawUtmCampaign;
+	let resolvedUtmContent  = rawUtmContent;
+	let resolvedUtmTerm     = rawUtmTerm;
+	let utmRecoveredFromSid = false;
+	if (!rawUtmSource && bpSid) {
+		try {
+			const s: any = getSessionBySid(bpSid);
+			if (s?.utm_source) {
+				resolvedUtmSource   = s.utm_source;
+				resolvedUtmMedium   = s.utm_medium   || resolvedUtmMedium;
+				resolvedUtmCampaign = s.utm_campaign || resolvedUtmCampaign;
+				resolvedUtmContent  = s.utm_content  || resolvedUtmContent;
+				resolvedUtmTerm     = s.utm_term     || resolvedUtmTerm;
+				utmRecoveredFromSid = true;
+				console.log('[shopify-purchase] UTMs recovered from bp_sid lookup', {
+					orderId, bpSid, utm_source: resolvedUtmSource, utm_campaign: resolvedUtmCampaign
+				});
+			}
+		} catch (e) {
+			console.warn('[shopify-purchase] utm lookup failed', e);
+		}
+	}
+
 	// Analytics interno (Vitrack): grava purchase SEMPRE — mesmo sem bp_sid.
 	// Se nao tem bp_sid, gera sid sintetico baseado no orderId (sessao isolada
 	// so pra esse purchase). Garante que toda venda do webhook conta no Vitrack.
@@ -91,11 +128,11 @@ export const POST: RequestHandler = async ({ request }) => {
 			path: '/checkout/success',
 			ua,
 			device: parseDevice(ua),
-			utm_source: readNoteAttr(noteAttrs, 'utm_source'),
-			utm_medium: readNoteAttr(noteAttrs, 'utm_medium'),
-			utm_campaign: readNoteAttr(noteAttrs, 'utm_campaign'),
-			utm_content: readNoteAttr(noteAttrs, 'utm_content'),
-			utm_term: readNoteAttr(noteAttrs, 'utm_term'),
+			utm_source:   resolvedUtmSource,
+			utm_medium:   resolvedUtmMedium,
+			utm_campaign: resolvedUtmCampaign,
+			utm_content:  resolvedUtmContent,
+			utm_term:     resolvedUtmTerm,
 			data: {
 				amount: orderValue,
 				currency: order.currency || 'EUR',
@@ -268,8 +305,34 @@ export const POST: RequestHandler = async ({ request }) => {
 		body: JSON.stringify(payload)
 	});
 
-	// UTMify recebe o payload raw da ordem Shopify — fire-and-forget
+	// UTMify recebe o payload raw da ordem Shopify — fire-and-forget.
+	// Se recuperamos UTMs via bp_sid lookup, injetamos nos note_attributes do
+	// body antes de enviar — caso contrario o UTMify tambem veria "sem campanha".
 	const UTMIFY_WEBHOOK = 'https://api.utmify.com.br/webhooks/shopify?id=69f938dafc6573f89333f5bf';
+	let utmifyBody = rawBody;
+	if (utmRecoveredFromSid) {
+		try {
+			const enriched = JSON.parse(rawBody);
+			const attrs: Array<{ name: string; value: string }> = Array.isArray(enriched.note_attributes)
+				? [...enriched.note_attributes]
+				: [];
+			const upsert = (name: string, value: string | undefined) => {
+				if (!value) return;
+				const idx = attrs.findIndex((a) => a.name === name);
+				if (idx >= 0) attrs[idx] = { name, value };
+				else attrs.push({ name, value });
+			};
+			upsert('utm_source',   resolvedUtmSource);
+			upsert('utm_medium',   resolvedUtmMedium);
+			upsert('utm_campaign', resolvedUtmCampaign);
+			upsert('utm_content',  resolvedUtmContent);
+			upsert('utm_term',     resolvedUtmTerm);
+			enriched.note_attributes = attrs;
+			utmifyBody = JSON.stringify(enriched);
+		} catch (e) {
+			console.warn('[shopify-purchase] utmify body enrich failed (sending raw)', e);
+		}
+	}
 	const utmifyPromise = fetch(UTMIFY_WEBHOOK, {
 		method: 'POST',
 		headers: {
@@ -277,7 +340,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			'x-shopify-topic': 'orders/paid',
 			'x-shopify-shop-domain': 'inigualavelshop.myshopify.com'
 		},
-		body: rawBody
+		body: utmifyBody
 	});
 
 	// Aguarda os dois em paralelo

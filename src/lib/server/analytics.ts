@@ -918,3 +918,12 @@ export function getSessionDetail(sid: string) {
     .map((e) => ({ ts: e.ts, ev: e.ev, path: e.path, data: e.data ?? null }));
   return { session: s, events: sEvents };
 }
+
+/**
+ * Lookup leve da sessao (sem percorrer events). Usado pelo webhook
+ * shopify-purchase pra recuperar UTMs quando o in-app browser perdeu
+ * localStorage. O(1) — nao pesa mesmo com bases gigantes.
+ */
+export function getSessionBySid(sid: string) {
+  return sessions.get(sid) || null;
+}
