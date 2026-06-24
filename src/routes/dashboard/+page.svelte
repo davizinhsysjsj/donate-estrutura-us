@@ -4010,6 +4010,7 @@
     font-size: 0.875rem;
     color: #f3f5f8;
     font-weight: 600;
+    white-space: nowrap;
   }
   .sub-table td.td-creative { padding: 12px 14px; width: 96px; }
   .sub-table tr:hover td { background: rgba(255,255,255,0.018); }
@@ -5599,11 +5600,13 @@
     display: block; font-weight: 600; color: #f3f5f8;
     font-family: 'JetBrains Mono', monospace; font-size: 0.9375rem;
     line-height: 1.25;
+    white-space: nowrap;
   }
   .camp-val-sub {
     display: block; font-size: 0.6875rem; color: #5c6776;
     font-family: 'JetBrains Mono', monospace; margin-top: 4px;
     font-weight: 500;
+    white-space: nowrap;
   }
   .camp-val-green { color: #00d971; }
   .camp-val-red   { color: #ff5b5b; }
