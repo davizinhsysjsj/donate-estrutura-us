@@ -2947,8 +2947,8 @@
                 </tr>
               </thead>
               <tbody>
-                {#each [...fbCampaigns].sort((a, b) => b.spend - a.spend) as c, i (c.id || c.name)}
-                <tr class="camp-tr" class:camp-tr-alt={i % 2 !== 0} class:camp-tr-paused={c.status === 'PAUSED'}>
+                {#each [...fbCampaigns].sort((a, b) => b.spend - a.spend) as c (c.id || c.name)}
+                <tr class="camp-tr" class:camp-tr-paused={c.status === 'PAUSED'}>
                   <!-- TOGGLE ON/OFF -->
                   <td class="td-toggle">
                     <button
@@ -3846,77 +3846,87 @@
   .sub-tabs-bar {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px;
-    background: #11151c;
-    border: 1px solid #2a2e34;
+    gap: 4px;
+    padding: 5px;
+    background: #0b0f15;
+    border: 1px solid #1a1f28;
     border-radius: 10px;
-    margin-bottom: 14px;
+    margin-bottom: 16px;
   }
   .sub-tab {
     background: transparent;
     border: none;
-    color: #9ca3af;
-    padding: 9px 16px;
+    color: #8b94a4;
+    padding: 10px 18px;
     border-radius: 7px;
     cursor: pointer;
     font: inherit;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     font-weight: 600;
+    letter-spacing: 0.01em;
     display: inline-flex;
     align-items: center;
     gap: 8px;
     transition: background 0.15s, color 0.15s;
   }
-  .sub-tab:hover { color: #fff; background: rgba(255,255,255,0.04); }
+  .sub-tab:hover { color: #e6e9ef; background: rgba(255,255,255,0.04); }
   .sub-tab.active {
-    background: #02a95c;
+    background: #1a2230;
     color: #fff;
+    box-shadow: inset 0 -2px 0 #02a95c;
   }
   .sub-tab-badge {
-    background: rgba(255,255,255,0.18);
-    color: #fff;
+    background: rgba(255,255,255,0.1);
+    color: inherit;
     border-radius: 9999px;
     padding: 2px 8px;
     font-size: 0.6875rem;
     font-weight: 700;
     line-height: 1.2;
+    min-width: 22px;
+    text-align: center;
   }
-  .sub-tab:not(.active) .sub-tab-badge {
-    background: rgba(2,169,92,0.18);
-    color: #02a95c;
+  .sub-tab.active .sub-tab-badge {
+    background: #02a95c;
+    color: #fff;
   }
   .sub-tabs-spacer { flex: 1; }
   .sub-clear-btn,
   .sub-refresh-btn {
     background: transparent;
-    border: 1px solid #2a2e34;
-    color: #9ca3af;
-    padding: 7px 12px;
+    border: 1px solid #1f2630;
+    color: #8b94a4;
+    padding: 8px 14px;
     border-radius: 7px;
     cursor: pointer;
     font: inherit;
-    font-size: 0.8125rem;
-    transition: background 0.15s, color 0.15s;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
   }
-  .sub-refresh-btn { padding: 7px 12px; font-size: 1rem; line-height: 1; }
-  .sub-clear-btn:hover, .sub-refresh-btn:hover { background: rgba(255,255,255,0.06); color: #fff; }
+  .sub-refresh-btn { padding: 8px 12px; font-size: 0.95rem; line-height: 1; }
+  .sub-clear-btn:hover { border-color: #ff5b5b; color: #ff5b5b; }
+  .sub-refresh-btn:hover { border-color: #02a95c; color: #02a95c; }
 
   .sub-filter-note {
-    background: rgba(2,169,92,0.08);
-    border: 1px solid rgba(2,169,92,0.3);
-    color: #d1fae5;
+    background: rgba(2,169,92,0.06);
+    border: 1px solid rgba(2,169,92,0.22);
+    color: #6ee7b7;
     padding: 10px 14px;
     border-radius: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     font-size: 0.8125rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
+  .sub-filter-note::before { content: "●"; color: #02a95c; font-size: 0.625rem; }
   .sub-actions-bar {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 6px 4px 10px;
-    color: #9ca3af;
+    padding: 4px 6px 12px;
+    color: #8b94a4;
     font-size: 0.8125rem;
   }
   .sub-select-all {
@@ -3924,8 +3934,15 @@
     align-items: center;
     gap: 8px;
     cursor: pointer;
+    font-weight: 500;
   }
-  .sub-count { margin-left: auto; }
+  .sub-select-all input { accent-color: #02a95c; width: 16px; height: 16px; cursor: pointer; }
+  .sub-count {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+    color: #6b7787;
+    font-weight: 600;
+  }
 
   /* Checkbox em campanhas */
   .camp-name-row {
@@ -3942,50 +3959,88 @@
     flex-shrink: 0;
   }
 
-  .sub-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid #2a2e34; }
-  .sub-table { width: 100%; border-collapse: collapse; background: #0e1117; font-size: 0.875rem; }
-  .sub-table th.th-check, .sub-table td.td-check { width: 36px; text-align: center; padding-left: 14px; padding-right: 4px; }
-  .sub-table td.td-check input { accent-color: #02a95c; width: 16px; height: 16px; cursor: pointer; }
+  .sub-table-wrap {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid #1a1f28;
+    background: #0b0f15;
+  }
+  .sub-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  .sub-table th.th-check, .sub-table td.td-check {
+    width: 40px;
+    text-align: center;
+    padding-left: 18px;
+    padding-right: 4px;
+  }
+  .sub-table td.td-check input {
+    accent-color: #02a95c;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
   .sub-table th {
-    padding: 12px 10px;
+    padding: 16px 14px;
     text-align: left;
-    background: #11151c;
-    border-bottom: 1px solid #2a2e34;
-    color: #9ca3af;
+    background: #0b0f15;
+    border-bottom: 1px solid #1a1f28;
+    color: #7a8493;
     font-weight: 700;
-    font-size: 0.75rem;
-    letter-spacing: 0.04em;
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     white-space: nowrap;
   }
   .sub-table th.th-num { text-align: right; }
-  .sub-table th.th-creative { width: 100px; }
+  .sub-table th.th-creative { width: 96px; padding-left: 16px; }
   .sub-table td {
-    padding: 12px 10px;
-    border-bottom: 1px solid #1a1d22;
-    color: #e5e7eb;
+    padding: 16px 14px;
+    border-bottom: 1px solid #161b22;
+    color: #e6e9ef;
     vertical-align: middle;
   }
-  .sub-table td.td-num { text-align: right; font-variant-numeric: tabular-nums; }
-  .sub-table td.td-creative { padding: 8px 10px; width: 100px; }
-  .sub-table tr:hover td { background: rgba(255,255,255,0.02); }
-  .sub-table tr.sub-tr-paused { opacity: 0.6; }
-  .sub-name { display: block; color: #fff; font-weight: 500; }
+  .sub-table tbody tr:last-child td { border-bottom: none; }
+  .sub-table td.td-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875rem;
+    color: #f3f5f8;
+    font-weight: 600;
+  }
+  .sub-table td.td-creative { padding: 12px 14px; width: 96px; }
+  .sub-table tr:hover td { background: rgba(255,255,255,0.018); }
+  .sub-table tr.sub-tr-paused { opacity: 0.55; }
+  .sub-table tr.sub-tr-paused:hover { opacity: 0.85; }
+  .sub-name {
+    display: block;
+    color: #f3f5f8;
+    font-weight: 500;
+    font-size: 0.9375rem;
+    line-height: 1.3;
+    max-width: 360px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .sub-status {
     display: inline-block;
-    margin-top: 4px;
+    margin-top: 6px;
     padding: 2px 8px;
     border-radius: 4px;
     font-size: 0.6875rem;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
   }
-  .sub-status-active { background: rgba(2,169,92,0.15); color: #02a95c; }
-  .sub-status-paused { background: rgba(107,114,128,0.15); color: #9ca3af; }
-  .sub-status-unknown, .sub-status- { background: rgba(107,114,128,0.15); color: #6b7280; }
-  .roas-pos { color: #02a95c; }
-  .roas-neg { color: #ef4444; }
+  .sub-status-active { background: rgba(0,217,113,0.12); color: #00d971; }
+  .sub-status-paused { background: rgba(251,191,36,0.12); color: #fbbf24; }
+  .sub-status-unknown, .sub-status- { background: rgba(107,114,128,0.12); color: #6b7280; }
+  .roas-pos { color: #00d971; }
+  .roas-neg { color: #ff5b5b; }
 
   /* Creative thumb */
   .creative-thumb {
@@ -5389,30 +5444,32 @@
   .btn-camp-refresh:hover:not(:disabled) { background: #243040; border-color: #02a95c; color: #02a95c; }
   .btn-camp-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  /* ── Tabela UTMfy ── */
+  /* ── Tabela UTMfy (estilo Meta Ads Manager) ── */
   .camp-utmfy-wrap {
     overflow-x: auto; border-radius: 12px;
-    border: 1px solid #1a1f28; background: #0d1117; margin-bottom: 20px;
+    border: 1px solid #1a1f28; background: #0b0f15; margin-bottom: 20px;
   }
   .camp-utmfy {
-    width: 100%; border-collapse: collapse; font-size: 0.8125rem;
+    width: 100%; border-collapse: collapse; font-size: 0.875rem;
   }
-  .camp-utmfy thead tr {
-    border-bottom: 2px solid #1a1f28;
-  }
+  .camp-utmfy thead tr { border-bottom: 1px solid #1a1f28; }
   .camp-utmfy th {
-    padding: 12px 16px; text-align: left;
+    padding: 16px 18px; text-align: left;
     font-size: 0.6875rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.06em; color: #6b7787; white-space: nowrap;
+    letter-spacing: 0.08em; color: #7a8493; white-space: nowrap;
+    background: #0b0f15;
   }
   .camp-utmfy th.th-num { text-align: right; }
-  .camp-tr td { padding: 14px 16px; border-bottom: 1px solid #0f1419; }
+  .camp-tr td {
+    padding: 18px 18px;
+    border-bottom: 1px solid #161b22;
+    vertical-align: middle;
+  }
   .camp-tr:last-child td { border-bottom: none; }
-  .camp-tr:hover td { background: rgba(255,255,255,0.02); }
-  .camp-tr-alt td { background: rgba(255,255,255,0.01); }
+  .camp-tr:hover td { background: rgba(255,255,255,0.018); }
   .td-status { width: 48px; }
-  .td-name { max-width: 280px; }
-  .td-num { text-align: right; }
+  .td-name { max-width: 280px; min-width: 220px; }
+  .td-num { text-align: right; font-variant-numeric: tabular-nums; }
   .camp-status-dot {
     display: inline-block; width: 10px; height: 10px; border-radius: 50%;
     background: #2a3340;
@@ -5425,11 +5482,13 @@
     background: #fbbf24;
     box-shadow: 0 0 0 3px rgba(251,191,36,0.15);
   }
-  .camp-tr-paused { opacity: 0.65; }
+  .camp-tr-paused { opacity: 0.55; }
+  .camp-tr-paused:hover { opacity: 0.85; }
   .camp-objective {
     display: block;
     font-size: 0.6875rem; color: #6b7787;
-    text-transform: lowercase; margin-top: 2px;
+    text-transform: lowercase; margin-top: 4px;
+    letter-spacing: 0.02em;
   }
 
   /* Toggle de view */
@@ -5533,24 +5592,27 @@
   .camp-action-cancel:hover { color: #f87171; border-color: #f87171; }
   .camp-name-txt {
     display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    font-weight: 500; color: #c8cdd5; max-width: 260px;
+    font-weight: 500; color: #e6e9ef; max-width: 260px;
+    font-size: 0.9375rem;
   }
   .camp-val-main {
-    display: block; font-weight: 600; color: #e6e9ef;
-    font-family: 'JetBrains Mono', monospace; font-size: 0.875rem;
+    display: block; font-weight: 600; color: #f3f5f8;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.9375rem;
+    line-height: 1.25;
   }
   .camp-val-sub {
-    display: block; font-size: 0.675rem; color: #4a5568;
-    font-family: 'JetBrains Mono', monospace; margin-top: 1px;
+    display: block; font-size: 0.6875rem; color: #5c6776;
+    font-family: 'JetBrains Mono', monospace; margin-top: 4px;
+    font-weight: 500;
   }
-  .camp-val-green { color: #02a95c; }
+  .camp-val-green { color: #00d971; }
   .camp-val-red   { color: #ff5b5b; }
   .camp-tr-total td {
-    padding: 14px 16px; border-top: 2px solid #1a2332;
-    background: #0a0e14;
+    padding: 16px 18px; border-top: 1px solid #2a3340;
+    background: #060a10;
   }
-  .camp-tr-total .camp-val-main { color: #e6e9ef; font-size: 0.9375rem; }
-  .camp-utmfy tfoot .td-num { text-align: right; color: #6b7787; font-size: 0.8125rem; }
+  .camp-tr-total .camp-val-main { color: #f3f5f8; font-size: 1rem; }
+  .camp-utmfy tfoot .td-num { text-align: right; color: #6b7787; font-size: 0.875rem; }
 
   /* ── Barras de gasto ── */
   .camp-bars-wrap {
