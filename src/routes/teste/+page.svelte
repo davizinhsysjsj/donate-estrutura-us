@@ -1,9 +1,18 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { CAMPAIGN } from '$lib/data/campaign';
+  import {
+    captureAndPersistFbclid, getFbp, getEid, trackEvent, uuid, buildShopifyCartUrl,
+    type UtmData
+  } from '$lib/utils/fbtracking';
+  import { initTaboola, trackTaboola, getTblci } from '$lib/utils/taboola';
+  import { initTikTok, trackTikTok, getTtclid, getTtp } from '$lib/utils/tiktok';
+  import { getSid } from '$lib/utils/analytics';
+  import { SHOPIFY_SHOP_DOMAIN, pickVariantForAmount } from '$lib/data/variants';
 
-  // ── ATENÇÃO: pagina protótipo de UI. Sem tracking Meta/CAPI/UTMify ──
-  // Quando aprovado, copiar para /donate substituindo a UI atual.
+  // ── Pagina de TESTE de Express Checkout (Apple Pay / Google Pay / Bancontact / Shop Pay)
+  // Tracking completo: CAPI + 1st-party. Redirect real pro Shopify cart.
+  // Use em https://belgianpaws.help/teste pra Shopify nao ver dominio da LP principal.
 
   type Tier = 'bronze' | 'lifesaver' | 'hero' | 'patron';
   type AmountOption = {
@@ -58,6 +67,26 @@
   let showCustom    = $state(false);
   let customValue   = $state<number>(40);
 
+  // Tracking state (1st-party + multi-pixel)
+  let fbclid: string | null = $state(null);
+  let fbp: string | null = $state(null);
+  let utm: UtmData | null = $state(null);
+  let tblci: string | null = $state(null);
+  let ttclid: string | null = $state(null);
+  let ttp: string | null = $state(null);
+
+  onMount(() => {
+    const tracking = captureAndPersistFbclid();
+    fbclid = tracking.fbclid;
+    utm = tracking.utm;
+    setTimeout(() => { fbp = getFbp(); }, 300);
+    initTaboola();
+    tblci = getTblci();
+    initTikTok();
+    ttclid = getTtclid();
+    setTimeout(() => { ttp = getTtp(); }, 300);
+  });
+
   function selectAmount(amount: number) {
     selectedAmount = amount;
     popupOpen      = true;
@@ -71,9 +100,46 @@
   }
 
   function closePopup() { popupOpen = false; donating = false; }
-  function fakeDonate() {
+
+  function realDonate() {
+    if (!selectedAmount) return;
     donating = true;
-    setTimeout(() => { donating = false; alert('Demo — geen echte betaling. Valor: €' + selectedAmount); }, 1200);
+
+    const eventId = uuid();
+    const contentId = `test-${selectedAmount}`;
+
+    trackEvent('InitiateCheckout', {
+      value: selectedAmount,
+      currency: 'EUR',
+      content_ids: [contentId],
+      content_type: 'product',
+      num_items: 1
+    }, eventId);
+    trackTaboola('IC', selectedAmount);
+    trackTikTok('InitiateCheckout', selectedAmount, contentId);
+
+    const variantId = pickVariantForAmount(selectedAmount);
+    if (!variantId || variantId.startsWith('PLACEHOLDER')) {
+      donating = false;
+      alert('Variant nao cadastrado pra €' + selectedAmount + '. Escolha outro valor.');
+      return;
+    }
+
+    setTimeout(() => {
+      window.location.href = buildShopifyCartUrl({
+        shopDomain: SHOPIFY_SHOP_DOMAIN,
+        variantId,
+        fbclid,
+        fbp,
+        eventId,
+        utm,
+        sid: getSid(),
+        tblci,
+        ttclid,
+        ttp,
+        eid: getEid()
+      });
+    }, 400);
   }
 
   function goBack() { window.location.href = '/'; }
@@ -229,7 +295,7 @@
           {/if}
         </div>
 
-        <button class="dn-btn-bancontact" onclick={fakeDonate} disabled={donating}>
+        <button class="dn-btn-bancontact" onclick={realDonate} disabled={donating}>
           {#if donating}
             <div class="dn-spinner"></div>
             <span>Doorverwijzen…</span>
