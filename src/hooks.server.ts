@@ -38,6 +38,43 @@ function isProtected(pathname: string): boolean {
 }
 // ──────────────────────────────────────────────────────────────────────────
 
+// ── First-party tracking cookies ──────────────────────────────────────────
+// _fbp: id do navegador no formato Meta. Hoje so eh setado se o Pixel JS rodar
+// (adblock/Brave/iOS bloqueia → CAPI fica sem fbp → match quality despenca).
+// Setar aqui no servidor garante que sempre exista, dura mais (90d) e nao
+// depende do cliente. O Pixel JS, quando rodar, le esse mesmo cookie e usa.
+//
+// bp_eid: external_id estavel 1st-party (2 anos). Usado como `external_id` no
+// CAPI quando email nao esta disponivel — melhora atribuicao cross-device.
+function ensureFirstPartyCookies(event: Parameters<Handle>[0]['event']) {
+  const path = event.url.pathname;
+  // So aplica em rotas de pagina (nao em APIs/assets) — evita re-Set-Cookie spam
+  if (path.startsWith('/api/') || path.startsWith('/_app/') || path.includes('.')) return;
+
+  if (!event.cookies.get('_fbp')) {
+    const rand = Math.floor(1_000_000_000 + Math.random() * 9_000_000_000);
+    const fbp = `fb.1.${Date.now()}.${rand}`;
+    event.cookies.set('_fbp', fbp, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 90,
+      sameSite: 'lax',
+      httpOnly: false,
+      secure: true
+    });
+  }
+  if (!event.cookies.get('bp_eid')) {
+    const eid = (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now().toString(36));
+    event.cookies.set('bp_eid', eid, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 730,
+      sameSite: 'lax',
+      httpOnly: false,
+      secure: true
+    });
+  }
+}
+// ──────────────────────────────────────────────────────────────────────────
+
 export const handle: Handle = async ({ event, resolve }) => {
   const host = (event.request.headers.get('host') ?? event.url.hostname).toLowerCase();
   const path = event.url.pathname;
@@ -46,6 +83,8 @@ export const handle: Handle = async ({ event, resolve }) => {
   if (API_ONLY_HOSTS.has(host) && !path.startsWith('/api/') && path !== '/bedankt') {
     return new Response('Not Found', { status: 404 });
   }
+
+  ensureFirstPartyCookies(event);
 
   // ── Bloqueio Brasil ──
   // Nunca interfere em: APIs, dashboard, página de bloqueio, assets

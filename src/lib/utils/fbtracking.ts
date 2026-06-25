@@ -146,9 +146,14 @@ export function getStoredUtm(): UtmData | null {
   }
 }
 
-/** Le _fbp (Meta browser pixel id) — setado automaticamente pelo Pixel JS. */
+/** Le _fbp (Meta browser pixel id) — setado pelo servidor (1st-party) ou Pixel JS. */
 export function getFbp(): string | null {
   return getCookie('_fbp');
+}
+
+/** Le bp_eid (external_id estavel 1st-party, setado pelo hook server). */
+export function getEid(): string | null {
+  return getCookie('bp_eid');
 }
 
 /** Dispara evento via fbq global, se disponivel. Com eventID pra dedup com server-side. */
@@ -181,6 +186,7 @@ export function buildShopifyCartUrl(opts: {
   tblci?: string | null; // Taboola click-id (para S2S server-side)
   ttclid?: string | null; // TikTok click-id (para Events API V2 server-side)
   ttp?: string | null;    // TikTok browser id (cookie _ttp)
+  eid?: string | null;    // external_id 1st-party (cookie bp_eid)
 }): string {
   const params = new URLSearchParams();
 
@@ -211,6 +217,7 @@ export function buildShopifyCartUrl(opts: {
   if (opts.tblci)  params.set('attributes[tblci]',        opts.tblci);
   if (opts.ttclid) params.set('attributes[ttclid]',       opts.ttclid);
   if (opts.ttp)    params.set('attributes[ttp]',          opts.ttp);
+  if (opts.eid)    params.set('attributes[bp_eid]',       opts.eid);
 
   return `https://${opts.shopDomain}/cart/${opts.variantId}:1?${params.toString()}`;
 }

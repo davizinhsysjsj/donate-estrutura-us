@@ -11,7 +11,7 @@
   import ProgressCard from '$lib/components/ProgressCard.svelte';
   import StickyBottomBar from '$lib/components/StickyBottomBar.svelte';
   import {
-    captureAndPersistFbclid, getFbp, trackEvent, uuid, buildShopifyCartUrl,
+    captureAndPersistFbclid, getFbp, getEid, trackEvent, uuid, buildShopifyCartUrl,
     type UtmData
   } from '$lib/utils/fbtracking';
   import { initTaboola, trackTaboola, getTblci } from '$lib/utils/taboola';
@@ -243,7 +243,8 @@
           sid: getSid(),
           tblci,
           ttclid,
-          ttp
+          ttp,
+          eid: getEid()
         });
       }
     }, 800);

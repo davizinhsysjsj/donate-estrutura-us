@@ -71,6 +71,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	const fbclid = readNoteAttr(noteAttrs, 'fbclid');
 	const fbp = readNoteAttr(noteAttrs, 'fbp');
+	const bpEid = readNoteAttr(noteAttrs, 'bp_eid');
 	const eventIdAttr = readNoteAttr(noteAttrs, 'event_id');
 	const bpSid = readNoteAttr(noteAttrs, 'bp_sid');
 	const tblci = readNoteAttr(noteAttrs, 'tblci');
@@ -175,7 +176,20 @@ export const POST: RequestHandler = async ({ request }) => {
 		client_user_agent: order.client_details?.user_agent || undefined,
 		fbc,
 		fbp,
-		external_id: email ? [sha256Lower(email)] : undefined
+		// external_id: prioriza hash do email (mais alto match) + bp_eid 1st-party
+		// como segundo identificador. Meta CAPI aceita array de external_ids hash.
+		external_id: (() => {
+			const ids: string[] = [];
+			if (email) {
+				const h = sha256Lower(email);
+				if (h) ids.push(h);
+			}
+			if (bpEid) {
+				const h = sha256Lower(bpEid);
+				if (h) ids.push(h);
+			}
+			return ids.length ? ids : undefined;
+		})()
 	};
 
 	Object.keys(userData).forEach((k) => userData[k] === undefined && delete userData[k]);
