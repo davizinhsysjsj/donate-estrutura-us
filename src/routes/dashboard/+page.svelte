@@ -1157,6 +1157,96 @@
   let campEditBudgetId = $state<string | null>(null);
   let campEditBudgetValue = $state('');
   let campDuplicateConfirmId = $state<string | null>(null);
+
+  // ── Filtros + ordenacao da tabela de campanhas ──
+  type CampStatusFilter = 'all' | 'active' | 'paused';
+  type CampRoasFilter = 'all' | 'winners' | 'losers'; // winners >=2, losers <1
+  type CampSortKey = 'spend' | 'roas' | 'purchases' | 'revenue' | 'ctr' | 'cpc' | 'name' | 'impressions';
+  let campStatusFilter = $state<CampStatusFilter>('all');
+  let campRoasFilter   = $state<CampRoasFilter>('all');
+  let campSearchQuery  = $state('');
+  let campOnlyWithSales = $state(false);
+  let campSortKey  = $state<CampSortKey>('spend');
+  let campSortDesc = $state(true);
+
+  // Carrega preferencias salvas
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('vitrack_camp_filters');
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (p.campStatusFilter) campStatusFilter = p.campStatusFilter;
+        if (p.campRoasFilter)   campRoasFilter   = p.campRoasFilter;
+        if (typeof p.campOnlyWithSales === 'boolean') campOnlyWithSales = p.campOnlyWithSales;
+        if (p.campSortKey)      campSortKey      = p.campSortKey;
+        if (typeof p.campSortDesc === 'boolean') campSortDesc = p.campSortDesc;
+      }
+    } catch {}
+  }
+  function persistCampFilters() {
+    try {
+      localStorage.setItem('vitrack_camp_filters', JSON.stringify({
+        campStatusFilter, campRoasFilter, campOnlyWithSales, campSortKey, campSortDesc
+      }));
+    } catch {}
+  }
+  function setCampSort(key: CampSortKey) {
+    if (campSortKey === key) campSortDesc = !campSortDesc;
+    else { campSortKey = key; campSortDesc = true; }
+    persistCampFilters();
+  }
+  function clearCampFilters() {
+    campStatusFilter = 'all';
+    campRoasFilter = 'all';
+    campSearchQuery = '';
+    campOnlyWithSales = false;
+    persistCampFilters();
+  }
+  function roasOf(c: any): number {
+    const sp = c?.spend || 0;
+    const rv = c?.purchaseValue || 0;
+    return sp > 0 ? rv / sp : 0;
+  }
+  function roasClass(c: any): string {
+    if (!c?.spend) return '';
+    const r = roasOf(c);
+    if (r >= 2)  return 'roas-good';
+    if (r >= 1)  return 'roas-mid';
+    return 'roas-bad';
+  }
+  const filteredCampaigns = $derived.by(() => {
+    const q = campSearchQuery.trim().toLowerCase();
+    const arr = fbCampaigns.filter((c) => {
+      if (campStatusFilter === 'active' && c.status !== 'ACTIVE') return false;
+      if (campStatusFilter === 'paused' && c.status !== 'PAUSED') return false;
+      if (campOnlyWithSales && !(c.purchases > 0)) return false;
+      if (campRoasFilter === 'winners' && !(roasOf(c) >= 2)) return false;
+      if (campRoasFilter === 'losers'  && !(c.spend > 0 && roasOf(c) < 1)) return false;
+      if (q && !((c.name || '').toLowerCase().includes(q))) return false;
+      return true;
+    });
+    arr.sort((a, b) => {
+      let av: any, bv: any;
+      switch (campSortKey) {
+        case 'name':        av = (a.name || '').toLowerCase(); bv = (b.name || '').toLowerCase(); break;
+        case 'roas':        av = roasOf(a); bv = roasOf(b); break;
+        case 'purchases':   av = a.purchases || 0; bv = b.purchases || 0; break;
+        case 'revenue':     av = a.purchaseValue || 0; bv = b.purchaseValue || 0; break;
+        case 'ctr':         av = a.ctr || 0; bv = b.ctr || 0; break;
+        case 'cpc':         av = a.cpc || 0; bv = b.cpc || 0; break;
+        case 'impressions': av = a.impressions || 0; bv = b.impressions || 0; break;
+        default:            av = a.spend || 0; bv = b.spend || 0;
+      }
+      if (av < bv) return campSortDesc ? 1 : -1;
+      if (av > bv) return campSortDesc ? -1 : 1;
+      return 0;
+    });
+    return arr;
+  });
+  function sortIcon(k: CampSortKey): string {
+    if (campSortKey !== k) return '';
+    return campSortDesc ? ' ↓' : ' ↑';
+  }
   let campErrorMsg = $state('');
   let campSuccessMsg = $state('');
 
@@ -2983,11 +3073,71 @@
         {:else if fbCampaigns.length === 0}
           <div class="empty"><span class="empty-emoji">◎</span><p>Sem campanhas no período. Tente outro intervalo.</p></div>
         {:else}
-          <!-- Toggle de densidade -->
-          <div class="camp-view-toggle">
-            <span class="camp-view-label">Visualização:</span>
+          <!-- KPI cards: visao rapida do que importa -->
+          {@const kpiActive    = fbCampaigns.filter((c) => c.status === 'ACTIVE').length}
+          {@const kpiPaused    = fbCampaigns.filter((c) => c.status === 'PAUSED').length}
+          {@const kpiWithSales = fbCampaigns.filter((c) => (c.purchases || 0) > 0).length}
+          {@const kpiTotalSp   = fbCampaigns.reduce((s, c) => s + (c.spend || 0), 0)}
+          {@const kpiTotalRv   = fbCampaigns.reduce((s, c) => s + (c.purchaseValue || 0), 0)}
+          {@const kpiTotalPu   = fbCampaigns.reduce((s, c) => s + (c.purchases || 0), 0)}
+          {@const kpiRoas      = kpiTotalSp > 0 ? kpiTotalRv / kpiTotalSp : 0}
+          <div class="camp-kpis">
+            <div class="camp-kpi">
+              <div class="camp-kpi-label">Campanhas</div>
+              <div class="camp-kpi-val">{fbCampaigns.length}</div>
+              <div class="camp-kpi-sub"><span class="kpi-dot kpi-dot-on"></span>{kpiActive} ativas · <span class="kpi-dot kpi-dot-off"></span>{kpiPaused} pausadas</div>
+            </div>
+            <div class="camp-kpi">
+              <div class="camp-kpi-label">Gasto total</div>
+              <div class="camp-kpi-val">{fmtSpendDisplay(kpiTotalSp)}</div>
+              <div class="camp-kpi-sub">no período</div>
+            </div>
+            <div class="camp-kpi">
+              <div class="camp-kpi-label">Receita</div>
+              <div class="camp-kpi-val">{fmtSpendDisplay(kpiTotalRv)}</div>
+              <div class="camp-kpi-sub">{kpiTotalPu} venda{kpiTotalPu === 1 ? '' : 's'}</div>
+            </div>
+            <div class="camp-kpi camp-kpi-roas {kpiRoas >= 2 ? 'roas-good' : kpiRoas >= 1 ? 'roas-mid' : 'roas-bad'}">
+              <div class="camp-kpi-label">ROAS médio</div>
+              <div class="camp-kpi-val">{kpiRoas.toFixed(2)}x</div>
+              <div class="camp-kpi-sub">{kpiWithSales} com venda</div>
+            </div>
+          </div>
+
+          <!-- Filtros + densidade -->
+          <div class="camp-filters-bar">
+            <div class="camp-filter-group">
+              <button class="camp-filter-pill" class:active={campStatusFilter === 'all'}    onclick={() => { campStatusFilter = 'all';    persistCampFilters(); }}>Todas <span class="pill-count">{fbCampaigns.length}</span></button>
+              <button class="camp-filter-pill camp-filter-active" class:active={campStatusFilter === 'active'} onclick={() => { campStatusFilter = 'active'; persistCampFilters(); }}>● Ativas <span class="pill-count">{kpiActive}</span></button>
+              <button class="camp-filter-pill" class:active={campStatusFilter === 'paused'} onclick={() => { campStatusFilter = 'paused'; persistCampFilters(); }}>○ Pausadas <span class="pill-count">{kpiPaused}</span></button>
+            </div>
+            <div class="camp-filter-group">
+              <button class="camp-filter-pill" class:active={campRoasFilter === 'all'}     onclick={() => { campRoasFilter = 'all';     persistCampFilters(); }}>ROAS: tudo</button>
+              <button class="camp-filter-pill camp-filter-good" class:active={campRoasFilter === 'winners'} onclick={() => { campRoasFilter = 'winners'; persistCampFilters(); }}>≥ 2x</button>
+              <button class="camp-filter-pill camp-filter-bad"  class:active={campRoasFilter === 'losers'}  onclick={() => { campRoasFilter = 'losers';   persistCampFilters(); }}>&lt; 1x</button>
+            </div>
+            <label class="camp-filter-check">
+              <input type="checkbox" bind:checked={campOnlyWithSales} onchange={persistCampFilters} />
+              Só com venda
+            </label>
+            <div class="camp-filter-search">
+              <input
+                type="search"
+                placeholder="Buscar por nome…"
+                bind:value={campSearchQuery}
+                class="camp-search-input"
+              />
+              {#if campSearchQuery}
+                <button class="camp-search-clear" onclick={() => (campSearchQuery = '')} title="Limpar">✕</button>
+              {/if}
+            </div>
+            {#if campStatusFilter !== 'all' || campRoasFilter !== 'all' || campSearchQuery || campOnlyWithSales}
+              <button class="camp-clear-all" onclick={clearCampFilters} title="Limpar filtros">Limpar filtros</button>
+            {/if}
+            <span class="camp-filter-spacer"></span>
+            <span class="camp-view-label">Colunas:</span>
             <button class="camp-view-pill" class:active={campView === 'essential'} onclick={() => (campView = 'essential')}>Essencial</button>
-            <button class="camp-view-pill" class:active={campView === 'funnel'} onclick={() => (campView = 'funnel')}>Funil completo</button>
+            <button class="camp-view-pill" class:active={campView === 'funnel'} onclick={() => (campView = 'funnel')}>Funil</button>
             <button class="camp-view-pill" class:active={campView === 'full'} onclick={() => (campView = 'full')}>Tudo</button>
           </div>
 
@@ -2995,30 +3145,31 @@
           {#if campErrorMsg}<div class="camp-flash error">⚠ {campErrorMsg} <button onclick={() => (campErrorMsg = '')}>✕</button></div>{/if}
 
           <!-- Tabela estilo UTMfy -->
-          {@const campTotalSpend  = fbCampaigns.reduce((s, c) => s + c.spend, 0)}
-          {@const campTotalImpr   = fbCampaigns.reduce((s, c) => s + c.impressions, 0)}
-          {@const campTotalClicks = fbCampaigns.reduce((s, c) => s + c.clicks, 0)}
-          {@const campTotalPurch  = fbCampaigns.reduce((s, c) => s + (c.purchases || 0), 0)}
-          {@const campTotalRev    = fbCampaigns.reduce((s, c) => s + (c.purchaseValue || 0), 0)}
-          {@const campTotalLPV    = fbCampaigns.reduce((s, c) => s + (c.landingPageViews || 0), 0)}
-          {@const campTotalIC     = fbCampaigns.reduce((s, c) => s + (c.initiateCheckout || 0), 0)}
-          {@const campTotalATC    = fbCampaigns.reduce((s, c) => s + (c.addToCart || 0), 0)}
+          {@const campRows        = filteredCampaigns}
+          {@const campTotalSpend  = campRows.reduce((s, c) => s + c.spend, 0)}
+          {@const campTotalImpr   = campRows.reduce((s, c) => s + c.impressions, 0)}
+          {@const campTotalClicks = campRows.reduce((s, c) => s + c.clicks, 0)}
+          {@const campTotalPurch  = campRows.reduce((s, c) => s + (c.purchases || 0), 0)}
+          {@const campTotalRev    = campRows.reduce((s, c) => s + (c.purchaseValue || 0), 0)}
+          {@const campTotalLPV    = campRows.reduce((s, c) => s + (c.landingPageViews || 0), 0)}
+          {@const campTotalIC     = campRows.reduce((s, c) => s + (c.initiateCheckout || 0), 0)}
+          {@const campTotalATC    = campRows.reduce((s, c) => s + (c.addToCart || 0), 0)}
           <div class="camp-utmfy-wrap">
             <table class="camp-utmfy camp-utmfy-{campView}" use:resizableTable={{ storageKey: 'colw-camp-utmfy' }}>
               <thead>
                 <tr>
                   <th class="th-toggle">Status</th>
-                  <th class="th-name">Campanha</th>
+                  <th class="th-name th-sortable" onclick={() => setCampSort('name')}>Campanha{sortIcon('name')}</th>
                   <th class="th-num">Orçamento</th>
-                  <th class="th-num">Gastos</th>
-                  <th class="th-num">Impressões</th>
+                  <th class="th-num th-sortable" onclick={() => setCampSort('spend')}>Gastos{sortIcon('spend')}</th>
+                  <th class="th-num th-sortable" onclick={() => setCampSort('impressions')}>Impressões{sortIcon('impressions')}</th>
                   {#if campView === 'full'}
                     <th class="th-num">Alcance</th>
                     <th class="th-num">Freq.</th>
                   {/if}
-                  <th class="th-num">CTR</th>
+                  <th class="th-num th-sortable" onclick={() => setCampSort('ctr')}>CTR{sortIcon('ctr')}</th>
                   <th class="th-num">Cliques no link</th>
-                  <th class="th-num">CPC</th>
+                  <th class="th-num th-sortable" onclick={() => setCampSort('cpc')}>CPC{sortIcon('cpc')}</th>
                   {#if campView !== 'essential'}
                     <th class="th-num">Visualizações da página</th>
                     <th class="th-num">Finalizações de compra</th>
@@ -3026,8 +3177,8 @@
                   {#if campView === 'full'}
                     <th class="th-num">Add to cart</th>
                   {/if}
-                  <th class="th-num">ROAS</th>
-                  <th class="th-num">Resultados</th>
+                  <th class="th-num th-sortable" onclick={() => setCampSort('roas')}>ROAS{sortIcon('roas')}</th>
+                  <th class="th-num th-sortable" onclick={() => setCampSort('purchases')}>Resultados{sortIcon('purchases')}</th>
                   <th class="th-num">Custo por resultado</th>
                   {#if campView === 'full'}
                     <th class="th-num">CPM</th>
@@ -3035,8 +3186,8 @@
                 </tr>
               </thead>
               <tbody>
-                {#each [...fbCampaigns].sort((a, b) => b.spend - a.spend) as c (c.id || c.name)}
-                <tr class="camp-tr" class:camp-tr-paused={c.status === 'PAUSED'}>
+                {#each campRows as c (c.id || c.name)}
+                <tr class="camp-tr {roasClass(c)}" class:camp-tr-paused={c.status === 'PAUSED'}>
                   <!-- TOGGLE ON/OFF -->
                   <td class="td-toggle">
                     <button
@@ -3179,13 +3330,20 @@
                 </tr>
               </tfoot>
             </table>
+            {#if campRows.length === 0}
+              <div class="camp-empty-filter">
+                <span class="empty-emoji">✕</span>
+                <p>Nenhuma campanha bate com esses filtros.</p>
+                <button class="camp-clear-all" onclick={clearCampFilters}>Limpar filtros</button>
+              </div>
+            {/if}
           </div>
 
           <!-- Barras de gasto -->
           <div class="camp-bars-wrap">
             <h3 class="camp-bars-title">Distribuição de gastos</h3>
-            {#each [...fbCampaigns].sort((a, b) => b.spend - a.spend) as c}
-              {@const maxSpend = Math.max(...fbCampaigns.map(x => x.spend))}
+            {#each [...campRows].sort((a, b) => b.spend - a.spend) as c}
+              {@const maxSpend = Math.max(...campRows.map(x => x.spend), 1)}
               <div class="camp-bar-row">
                 <div class="camp-bar-label" title={c.name}>{c.name.length > 35 ? c.name.slice(0, 35) + '…' : c.name}</div>
                 <div class="camp-bar-track">
@@ -5623,6 +5781,110 @@
     letter-spacing: 0.02em;
   }
 
+  /* KPI cards */
+  .camp-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .camp-kpi {
+    background: #0d1117;
+    border: 1px solid #1f2630;
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .camp-kpi-label { font-size: 0.6875rem; color: #8b94a4; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .camp-kpi-val   { font-size: 1.375rem; font-weight: 800; color: #e6e9ef; line-height: 1.1; }
+  .camp-kpi-sub   { font-size: 0.6875rem; color: #6b7180; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .camp-kpi.roas-good { border-color: rgba(2,169,92,0.45); }
+  .camp-kpi.roas-good .camp-kpi-val { color: #19c97a; }
+  .camp-kpi.roas-mid  { border-color: rgba(245,158,11,0.45); }
+  .camp-kpi.roas-mid  .camp-kpi-val { color: #f59e0b; }
+  .camp-kpi.roas-bad  { border-color: rgba(239,68,68,0.45); }
+  .camp-kpi.roas-bad  .camp-kpi-val { color: #f87171; }
+  .kpi-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
+  .kpi-dot-on  { background: #19c97a; }
+  .kpi-dot-off { background: #4b5160; }
+
+  /* Filtros bar */
+  .camp-filters-bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    margin-bottom: 14px; padding: 10px 12px;
+    background: #0a0d12; border: 1px solid #1a1f29; border-radius: 10px;
+  }
+  .camp-filter-group {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px; background: #0d1117; border-radius: 8px;
+  }
+  .camp-filter-pill {
+    background: transparent; border: none;
+    color: #8b94a4; font-family: inherit; font-size: 0.75rem; font-weight: 600;
+    padding: 5px 10px; border-radius: 6px;
+    cursor: pointer; transition: all 0.15s;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .camp-filter-pill:hover { color: #e6e9ef; background: rgba(255,255,255,0.03); }
+  .camp-filter-pill.active { color: #e6e9ef; background: #1f2630; }
+  .camp-filter-pill.camp-filter-active.active { background: rgba(2,169,92,0.15); color: #19c97a; }
+  .camp-filter-pill.camp-filter-good.active   { background: rgba(2,169,92,0.15); color: #19c97a; }
+  .camp-filter-pill.camp-filter-bad.active    { background: rgba(239,68,68,0.15); color: #f87171; }
+  .pill-count {
+    font-size: 0.6875rem; opacity: 0.7; background: rgba(255,255,255,0.06);
+    padding: 1px 6px; border-radius: 99px; font-weight: 700;
+  }
+  .camp-filter-check {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.75rem; color: #c5cad3; cursor: pointer; user-select: none;
+  }
+  .camp-filter-check input { accent-color: #02a95c; cursor: pointer; }
+  .camp-filter-search {
+    position: relative; display: inline-flex; align-items: center;
+  }
+  .camp-search-input {
+    background: #0d1117; border: 1px solid #1f2630;
+    color: #e6e9ef; font-family: inherit; font-size: 0.75rem;
+    padding: 6px 28px 6px 10px; border-radius: 6px;
+    min-width: 180px; outline: none;
+  }
+  .camp-search-input:focus { border-color: #02a95c; }
+  .camp-search-input::placeholder { color: #6b7180; }
+  .camp-search-clear {
+    position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: #6b7180; cursor: pointer;
+    font-size: 0.875rem; padding: 2px 6px;
+  }
+  .camp-search-clear:hover { color: #e6e9ef; }
+  .camp-clear-all {
+    background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3);
+    color: #f87171; font-family: inherit; font-size: 0.6875rem; font-weight: 600;
+    padding: 5px 10px; border-radius: 6px; cursor: pointer; transition: all 0.15s;
+  }
+  .camp-clear-all:hover { background: rgba(239,68,68,0.16); }
+  .camp-filter-spacer { flex: 1; min-width: 8px; }
+
+  /* Empty state quando filtros nao retornam nada */
+  .camp-empty-filter {
+    text-align: center; padding: 32px 20px; color: #8b94a4;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .camp-empty-filter .empty-emoji { font-size: 1.5rem; opacity: 0.5; }
+  .camp-empty-filter p { margin: 0; font-size: 0.875rem; }
+
+  /* Highlight de linhas por ROAS */
+  .camp-tr.roas-good td:first-child { border-left: 3px solid #19c97a; }
+  .camp-tr.roas-mid  td:first-child { border-left: 3px solid #f59e0b; }
+  .camp-tr.roas-bad  td:first-child { border-left: 3px solid #f87171; }
+  .camp-tr.camp-tr-paused td:first-child { border-left-color: #3a4250 !important; }
+
+  /* Headers clicáveis pra ordenar */
+  .th-sortable {
+    cursor: pointer; user-select: none;
+    transition: color 0.12s, background 0.12s;
+  }
+  .th-sortable:hover { background: rgba(2,169,92,0.06); color: #19c97a; }
+
   /* Toggle de view */
   .camp-view-toggle {
     display: flex; align-items: center; gap: 6px;
@@ -5781,6 +6043,17 @@
   }
 
   @media (max-width: 768px) {
+    /* ── KPI cards em 2 colunas no mobile ── */
+    .camp-kpis { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .camp-kpi { padding: 10px 12px; }
+    .camp-kpi-val { font-size: 1.125rem; }
+    /* ── Filtros bar empilha ── */
+    .camp-filters-bar { padding: 10px; gap: 6px; }
+    .camp-filter-group { width: 100%; justify-content: flex-start; }
+    .camp-filter-pill { flex: 1; justify-content: center; font-size: 0.6875rem; padding: 5px 8px; }
+    .camp-search-input { min-width: 0; width: 100%; }
+    .camp-filter-search { width: 100%; }
+    .camp-filter-spacer { display: none; }
     /* ── Toggle view (Essencial/Funil/Tudo) compacto ── */
     .camp-view-toggle { flex-wrap: wrap; }
     .camp-view-pill { padding: 6px 10px; font-size: 0.6875rem; }
