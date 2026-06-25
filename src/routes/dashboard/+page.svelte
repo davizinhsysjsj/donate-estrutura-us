@@ -1226,6 +1226,11 @@
       return true;
     });
     arr.sort((a, b) => {
+      // Ativas sempre no topo, independente da ordenação escolhida
+      const aActive = a.status === 'ACTIVE' ? 0 : 1;
+      const bActive = b.status === 'ACTIVE' ? 0 : 1;
+      if (aActive !== bActive) return aActive - bActive;
+
       let av: any, bv: any;
       switch (campSortKey) {
         case 'name':        av = (a.name || '').toLowerCase(); bv = (b.name || '').toLowerCase(); break;

@@ -196,6 +196,7 @@ export const GET: RequestHandler = async ({ url }) => {
       const map = new Map<string, any>();
       for (const c of list) {
         map.set(c.id, {
+          name: c.name,
           status: c.status,
           effectiveStatus: c.effective_status,
           dailyBudget: c.daily_budget ? parseInt(c.daily_budget) / 100 : null,
@@ -288,6 +289,25 @@ export const GET: RequestHandler = async ({ url }) => {
             map.set(key, shapeCampaign(c, metaMap.get(key)));
           }
         }
+        // Adiciona campanhas que existem no metaMap mas não tiveram insights
+        // (publicadas, sem gasto ainda) — pra aparecerem na lista
+        for (const [id, meta] of metaMap.entries()) {
+          if (map.has(id)) continue;
+          map.set(id, {
+            id,
+            name: meta.name || '',
+            status: meta.status,
+            effectiveStatus: meta.effectiveStatus,
+            dailyBudget: meta.dailyBudget,
+            lifetimeBudget: meta.lifetimeBudget,
+            objective: meta.objective,
+            spend: 0, impressions: 0, clicks: 0, totalClicks: 0,
+            reach: 0, frequency: 0, ctr: 0, cpm: 0, cpc: 0,
+            landingPageViews: 0, viewContent: 0, addToCart: 0, initiateCheckout: 0,
+            purchases: 0, purchaseValue: 0, leads: 0,
+            roas: 0, cpa: 0, costPerLPV: 0,
+          });
+        }
         campaigns = [...map.values()];
       }
 
@@ -311,6 +331,25 @@ export const GET: RequestHandler = async ({ url }) => {
         loadCampaignMeta(),
       ]);
       campaigns = list.map((c: any) => shapeCampaign(c, metaMap.get(c.campaign_id)));
+      // Adiciona campanhas publicadas sem insights (sem gasto ainda)
+      const seen = new Set(campaigns.map((c) => c.id));
+      for (const [id, meta] of metaMap.entries()) {
+        if (seen.has(id)) continue;
+        campaigns.push({
+          id,
+          name: meta.name || '',
+          status: meta.status,
+          effectiveStatus: meta.effectiveStatus,
+          dailyBudget: meta.dailyBudget,
+          lifetimeBudget: meta.lifetimeBudget,
+          objective: meta.objective,
+          spend: 0, impressions: 0, clicks: 0, totalClicks: 0,
+          reach: 0, frequency: 0, ctr: 0, cpm: 0, cpc: 0,
+          landingPageViews: 0, viewContent: 0, addToCart: 0, initiateCheckout: 0,
+          purchases: 0, purchaseValue: 0, leads: 0,
+          roas: 0, cpa: 0, costPerLPV: 0,
+        });
+      }
     }
 
     if (!d) {
