@@ -125,13 +125,15 @@ const STR = {
       `48 uur geleden gaf u <strong style="color:${BRAND_DARK};">${amount}</strong> om Shadow's leven te kopen. Het werkte: hij ademt nog, hij eet via een sonde, hij wacht. Maar de operatie kost €890 — en we zijn er nog niet.`,
     upsellV2P2: 'Zijn tumor groeit elke dag 0,3mm. Over <strong>6 dagen</strong> is hij inoperabel. Daarna komt de spuit. Dat wordt niet ons besluit — dat is uw besluit, vanavond. Uw eerdere donatie verdwijnt in het niets als u nu stopt.',
     upsellV2MissionsTitle: 'Wat redt u vanavond?',
-    upsellV2Mission50Title: '€25 — Houd hem 1 dag in leven',
-    upsellV2Mission50Desc: 'Pijnstilling + sondevoeding + monitoring voor 24u. Hij ademt morgen. Eén dag dichter bij de operatietafel.',
-    upsellV2Mission80Badge: 'BESLISSEND',
-    upsellV2Mission80Title: '€50 — Garandeer zijn weekend',
-    upsellV2Mission80Desc: '3 dagen IC-zorg met intraveneus infuus. Brengt hem zonder achteruitgang tot maandagochtend — operatiedag.',
-    upsellV2Mission100Title: '€100 — Sluit het tekort, hij wordt geopereerd',
-    upsellV2Mission100Desc: 'Met €100 nu sluit u de laatste kloof. Shadow ligt maandagochtend op de operatietafel. Uw naam staat naast zijn redding.',
+    upsellV2Mission25Title: '€25 — Houd hem 1 dag in leven',
+    upsellV2Mission25Desc: 'Pijnstilling + sondevoeding + monitoring voor 24u. Hij ademt morgen. Eén dag dichter bij de operatietafel.',
+    upsellV2Mission50Title: '€50 — Garandeer zijn weekend',
+    upsellV2Mission50Desc: '3 dagen IC-zorg met intraveneus infuus. Brengt hem zonder achteruitgang tot maandagochtend.',
+    upsellV2Mission100Badge: 'BESLISSEND',
+    upsellV2Mission100Title: '€100 — Hij wordt geopereerd',
+    upsellV2Mission100Desc: 'Met €100 sluit u het tekort. Shadow ligt maandagochtend op de operatietafel. Uw naam staat naast zijn redding.',
+    upsellV2Mission300Title: '€300 — Betaal zijn operatie volledig',
+    upsellV2Mission300Desc: 'U dekt in één gebaar de hele rekening. Geen wachten, geen tekort. Shadow leeft door u. Letterlijk.',
     upsellV2Footnote: 'Elke knop brengt u direct naar betalen. Bancontact, 30 seconden, klaar. Geen formulieren.',
     upsellV2Signoff: 'Hij rekent op u. Letterlijk.',
     upsellV2HeroAlt: 'Shadow op de bank van het opvangcentrum, wachtend op zijn operatie',
@@ -210,13 +212,15 @@ const STR = {
       `48 horas atrás você deu <strong style="color:${BRAND_DARK};">${amount}</strong> pra comprar a vida do Shadow. Funcionou: ele ainda respira, come pela sonda, espera. Mas a cirurgia custa €890 — e ainda não chegamos lá.`,
     upsellV2P2: 'O tumor dele cresce 0,3mm por dia. Em <strong>6 dias</strong> vira inoperável. Depois disso vem a injeção. Não é decisão nossa — é sua, hoje à noite. Sua doação anterior vira pó se você parar agora.',
     upsellV2MissionsTitle: 'O que você salva hoje?',
-    upsellV2Mission50Title: '€25 — Mantenha ele vivo por 1 dia',
-    upsellV2Mission50Desc: 'Analgésico + alimentação por sonda + monitoramento por 24h. Ele respira amanhã. 1 dia mais perto da cirurgia.',
-    upsellV2Mission80Badge: 'DECISIVA',
-    upsellV2Mission80Title: '€50 — Garanta o fim de semana dele',
-    upsellV2Mission80Desc: '3 dias de UTI com soro intravenoso. Leva ele sem piora até segunda — dia da cirurgia.',
-    upsellV2Mission100Title: '€100 — Feche o gap, ele opera',
-    upsellV2Mission100Desc: 'Com €100 agora você fecha a última lacuna. Shadow sobe na mesa segunda de manhã. Seu nome ao lado da salvação dele.',
+    upsellV2Mission25Title: '€25 — Mantenha ele vivo por 1 dia',
+    upsellV2Mission25Desc: 'Analgésico + sonda + monitoramento por 24h. Ele respira amanhã. 1 dia mais perto da cirurgia.',
+    upsellV2Mission50Title: '€50 — Garanta o fim de semana dele',
+    upsellV2Mission50Desc: '3 dias de UTI com soro intravenoso. Leva ele sem piora até segunda de manhã.',
+    upsellV2Mission100Badge: 'DECISIVA',
+    upsellV2Mission100Title: '€100 — Ele opera',
+    upsellV2Mission100Desc: 'Com €100 você fecha o gap. Shadow sobe na mesa segunda de manhã. Seu nome ao lado da salvação dele.',
+    upsellV2Mission300Title: '€300 — Pague a operação inteira',
+    upsellV2Mission300Desc: 'Você cobre toda a conta de uma vez. Sem espera, sem gap. Shadow vive por você. Literalmente.',
     upsellV2Footnote: 'Cada botão te leva direto pro pagamento. Bancontact, 30 segundos, pronto. Sem formulário.',
     upsellV2Signoff: 'Ele conta com você. Literalmente.',
     upsellV2HeroAlt: 'Shadow no banco do abrigo esperando pela cirurgia',
@@ -463,13 +467,16 @@ export function upsellHtml(vars: UpsellVars): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Template 3 — Upsell V2 (3 botoes ancorados em 50/80/100, checkout direto)
+// Template 3 — Upsell V2 (4 botoes ancorados em 25/50/100/300, checkout direto)
 // ─────────────────────────────────────────────────────────────────────
 
-const SHOPIFY_CART_DOMAIN = 'inigualavelshop.myshopify.com';
-const VARIANT_50 = '49473431208074';   // Hero
-const VARIANT_80 = '49473431240842';   // Champion
-const VARIANT_100 = '49473431273610';  // Protector
+import { SHOPIFY_SHOP_DOMAIN, VARIANT_BY_AMOUNT } from '../data/variants';
+
+const SHOPIFY_CART_DOMAIN = SHOPIFY_SHOP_DOMAIN;
+const VARIANT_25 = VARIANT_BY_AMOUNT[25];   // Gold
+const VARIANT_50 = VARIANT_BY_AMOUNT[50];   // Hero
+const VARIANT_100 = VARIANT_BY_AMOUNT[100]; // Protector
+const VARIANT_300 = VARIANT_BY_AMOUNT[300]; // Patron
 
 function checkoutUrl(variantId: string, missionTag: string, recipientEmail?: string): string {
   const params: Record<string, string> = {
@@ -503,9 +510,10 @@ export function upsellV2Html(vars: UpsellV2Vars): string {
   const name = vars.firstName ? escape(vars.firstName) : t.fallbackName;
   const previous = formatAmount(vars.previousAmount, vars.currency, locale);
 
+  const url25 = checkoutUrl(VARIANT_25, 'mission-25', vars.recipientEmail);
   const url50 = checkoutUrl(VARIANT_50, 'mission-50', vars.recipientEmail);
-  const url80 = checkoutUrl(VARIANT_80, 'mission-80', vars.recipientEmail);
   const url100 = checkoutUrl(VARIANT_100, 'mission-100', vars.recipientEmail);
+  const url300 = checkoutUrl(VARIANT_300, 'mission-300', vars.recipientEmail);
 
   const missionButton = (opts: {
     href: string;
@@ -568,22 +576,28 @@ export function upsellV2Html(vars: UpsellV2Vars): string {
             ${t.upsellV2MissionsTitle}
           </div>
           ${missionButton({
+            href: url25,
+            title: t.upsellV2Mission25Title,
+            desc: t.upsellV2Mission25Desc,
+            highlight: false
+          })}
+          ${missionButton({
             href: url50,
             title: t.upsellV2Mission50Title,
             desc: t.upsellV2Mission50Desc,
             highlight: false
           })}
           ${missionButton({
-            href: url80,
-            badge: t.upsellV2Mission80Badge,
-            title: t.upsellV2Mission80Title,
-            desc: t.upsellV2Mission80Desc,
+            href: url100,
+            badge: t.upsellV2Mission100Badge,
+            title: t.upsellV2Mission100Title,
+            desc: t.upsellV2Mission100Desc,
             highlight: true
           })}
           ${missionButton({
-            href: url100,
-            title: t.upsellV2Mission100Title,
-            desc: t.upsellV2Mission100Desc,
+            href: url300,
+            title: t.upsellV2Mission300Title,
+            desc: t.upsellV2Mission300Desc,
             highlight: false
           })}
         </td>
