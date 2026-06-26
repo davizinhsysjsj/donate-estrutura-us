@@ -2118,11 +2118,6 @@
                     <span class="kpi-chip-label">/donate</span>
                     <strong>{snap.kpis.onlineDonate ?? 0}</strong>
                   </span>
-                  <span class="kpi-chip" title="Visitantes em /vsl">
-                    <span class="kpi-chip-dot" style="background:#a78bfa"></span>
-                    <span class="kpi-chip-label">/vsl</span>
-                    <strong>{snap.kpis.onlineVsl ?? 0}</strong>
-                  </span>
                 </div>
               {:else if cardId === 'sessions'}
                 <div class="kpi-label">Sessões</div>
