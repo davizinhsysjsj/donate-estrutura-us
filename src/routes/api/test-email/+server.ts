@@ -76,11 +76,50 @@ export const POST: RequestHandler = async ({ request }) => {
       | 'pt' | 'nl' | undefined;
     const recoverUrl = (body.recoverUrl as string | undefined) ??
       'https://inigualavelshop.myshopify.com/recover/sample';
-    const itemTitle = (body.itemTitle as string | undefined) ?? 'Hero — Voer 1 hond een hele week';
+    const itemTitle = (body.itemTitle as string | undefined) ?? 'Hero — €50 voor Shadow';
     const r = await sendNow({
       toEmail: to,
       templateName: 'abandoned-checkout',
       templateData: { firstName, amount, currency, recoverUrl, itemTitle, locale }
+    });
+    return json(r, { status: r.ok ? 200 : 502 });
+  }
+
+  if (action === 'send-upsell-v2') {
+    const amount = Number(body.amount ?? 25);
+    const firstName = body.firstName as string | undefined;
+    const currency = (body.currency as string | undefined) ?? 'EUR';
+    const locale = (body.locale === 'pt' ? 'pt' : body.locale === 'nl' ? 'nl' : undefined) as
+      | 'pt' | 'nl' | undefined;
+    const r = await sendNow({
+      toEmail: to,
+      templateName: 'upsell-v2',
+      templateData: { firstName, previousAmount: amount, currency, locale, recipientEmail: to }
+    });
+    return json(r, { status: r.ok ? 200 : 502 });
+  }
+
+  if (action === 'send-recovery') {
+    const firstName = body.firstName as string | undefined;
+    const locale = (body.locale === 'pt' ? 'pt' : body.locale === 'nl' ? 'nl' : undefined) as
+      | 'pt' | 'nl' | undefined;
+    const r = await sendNow({
+      toEmail: to,
+      templateName: 'recovery',
+      templateData: { firstName, locale }
+    });
+    return json(r, { status: r.ok ? 200 : 502 });
+  }
+
+  if (action === 'send-abandoned-popup') {
+    const amount = Number(body.amount ?? 50);
+    const firstName = body.firstName as string | undefined;
+    const locale = (body.locale === 'pt' ? 'pt' : body.locale === 'nl' ? 'nl' : undefined) as
+      | 'pt' | 'nl' | undefined;
+    const r = await sendNow({
+      toEmail: to,
+      templateName: 'abandoned-popup',
+      templateData: { firstName, amount, locale, recipientEmail: to }
     });
     return json(r, { status: r.ok ? 200 : 502 });
   }
