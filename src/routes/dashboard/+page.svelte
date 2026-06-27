@@ -442,7 +442,9 @@
   let fbBusinesses = $state<{ id: string; name: string }[]>([]);
   // MULTI-conta: array de account IDs selecionados. [] = padrão (FB_ADS_ACCOUNT_ID server-side).
   // Quando >1, os custos sao agregados client-side via Promise.all + soma + recalc de taxas.
-  let fbAccountIds = $state<string[]>([]);
+  // Inicializa com selectedAccountIds vindo do SSR (persistido em /data) — sem
+  // delay e identico em qualquer dispositivo. localStorage segue como cache local.
+  let fbAccountIds = $state<string[]>(Array.isArray(data.selectedAccountIds) ? data.selectedAccountIds : []);
   let fbAccountsLoading = $state(false);
   let fbAccountsError = $state('');
   let accountMenuOpen = $state(false);
@@ -662,6 +664,9 @@
         fbAccounts = d.accounts || [];
         fbBusinesses = d.businesses || [];
         // Restauracao do localStorage (com migracao do key antigo singular)
+        // SO RODA se SSR nao trouxe selectedAccountIds (primeiro login num novo
+        // dispositivo OU usuario pre-feature). Se localStorage tiver algo,
+        // propaga pro servidor pra ficar igual em outros dispositivos.
         if (!fbAccountIds.length && fbAccounts.length) {
           try {
             const savedArr = localStorage.getItem('vitrack_fb_account_ids');
@@ -670,7 +675,10 @@
               const valid = Array.isArray(parsed)
                 ? parsed.filter((id) => fbAccounts.some((a: FbAccount) => a.id === id))
                 : [];
-              if (valid.length) fbAccountIds = valid;
+              if (valid.length) {
+                fbAccountIds = valid;
+                saveFbAccountIds(); // migra pro server
+              }
             } else {
               // Migracao do key antigo (string single)
               const savedSingle = localStorage.getItem('vitrack_fb_account_id');
@@ -678,6 +686,7 @@
                 fbAccountIds = [savedSingle];
                 localStorage.setItem('vitrack_fb_account_ids', JSON.stringify(fbAccountIds));
                 localStorage.removeItem('vitrack_fb_account_id');
+                saveFbAccountIds();
               }
             }
             // Sem nada salvo? Usa default do server
@@ -705,6 +714,13 @@
       localStorage.setItem('vitrack_fb_account_ids', JSON.stringify(fbAccountIds));
       localStorage.removeItem('vitrack_fb_account_id');
     } catch {}
+    // Persiste no servidor pra ficar disponivel em qualquer dispositivo
+    fetch('/api/dashboard/prefs', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ selectedAccountIds: fbAccountIds }),
+      keepalive: true
+    }).catch(() => {});
   }
 
   function toggleFbAccount(id: string) {

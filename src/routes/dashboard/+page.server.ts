@@ -1,13 +1,17 @@
 import type { PageServerLoad, Actions } from './$types';
 import { redirect, fail } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
+import { getPrefs } from '$lib/server/dashboard-prefs';
 
 const COOKIE = 'dash_token';
 
 export const load: PageServerLoad = async ({ cookies, url }) => {
   const expected = env.DASHBOARD_TOKEN;
   // Sem token configurado = libera (dev / preview)
-  if (!expected) return { authed: true, token: '' };
+  if (!expected) {
+    const prefs = getPrefs();
+    return { authed: true, token: '', selectedAccountIds: prefs.selectedAccountIds };
+  }
 
   // Aceita ?token=XXX e seta cookie pra navegacoes futuras
   const fromUrl = url.searchParams.get('token');
@@ -23,8 +27,11 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
   }
 
   const cookie = cookies.get(COOKIE);
-  if (cookie === expected) return { authed: true, token: cookie };
-  return { authed: false, token: '' };
+  if (cookie === expected) {
+    const prefs = getPrefs();
+    return { authed: true, token: cookie, selectedAccountIds: prefs.selectedAccountIds };
+  }
+  return { authed: false, token: '', selectedAccountIds: [] };
 };
 
 export const actions: Actions = {
