@@ -90,55 +90,55 @@ export const CAMPAIGN = {
     { value: '88%', label: 'gaat rechtstreeks naar voeding & verzorging' }
   ],
 
-  // Testimonials / words of support
+  // Testimonials / words of support — pessoas que ja doaram pra Shadow
   testimonials: [
     {
       avatar: '/avatars/women-44.webp',
       name: 'Emma B.',
       city: 'Antwerpen',
-      quote: "Ik weet precies waar mijn donatie naartoe ging — en een week later kreeg ik een foto. Daarom ben ik teruggekomen."
+      quote: "Ik liet mijn dochtertje (8) de foto van Shadow zien en ze begon meteen te huilen. Samen hebben we €30 gedoneerd uit haar spaarpot. Elke avond vraagt ze of het al beter gaat met hem."
     },
     {
       avatar: '/avatars/men-32.webp',
       name: 'Niels V.',
       city: 'Gent',
-      quote: 'Geen schuldgevoel-mails, gewoon een eenvoudig betaalbewijs en een update. Betrouwbaar van begin tot eind.'
+      quote: 'Ik heb thuis een zwarte kat — Mowgli, 11 jaar oud. Toen ik Shadow zag liggen met dat infuus, moest ik direct aan hem denken. €50 gedoneerd. Ik kon gewoon niet wegklikken.'
     },
     {
       avatar: '/avatars/women-68.webp',
       name: 'Camille L.',
       city: 'Brussel',
-      quote: 'Ik heb de coördinatoren van het opvangcentrum persoonlijk ontmoet. Dit geld bereikt echt de dieren.'
+      quote: 'Mijn kat Felix is 2 jaar geleden overleden aan kanker. Toen ik over Shadow las, kreeg ik tranen in mijn ogen. €100 gedoneerd voor zijn operatie — in Felix’s naam.'
     },
     {
       avatar: '/avatars/women-12.webp',
       name: 'Lieve D.',
       city: 'Brugge',
-      quote: "Ik heb gedoneerd aan grotere goede doelen en wist nooit waar het naartoe ging. Hier kreeg ik een echte update met de namen van de honden."
+      quote: "Ik heb Shadow’s verhaal op Facebook gezien en kon de hele avond niet stoppen met denken aan dat arme beestje. €25 gedoneerd voor zijn eten — elke euro telt nu."
     },
     {
       avatar: '/avatars/men-76.webp',
       name: 'Mathieu R.',
       city: 'Luik',
-      quote: 'Ik doneerde voor mijn overleden hond Bruno. Het voelde als de juiste manier om hem te eren. Bedankt voor wat jullie doen.'
+      quote: 'Vorig jaar werd ik zelf geopereerd. Ik weet wat het is om alleen te zijn en bang. Shadow verdient die tweede kans ook. €40 gedoneerd vanmorgen.'
     },
     {
       avatar: '/avatars/men-52.webp',
       name: 'Sven J.',
       city: 'Leuven',
-      quote: "Kleine donatie, maar ze gaven me het gevoel dat het ertoe deed. Volgende maand zet ik een maandelijkse bijdrage op."
+      quote: "Als student kan ik niet veel missen, maar €15 voor Shadow lukte wel. Alstublieft hou ons op de hoogte van zijn operatie — ik denk de hele week aan hem."
     },
     {
       avatar: '/avatars/women-29.webp',
       name: 'Charlotte M.',
       city: 'Namen',
-      quote: 'Makkelijk, snel, geen druk. De foto van Loki die sliep na de maaltijd maakte mijn week goed.'
+      quote: 'De röntgenfoto met die tumor heeft me echt geraakt. Mijn man en ik hebben samen €60 gedoneerd. Laat het ons alstublieft weten als hij door de operatie heen is.'
     },
     {
       avatar: '/avatars/men-15.webp',
       name: 'Bram V.',
       city: 'Mechelen',
-      quote: "Transparant en menselijk. Belgische opvangcentra hebben veel meer steun zoals dit nodig."
+      quote: "Ik werk als koerier en zie veel zwerfdieren onderweg. Maar Shadow’s ogen op die foto raakten me anders. €35 gedoneerd. Sterkte aan iedereen die voor hem zorgt."
     }
   ],
 
