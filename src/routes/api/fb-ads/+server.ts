@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import fs from 'node:fs';
 import path from 'node:path';
 import { getFbToken, getDefaultAccountId, maybeRefreshInBackground } from '$lib/server/fb-token';
+import { getPurchasesByCampaign } from '$lib/server/analytics';
 
 // Cache em memória por chave
 const _cache: Record<string, { data: any; ts: number }> = {};
@@ -161,6 +162,55 @@ function sumInsights(a: ReturnType<typeof parseInsight>, b: ReturnType<typeof pa
   };
 }
 
+// ── Live attribution (vendas server-side ainda nao processadas pelo Meta) ──
+// O Meta tem delay tipico de 30min-6h pra refletir CAPI no Ads Manager. Como
+// nosso webhook Shopify ja grava UTMs+purchase no Vitrack na hora, podemos
+// sobrepor o numero de purchases/purchaseValue quando o nosso > Meta.
+const MS_DAY = 24 * 60 * 60 * 1000;
+function windowMsForPreset(preset: string): number {
+  switch (preset) {
+    case 'today':       return MS_DAY;
+    case 'yesterday':   return 2 * MS_DAY;
+    case '__hoje_ontem__': return 2 * MS_DAY;
+    case 'last_7d':     return 7 * MS_DAY;
+    case 'last_14d':    return 14 * MS_DAY;
+    case 'last_30d':    return 30 * MS_DAY;
+    case 'this_month':  return 31 * MS_DAY;
+    default:            return MS_DAY;
+  }
+}
+// Match: nosso utm_campaign (lowercase) precisa estar contido no name da
+// campanha Meta (ou vice-versa). Cobre nomes como "PT-shadow-v2-broad" vs
+// utm_campaign=shadow. Quando 2+ matchings, soma todos no maior gasto.
+function applyLiveAttribution(data: any, preset: string): any {
+  if (!data || !Array.isArray(data.campaigns) || data.campaigns.length === 0) return data;
+  const live = getPurchasesByCampaign(windowMsForPreset(preset));
+  if (live.size === 0) return data;
+  // Clone shallow das campanhas pra nao mutar o cache em memoria/disco
+  const campaigns = data.campaigns.map((c: any) => ({ ...c }));
+  for (const [utm, agg] of live.entries()) {
+    if (!utm) continue;
+    // Match por substring bidirecional: utm contido em campaign.name ou vice-versa
+    const matches = campaigns.filter((c: any) => {
+      const n = String(c.name || '').toLowerCase();
+      return n && (n.includes(utm) || utm.includes(n));
+    });
+    if (matches.length === 0) continue;
+    // >1 matching: ataca a de maior spend (mais provavel ativa)
+    matches.sort((a: any, b: any) => (b.spend || 0) - (a.spend || 0));
+    const target = matches[0];
+    // So sobrepoe se nosso > Meta (live attribution adianta, nao retrocede)
+    if (agg.purchases > (target.purchases || 0)) {
+      target.purchases = agg.purchases;
+      target.purchaseValue = agg.purchaseValue;
+      target.roas = target.spend > 0 ? target.purchaseValue / target.spend : 0;
+      target.cpa = target.purchases > 0 ? target.spend / target.purchases : 0;
+      target.liveAttribution = true;
+    }
+  }
+  return { ...data, campaigns };
+}
+
 export const GET: RequestHandler = async ({ url }) => {
   const win          = url.searchParams.get('window') || '24h';
   const withCampaigns = url.searchParams.get('campaigns') === '1';
@@ -173,7 +223,7 @@ export const GET: RequestHandler = async ({ url }) => {
   const skipCache = url.searchParams.get('nocache') === '1';
   if (!skipCache) {
     const cached = _cache[cacheKey];
-    if (cached && Date.now() - cached.ts < CACHE_TTL) return json(cached.data);
+    if (cached && Date.now() - cached.ts < CACHE_TTL) return json(applyLiveAttribution(cached.data, preset));
   }
 
   try {
@@ -315,7 +365,7 @@ export const GET: RequestHandler = async ({ url }) => {
       const result = { ...combined, currency: accCurrency, accountId: FB_ACCT, datePreset: 'hoje_ontem', campaigns };
       _cache[cacheKey] = { data: result, ts: Date.now() };
       saveDiskCache();
-      return json(result);
+      return json(applyLiveAttribution(result, preset));
     }
 
     // ── Caso normal ───────────────────────────────────────────────────
@@ -360,7 +410,7 @@ export const GET: RequestHandler = async ({ url }) => {
       };
       _cache[cacheKey] = { data: empty, ts: Date.now() };
       saveDiskCache();
-      return json(empty);
+      return json(applyLiveAttribution(empty, preset));
     }
 
     const result = {
@@ -373,7 +423,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
     _cache[cacheKey] = { data: result, ts: Date.now() };
     saveDiskCache();
-    return json(result);
+    return json(applyLiveAttribution(result, preset));
 
   } catch (e: any) {
     console.error('[fb-ads]', e);
@@ -381,7 +431,7 @@ export const GET: RequestHandler = async ({ url }) => {
     const stale = _cache[cacheKey];
     if (stale) {
       console.warn('[fb-ads] retornando dado stale do cache (FB API falhou)');
-      return json({ ...stale.data, _stale: true, _error: e.message });
+      return json(applyLiveAttribution({ ...stale.data, _stale: true, _error: e.message }, preset));
     }
     return json({ error: e.message, spend: 0 }, { status: 500 });
   }

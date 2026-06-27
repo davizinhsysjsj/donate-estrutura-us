@@ -927,3 +927,35 @@ export function getSessionDetail(sid: string) {
 export function getSessionBySid(sid: string) {
   return sessions.get(sid) || null;
 }
+
+/**
+ * Agrega purchases internos por utm_campaign dentro do window solicitado.
+ * Usado pelo endpoint /api/fb-ads pra fazer "live attribution" — sobrepoe
+ * o numero de purchases quando o servidor ja registrou venda mas o Meta
+ * ainda nao processou (Meta tem delay tipico de 30min-6h pra refletir CAPI).
+ *
+ * Retorna Map<utm_campaign_lowercase, {purchases, purchaseValue, currency}>.
+ * Se windowMs nao informado, agrega todos os eventos retidos.
+ */
+export function getPurchasesByCampaign(
+  windowMs?: number
+): Map<string, { purchases: number; purchaseValue: number; currency: string }> {
+  const cutoff = windowMs ? Date.now() - windowMs : 0;
+  const out = new Map<string, { purchases: number; purchaseValue: number; currency: string }>();
+  for (const e of events) {
+    if (e.ev !== 'purchase') continue;
+    if (e.ts < cutoff) continue;
+    const raw = (e.utm_campaign || '').trim().toLowerCase();
+    if (!raw) continue;
+    const amount = Number((e.data as any)?.amount) || 0;
+    const currency = String((e.data as any)?.currency || 'EUR').toUpperCase();
+    const prev = out.get(raw);
+    if (prev) {
+      prev.purchases += 1;
+      prev.purchaseValue += amount;
+    } else {
+      out.set(raw, { purchases: 1, purchaseValue: amount, currency });
+    }
+  }
+  return out;
+}
