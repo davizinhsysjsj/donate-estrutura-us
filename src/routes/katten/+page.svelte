@@ -364,6 +364,26 @@
       </section>
     {/if}
 
+    <!-- Testimonials -->
+    <section class="section" id="testimonials-section" data-section="testimonials">
+      <div class="section-eyebrow">Steunbetuigingen</div>
+      <h2 class="section-title">Van supporters in heel België.</h2>
+      <div class="testimonial-row">
+        {#each CAMPAIGN.testimonials as t}
+          <div class="testimonial-card">
+            <div class="testimonial-head">
+              <img src={t.avatar} alt={t.name} class="testimonial-avatar-img" loading="lazy" width="80" height="80" decoding="async" />
+              <div>
+                <div class="testimonial-name">{t.name}</div>
+                <div class="testimonial-meta">{t.city}</div>
+              </div>
+            </div>
+            <p class="testimonial-quote">"{t.quote}"</p>
+          </div>
+        {/each}
+      </div>
+    </section>
+
     <!-- Adoption form -->
     <section class="section adopt-section" id="adopt-shadow">
       <div class="section-eyebrow">Geef hem een thuis</div>
@@ -404,26 +424,6 @@
           </button>
         </form>
       {/if}
-    </section>
-
-    <!-- Testimonials -->
-    <section class="section" id="testimonials-section" data-section="testimonials">
-      <div class="section-eyebrow">Steunbetuigingen</div>
-      <h2 class="section-title">Van supporters in heel België.</h2>
-      <div class="testimonial-row">
-        {#each CAMPAIGN.testimonials as t}
-          <div class="testimonial-card">
-            <div class="testimonial-head">
-              <img src={t.avatar} alt={t.name} class="testimonial-avatar-img" loading="lazy" width="80" height="80" decoding="async" />
-              <div>
-                <div class="testimonial-name">{t.name}</div>
-                <div class="testimonial-meta">{t.city}</div>
-              </div>
-            </div>
-            <p class="testimonial-quote">"{t.quote}"</p>
-          </div>
-        {/each}
-      </div>
     </section>
 
     <!-- Donors -->
