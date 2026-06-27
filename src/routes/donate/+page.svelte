@@ -227,9 +227,12 @@
     <div class="dn-urgent-body">
       <div class="dn-urgent-title">URGENT · Update Shadow (laatste 24u)</div>
       <div class="dn-urgent-text">
-        Shadow's toestand is sterk <strong>verslechterd</strong>. De dierenarts
-        dringt aan op de operatie <strong>binnen 48 uur</strong>. Elke donatie
-        telt nú.
+        Shadow's gezondheid is sterk <strong>verslechterd</strong>. Als hij
+        <strong>binnen 48 uur</strong> de operatie ondergaat, wordt hij weer
+        gezond, hoeft hij niet geëuthanaseerd te worden en kan hij eindelijk
+        door een familie geadopteerd worden. De totale kosten van operatie
+        + voeding en medicatie bedragen <strong>€890</strong> — er ontbreekt
+        nog maar <strong>€250</strong>!
       </div>
     </div>
   </div>
