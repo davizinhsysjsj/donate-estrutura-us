@@ -514,17 +514,18 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    padding: 14px 12px 12px;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 16px 12px;
     border: 1px solid #ebebeb;
     border-radius: 10px;
     background: #fff;
     cursor: pointer;
     font-family: inherit;
-    text-align: left;
+    text-align: center;
     transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
-    min-height: 96px;
+    min-height: 56px;
   }
   .dn-amount-btn:hover {
     border-color: #cde8d8;
@@ -547,19 +548,12 @@
     letter-spacing: 0.05em;
   }
   .dn-amount-val {
-    font-size: 1.25rem;
+    font-size: 1.375rem;
     font-weight: 700;
     color: #02a95c;
-    margin-top: 18px;
+    line-height: 1;
   }
-  .dn-amount-btn:not(.has-badge) .dn-amount-val {
-    margin-top: 2px;
-  }
-  .dn-amount-desc {
-    font-size: 0.75rem;
-    color: #8a8a8a;
-    line-height: 1.45;
-  }
+  .dn-amount-btn.has-badge { padding-top: 26px; }
 
   .dn-err {
     font-size: 0.8125rem;
