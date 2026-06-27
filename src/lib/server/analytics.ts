@@ -959,15 +959,20 @@ export function getSessionBySid(sid: string) {
 }
 
 /**
- * Agrega purchases internos por utm_campaign dentro do window solicitado.
- * Usado pelo endpoint /api/fb-ads pra fazer "live attribution" — sobrepoe
- * o numero de purchases quando o servidor ja registrou venda mas o Meta
- * ainda nao processou (Meta tem delay tipico de 30min-6h pra refletir CAPI).
+ * Agrega purchases internos por uma dimension UTM dentro do window.
+ * Usado pra "live attribution" no dashboard — sobrepoe purchases do Meta
+ * quando o servidor ja registrou venda mas o Meta ainda nao processou
+ * (Meta tem delay tipico de 30min-6h pra refletir CAPI).
  *
- * Retorna Map<utm_campaign_lowercase, {purchases, purchaseValue, currency}>.
- * Se windowMs nao informado, agrega todos os eventos retidos.
+ * dim:
+ *   - 'utm_campaign' -> agrupa por campanha (usado em /api/fb-ads campaigns)
+ *   - 'utm_term'     -> agrupa por adset.name (usado em /api/fb-ads/level adset)
+ *   - 'utm_content'  -> agrupa por ad.name (usado em /api/fb-ads/level ad)
+ *
+ * Retorna Map<key_lowercase, {purchases, purchaseValue, currency}>.
  */
-export function getPurchasesByCampaign(
+export function getPurchasesByDimension(
+  dim: 'utm_campaign' | 'utm_term' | 'utm_content',
   windowMs?: number
 ): Map<string, { purchases: number; purchaseValue: number; currency: string }> {
   const cutoff = windowMs ? Date.now() - windowMs : 0;
@@ -975,7 +980,7 @@ export function getPurchasesByCampaign(
   for (const e of events) {
     if (e.ev !== 'purchase') continue;
     if (e.ts < cutoff) continue;
-    const raw = (e.utm_campaign || '').trim().toLowerCase();
+    const raw = (e[dim] || '').trim().toLowerCase();
     if (!raw) continue;
     const amount = Number((e.data as any)?.amount) || 0;
     const currency = String((e.data as any)?.currency || 'EUR').toUpperCase();
@@ -988,4 +993,9 @@ export function getPurchasesByCampaign(
     }
   }
   return out;
+}
+
+// Wrapper de compatibilidade com o consumidor antigo (/api/fb-ads campaigns).
+export function getPurchasesByCampaign(windowMs?: number) {
+  return getPurchasesByDimension('utm_campaign', windowMs);
 }

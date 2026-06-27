@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getFbToken, getDefaultAccountId, maybeRefreshInBackground } from '$lib/server/fb-token';
+import { getPurchasesByDimension } from '$lib/server/analytics';
 
 // Cache em memoria curto — drill-down e refrescado com mais frequencia que campanhas
 const _cache: Record<string, { data: any; ts: number }> = {};
@@ -102,11 +103,52 @@ export const GET: RequestHandler = async ({ url }) => {
   const skipCache = url.searchParams.get('nocache') === '1';
   maybeRefreshInBackground();
 
+  // Live attribution helper — sobrepoe purchases server-side quando > Meta.
+  // Aplicado em TODOS os retornos (cache hit ou miss) pra nao "congelar"
+  // a contagem durante o TTL do cache. Clone o array de items antes de mutar.
+  const MS_DAY = 24 * 60 * 60 * 1000;
+  function windowMsForPreset(p: string): number {
+    switch (p) {
+      case 'today':       return MS_DAY;
+      case 'yesterday':   return 2 * MS_DAY;
+      case 'last_7d':     return 7 * MS_DAY;
+      case 'last_14d':    return 14 * MS_DAY;
+      case 'last_30d':    return 30 * MS_DAY;
+      case 'this_month':  return 31 * MS_DAY;
+      default:            return MS_DAY;
+    }
+  }
+  function applyLiveAttribution(payload: any) {
+    if (!payload || !Array.isArray(payload.items) || payload.items.length === 0) return payload;
+    const dim: 'utm_term' | 'utm_content' = level === 'adset' ? 'utm_term' : 'utm_content';
+    const live = getPurchasesByDimension(dim, windowMsForPreset(preset));
+    if (live.size === 0) return payload;
+    const items = payload.items.map((it: any) => ({ ...it }));
+    for (const [key, agg] of live.entries()) {
+      if (!key) continue;
+      const matches = items.filter((it: any) => {
+        const n = String(it.name || '').toLowerCase();
+        return n && (n.includes(key) || key.includes(n));
+      });
+      if (matches.length === 0) continue;
+      matches.sort((a: any, b: any) => (b.spend || 0) - (a.spend || 0));
+      const target = matches[0];
+      if (agg.purchases > (target.purchases || 0)) {
+        target.purchases = agg.purchases;
+        target.purchaseValue = agg.purchaseValue;
+        target.roas = target.spend > 0 ? target.purchaseValue / target.spend : 0;
+        target.cpa = target.purchases > 0 ? target.spend / target.purchases : 0;
+        target.liveAttribution = true;
+      }
+    }
+    return { ...payload, items };
+  }
+
   const parentsKey = parents.length ? parents.slice().sort().join(',') : '__all__';
   const cacheKey = `${FB_ACCT}-${level}-${parentsKey}-${win}`;
   if (!skipCache) {
     const cached = _cache[cacheKey];
-    if (cached && Date.now() - cached.ts < CACHE_TTL) return json(cached.data);
+    if (cached && Date.now() - cached.ts < CACHE_TTL) return json(applyLiveAttribution(cached.data));
   }
 
   const idField = level === 'adset' ? 'adset_id,adset_name' : 'ad_id,ad_name';
@@ -267,7 +309,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
     const payload = { level, parents, accountId: FB_ACCT, datePreset: preset, items };
     _cache[cacheKey] = { data: payload, ts: Date.now() };
-    return json(payload);
+    return json(applyLiveAttribution(payload));
   } catch (e: any) {
     console.error('[fb-ads/level]', e);
     return json({ error: e.message }, { status: 500 });
