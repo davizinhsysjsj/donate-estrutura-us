@@ -142,6 +142,7 @@ export const GET: RequestHandler = async ({ url }) => {
       for (const body of metaBodies) {
         for (const a of body.data || []) {
           metaMap.set(a.id, {
+            name: a.name,
             status: a.status,
             effectiveStatus: a.effective_status,
             dailyBudget: a.daily_budget ? parseInt(a.daily_budget) / 100 : null,
@@ -182,6 +183,7 @@ export const GET: RequestHandler = async ({ url }) => {
         const videoMeta = vid ? videoSources.get(String(vid)) : undefined;
         const fallbackThumb = cr.thumbnail_url || cr.image_url || videoMeta?.picture || null;
         metaMap.set(a.id, {
+          name: a.name,
           status: a.status,
           effectiveStatus: a.effective_status,
           createdTime: a.created_time,
@@ -226,6 +228,42 @@ export const GET: RequestHandler = async ({ url }) => {
         creative: meta.creative ?? null,
       };
     });
+
+    // ── Inclui adsets/ads existentes mas SEM insights (sem gasto/impressoes ainda) ──
+    // Mesmo padrao que o endpoint de campanhas: usuario quer ver tudo que existe,
+    // mesmo zerado. Filtra por parents se informado.
+    const seen = new Set(items.map((i: any) => i.id));
+    const parentSet = parents.length ? new Set(parents) : null;
+    for (const [id, meta] of metaMap.entries()) {
+      if (seen.has(id)) continue;
+      // Se ha filtro por parents, so inclui se o parentId/campaignId bater
+      if (parentSet) {
+        const matchesParent =
+          (meta.parentId && parentSet.has(String(meta.parentId))) ||
+          (meta.campaignId && parentSet.has(String(meta.campaignId)));
+        if (!matchesParent) continue;
+      }
+      items.push({
+        id,
+        name: (meta as any).name || meta.creative?.title || '(sem nome)',
+        status: meta.status || null,
+        effectiveStatus: meta.effectiveStatus || null,
+        dailyBudget: meta.dailyBudget ?? null,
+        lifetimeBudget: meta.lifetimeBudget ?? null,
+        optimizationGoal: meta.optimizationGoal ?? null,
+        createdTime: meta.createdTime ?? null,
+        parentId: meta.parentId ?? null,
+        campaignId: meta.campaignId ?? null,
+        spend: 0, impressions: 0, clicks: 0, totalClicks: 0,
+        reach: 0, frequency: 0,
+        ctr: 0, cpm: 0, cpc: 0,
+        landingPageViews: 0,
+        viewContent: 0, addToCart: 0, initiateCheckout: 0,
+        purchases: 0, purchaseValue: 0,
+        roas: 0, cpa: 0, costPerLPV: 0,
+        creative: meta.creative ?? null,
+      });
+    }
 
     const payload = { level, parents, accountId: FB_ACCT, datePreset: preset, items };
     _cache[cacheKey] = { data: payload, ts: Date.now() };

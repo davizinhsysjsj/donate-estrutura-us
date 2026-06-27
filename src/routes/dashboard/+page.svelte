@@ -6248,6 +6248,88 @@
   }
 
   /* ════════════════════════════════════════════════════════════
+     TABELAS Conjuntos / Anuncios (.sub-table) — viram cards no mobile.
+     Mesmo padrao da tabela campanhas pra UX consistente.
+     A sequencia de colunas a partir de td.td-num e identica nas 2
+     tabelas (adset e ad), entao labels nth-child(3-12) cobrem ambas.
+     ════════════════════════════════════════════════════════════ */
+  @media (max-width: 768px) {
+    .sub-table-wrap {
+      border: none; background: transparent; overflow: visible; border-radius: 0;
+    }
+    .sub-table,
+    .sub-table thead,
+    .sub-table tbody,
+    .sub-table tr,
+    .sub-table td { display: block; width: 100%; }
+    .sub-table thead { display: none; }
+
+    .sub-table tr {
+      background: #11151c;
+      border: 1px solid #1f2630;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .sub-table tr.sub-tr-paused { opacity: 0.7; }
+    .sub-table tr:hover td { background: transparent; }
+
+    /* Checkbox (adset): canto superior direito do card */
+    .sub-table td.td-check {
+      display: inline-block; width: auto;
+      float: right; padding: 0; border: none;
+    }
+    /* Criativo (ad): hero no topo do card */
+    .sub-table td.td-creative {
+      width: 100%; padding: 0 0 10px 0;
+      border: none; border-bottom: 1px solid #1a2330; margin-bottom: 8px;
+      display: flex; justify-content: center;
+    }
+    .sub-table td.td-creative .creative-thumb,
+    .sub-table td.td-creative .creative-empty {
+      width: 100%; max-width: 220px; aspect-ratio: 16/9; height: auto;
+    }
+
+    /* Coluna Nome: header do card */
+    .sub-table td:not(.td-num):not(.td-check):not(.td-creative) {
+      padding: 0 0 10px 0; border: none;
+      border-bottom: 1px solid #1a2330; margin-bottom: 8px;
+    }
+    .sub-table td .sub-name {
+      white-space: normal; max-width: 100%;
+      font-weight: 600; font-size: 0.9375rem;
+    }
+
+    /* Metricas: linha label esquerda / valor direita */
+    .sub-table td.td-num {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 0; border: none;
+      border-bottom: 1px dashed #1a1f28;
+      text-align: right;
+    }
+    .sub-table tbody tr td.td-num:last-child { border-bottom: none; }
+    .sub-table td.td-num::before {
+      color: #6b7787; font-size: 0.75rem; font-weight: 500;
+      letter-spacing: 0.02em; text-transform: uppercase;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    }
+
+    /* Labels por posicao — cobre as 2 tabelas (.sub-table adset e ad).
+       Sequencia identica: col3=Gastos ... col12=ROAS */
+    .sub-table td:nth-child(3)::before  { content: 'Gastos'; }
+    .sub-table td:nth-child(4)::before  { content: 'Impressões'; }
+    .sub-table td:nth-child(5)::before  { content: 'CTR'; }
+    .sub-table td:nth-child(6)::before  { content: 'Cliques'; }
+    .sub-table td:nth-child(7)::before  { content: 'LPV'; }
+    .sub-table td:nth-child(8)::before  { content: 'IC'; }
+    .sub-table td:nth-child(9)::before  { content: 'Vendas'; }
+    .sub-table td:nth-child(10)::before { content: 'Receita'; }
+    .sub-table td:nth-child(11)::before { content: 'CPA'; }
+    .sub-table td:nth-child(12)::before { content: 'ROAS'; }
+  }
+
+  /* ════════════════════════════════════════════════════════════
      TOPBAR mobile — polimento dos seletores ja com nowrap
      ════════════════════════════════════════════════════════════ */
   @media (max-width: 768px) {
