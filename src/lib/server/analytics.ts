@@ -258,7 +258,35 @@ export interface IngestInput {
   geo?: { country?: string; countryCode?: string; city?: string; isp?: string; proxy?: boolean };
 }
 
+// Recupera utm_source/utm_medium a partir de click IDs ou referrer quando UTMs
+// vazias. Cobre casos onde in-app browser do FB strippa params, redirect 301
+// entre dominios perde query string, ou anuncio especifico saiu sem template.
+// Nao sobrepoe nada que ja veio explicito.
+function deriveSocialUtm(evt: IngestInput): { utm_source?: string; utm_medium?: string } {
+  if (evt.utm_source) return {};
+  // Click IDs (paid traffic — prioridade mais alta)
+  if (evt.fbclid) return { utm_source: 'facebook', utm_medium: 'cpc' };
+  const d: any = evt.data || {};
+  if (d.ttclid || d.ttp) return { utm_source: 'tiktok', utm_medium: 'cpc' };
+  if (d.tblci) return { utm_source: 'taboola', utm_medium: 'cpc' };
+  // Referrer (organico/social — fallback secundario)
+  const ref = (evt.ref || '').toLowerCase();
+  if (!ref) return {};
+  if (/(^|\/\/)(l|lm|m|www)?\.?facebook\.com/.test(ref))      return { utm_source: 'facebook',  utm_medium: 'social' };
+  if (/(^|\/\/)(l\.)?instagram\.com/.test(ref))               return { utm_source: 'instagram', utm_medium: 'social' };
+  if (/(^|\/\/)(t|m|www)?\.?tiktok\.com/.test(ref))           return { utm_source: 'tiktok',    utm_medium: 'social' };
+  if (/(^|\/\/)(l\.)?youtube\.com|youtu\.be/.test(ref))       return { utm_source: 'youtube',   utm_medium: 'social' };
+  if (/(^|\/\/)(www\.)?google\./.test(ref))                   return { utm_source: 'google',    utm_medium: 'organic' };
+  if (/(^|\/\/)(www\.)?bing\.com/.test(ref))                  return { utm_source: 'bing',      utm_medium: 'organic' };
+  return {};
+}
+
 export function ingest(evt: IngestInput) {
+  // Fallback: deriva utm_source/utm_medium quando ausentes
+  const derived = deriveSocialUtm(evt);
+  if (derived.utm_source) (evt as any).utm_source = derived.utm_source;
+  if (derived.utm_medium && !evt.utm_medium) (evt as any).utm_medium = derived.utm_medium;
+
   const isHeatmap = evt.ev === 'click_heatmap';
 
   if (!isHeatmap) {
