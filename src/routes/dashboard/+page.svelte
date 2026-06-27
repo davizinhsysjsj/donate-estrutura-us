@@ -2977,7 +2977,12 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {#each [...adsetItems].sort((a,b) => b.spend - a.spend) as it (it.id)}
+                  {#each [...adsetItems].sort((a,b) => {
+                    const aActive = (a.effectiveStatus || a.status) === 'ACTIVE' ? 0 : 1;
+                    const bActive = (b.effectiveStatus || b.status) === 'ACTIVE' ? 0 : 1;
+                    if (aActive !== bActive) return aActive - bActive;
+                    return b.spend - a.spend;
+                  }) as it (it.id)}
                     <tr class:sub-tr-paused={it.status === 'PAUSED'}>
                       <td class="td-check"><input type="checkbox" checked={selectedAdsetIds.has(it.id)} onchange={() => toggleAdsetSel(it.id)} /></td>
                       <td>
@@ -3036,7 +3041,12 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {#each [...adItems].sort((a,b) => b.spend - a.spend) as it (it.id)}
+                  {#each [...adItems].sort((a,b) => {
+                    const aActive = (a.effectiveStatus || a.status) === 'ACTIVE' ? 0 : 1;
+                    const bActive = (b.effectiveStatus || b.status) === 'ACTIVE' ? 0 : 1;
+                    if (aActive !== bActive) return aActive - bActive;
+                    return b.spend - a.spend;
+                  }) as it (it.id)}
                     <tr class:sub-tr-paused={it.status === 'PAUSED'}>
                       <td class="td-creative">
                         {#if it.creative?.thumbnailUrl}
