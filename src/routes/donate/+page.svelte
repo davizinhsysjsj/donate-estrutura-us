@@ -272,7 +272,6 @@
             <span class="dn-badge">Meest gekozen</span>
           {/if}
           <span class="dn-amount-val">€{opt.amount}</span>
-          <span class="dn-amount-desc">{opt.desc}</span>
         </button>
       {/each}
     </div>
