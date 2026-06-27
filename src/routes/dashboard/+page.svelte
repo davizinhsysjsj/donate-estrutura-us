@@ -3291,11 +3291,8 @@
                     <span class="camp-val-sub">Retorno</span>
                   </td>
                   <td class="td-num" data-label="Resultados">
-                    <span class="camp-val-main camp-val-green">
-                      {fmtNum(c.purchases || 0)}
-                      {#if c.liveAttribution}<sup class="camp-live-badge" title="Atribuição em tempo real do servidor (Meta ainda não processou)">LIVE</sup>{/if}
-                    </span>
-                    <span class="camp-val-sub">{c.liveAttribution ? 'Compras · ao vivo' : 'Compras'}</span>
+                    <span class="camp-val-main camp-val-green">{fmtNum(c.purchases || 0)}</span>
+                    <span class="camp-val-sub">Compras</span>
                   </td>
                   <td class="td-num" data-label="Custo por resultado">
                     <span class="camp-val-main">{c.cpa > 0 ? fmtSpendDisplay(c.cpa) : '—'}</span>
@@ -6006,24 +6003,6 @@
   }
   .camp-val-green { color: #00d971; }
   .camp-val-red   { color: #ff5b5b; }
-  .camp-live-badge {
-    display: inline-block;
-    margin-left: 4px;
-    padding: 1px 5px;
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    background: linear-gradient(135deg, #00d971 0%, #00a957 100%);
-    color: #04140a;
-    border-radius: 4px;
-    vertical-align: middle;
-    animation: campLivePulse 2.4s ease-in-out infinite;
-    cursor: help;
-  }
-  @keyframes campLivePulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(0, 217, 113, 0.55); }
-    50%      { box-shadow: 0 0 0 4px rgba(0, 217, 113, 0); }
-  }
   .camp-tr-total td {
     padding: 16px 18px; border-top: 1px solid #2a3340;
     border-right: 1px solid #161b22;
