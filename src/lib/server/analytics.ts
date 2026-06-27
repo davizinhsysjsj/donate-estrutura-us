@@ -548,7 +548,9 @@ export function snapshot(opts: SnapshotOpts) {
     Object.entries(onlineByPath)
       .filter(([k]) => k.startsWith('/donate/'))
       .reduce((acc, [, v]) => acc + v, 0);
-  const onlineLp = onlineByPath['/'] ?? 0;
+  // LP = qualquer rota que NAO seja /donate (cobre /, /katten, /vsl, /sofie, etc).
+  // Antes contava so '/' e perdia tudo que rodava em /katten ou /vsl.
+  const onlineLp = liveSessions.length - onlineDonate;
   const onlineVsl =
     (onlineByPath['/vsl'] ?? 0) +
     Object.entries(onlineByPath)
