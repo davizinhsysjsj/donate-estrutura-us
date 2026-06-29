@@ -10,7 +10,7 @@ initAnalyticsStore();
  *
  * Uso (autenticado via SHOPIFY_WEBHOOK_SECRET no header):
  *
- *   curl -X POST https://belgianpawshelter.help/api/admin/backfill-purchase \
+ *   curl -X POST https://belgianpawsfoundation.org/api/admin/backfill-purchase \
  *     -H "x-admin-secret: <SHOPIFY_WEBHOOK_SECRET>" \
  *     -H "content-type: application/json" \
  *     -d '{"orderId":"1075","amount":15,"currency":"EUR","ts":"2026-06-01T18:00:00Z","utm_source":"email","utm_medium":"recompra"}'

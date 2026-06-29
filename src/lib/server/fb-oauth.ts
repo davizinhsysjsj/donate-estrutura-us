@@ -3,7 +3,7 @@ import { env } from '$env/dynamic/private';
 // App credentials — necessario env vars no Railway:
 //   FB_APP_ID, FB_APP_SECRET
 // E adicionar o redirect URI no painel do app FB:
-//   https://belgianpawshelter.help/api/fb-ads/oauth/callback
+//   https://belgianpawsfoundation.org/api/fb-ads/oauth/callback
 export function getAppCreds() {
   const appId = env.FB_APP_ID;
   const appSecret = env.FB_APP_SECRET;
@@ -17,7 +17,7 @@ export function getRedirectUri(origin?: string): string {
   // Permite override via env, senao usa o origin da request
   if (env.FB_OAUTH_REDIRECT_URI) return env.FB_OAUTH_REDIRECT_URI;
   if (origin) return `${origin}/api/fb-ads/oauth/callback`;
-  return 'https://belgianpawshelter.help/api/fb-ads/oauth/callback';
+  return 'https://belgianpawsfoundation.org/api/fb-ads/oauth/callback';
 }
 
 // Permissoes: ler ads + listar BMs + gerenciar campanhas (toggle, budget, duplicar).

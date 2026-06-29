@@ -8,7 +8,7 @@
  *   - action="send-upsell"     → envia template "upsell" REAL
  *
  * Exemplo:
- *   curl -X POST "https://belgianpawshelter.help/api/test-email" \
+ *   curl -X POST "https://belgianpawsfoundation.org/api/test-email" \
  *     -H "content-type: application/json" \
  *     -d '{"token":"<MAIL_TEST_TOKEN>","action":"send-thank-you","to":"voce@gmail.com","amount":25,"firstName":"Davi"}'
  *

@@ -6,10 +6,10 @@
  * Logo: header verde escuro (cor da camisa "Dog Paws Shelter" da foto)
  * com texto "BELGIAN PAWS" + patinha 🐾.
  *
- * Imagem: hospedada em https://belgianpawshelter.help/email/feeding-dogs.jpg
+ * Imagem: hospedada em https://belgianpawsfoundation.org/email/feeding-dogs.jpg
  */
 
-const SITE_URL = 'https://belgianpawshelter.help';
+const SITE_URL = 'https://belgianpawsfoundation.org';
 const DONATE_URL = `${SITE_URL}/`;
 const UPSELL_DONATE_URL = `${SITE_URL}/donate?utm_source=email&utm_medium=recompra&utm_campaign=48h`;
 const HERO_IMAGE = `${SITE_URL}/email/shadow-thank-you.jpg`;

@@ -47,7 +47,7 @@
     highlight: 'PIF heeft een geneesmiddel. Shadow heeft 48 uur. Behandeling: €850.',
     goalEur: 850,
     shareTitle: 'PIF was een doodvonnis. Vandaag bestaat er een geneesmiddel — help Shadow.',
-    shareUrl: 'https://belgianpawshelter.help/pif'
+    shareUrl: 'https://belgianpawsfoundation.org/pif'
   };
 
   // Tiers especificos pra gatos: copy NL "X katten redden"

@@ -45,7 +45,7 @@
     highlight: 'De tumor wacht niet. Help Shadow vandaag — €890.',
     goalEur: 890,
     shareTitle: 'Help Shadow zijn tumor-operatie te betalen',
-    shareUrl: 'https://belgianpawshelter.help/katten'
+    shareUrl: 'https://belgianpawsfoundation.org/katten'
   };
 
   // Tiers especificos pra gatos: copy NL "X katten redden"

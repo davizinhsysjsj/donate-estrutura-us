@@ -142,6 +142,6 @@ export const CAMPAIGN = {
     }
   ],
 
-  shareUrl: 'https://belgianpawshelter.help',
+  shareUrl: 'https://belgianpawsfoundation.org',
   shareTitle: 'Help deze winter Belgische opvangdieren te voeden'
 };
