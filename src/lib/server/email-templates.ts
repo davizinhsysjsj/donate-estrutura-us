@@ -16,7 +16,7 @@ const HERO_IMAGE = `${SITE_URL}/email/shadow-thank-you.jpg`;
 const UPSELL_HERO_IMAGE = `${SITE_URL}/email/shadow-urgent.jpg`;
 const ABANDONED_CHECKOUT_HERO_IMAGE = `${SITE_URL}/email/shadow-cart.jpg`;
 const LOGO_IMAGE = `${SITE_URL}/email/logo.png`;
-const SUPPORT_EMAIL = 'contact@belgianpaws.help';
+const SUPPORT_EMAIL = 'contact@belgiancare.online';
 const BRAND_COLOR = '#16A34A'; // verde camisa (usado no botao CTA)
 const BRAND_DARK = '#15803D';
 
