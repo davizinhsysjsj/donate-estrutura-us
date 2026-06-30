@@ -3,7 +3,7 @@ import type { Handle } from '@sveltejs/kit';
 import { lookupGeo } from '$lib/server/geo';
 import { env } from '$env/dynamic/private';
 
-export const API_ONLY_HOSTS = new Set<string>(['api.belgianpaws.help']);
+export const API_ONLY_HOSTS = new Set<string>(['api.belgiancare.online']);
 
 // ── Proteção Brasil ────────────────────────────────────────────────────────
 // Rotas do funil protegidas contra visitas do Brasil

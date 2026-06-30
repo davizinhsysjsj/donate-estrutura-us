@@ -75,7 +75,7 @@ export const POST: RequestHandler = async ({ request }) => {
     const locale = (body.locale === 'pt' ? 'pt' : body.locale === 'nl' ? 'nl' : undefined) as
       | 'pt' | 'nl' | undefined;
     const recoverUrl = (body.recoverUrl as string | undefined) ??
-      'https://inigualavelshop.myshopify.com/recover/sample';
+      'https://belgiancare.online/recover/sample';
     const itemTitle = (body.itemTitle as string | undefined) ?? 'Hero — €50 voor Shadow';
     const r = await sendNow({
       toEmail: to,
