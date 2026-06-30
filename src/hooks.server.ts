@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import type { Handle } from '@sveltejs/kit';
 import { lookupGeo } from '$lib/server/geo';
 import { env } from '$env/dynamic/private';
+import { building } from '$app/environment';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 export const API_ONLY_HOSTS = new Set<string>(['api.belgiancare.online']);
@@ -112,7 +113,8 @@ export const handle: Handle = async ({ event, resolve }) => {
   const path = event.url.pathname;
 
   // ── Vitrack: só /dashboard + /login + assets, com auth ──
-  if (VITRACK_MODE) {
+  // Bypass durante prerender (build-time) — só aplica em runtime real
+  if (VITRACK_MODE && !building) {
     const isAsset =
       path.startsWith('/_app/') ||
       path.startsWith('/api/') ||
