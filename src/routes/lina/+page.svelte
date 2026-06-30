@@ -149,6 +149,15 @@
   let donorTimer: ReturnType<typeof setInterval> | null = null;
   const lastDonor = $derived(donorsList[donorIdx % donorsList.length]);
 
+  // Hero carousel (rotativo 2.5s)
+  const HERO_SLIDES = [
+    '/lina/lina-desenho.jpg',
+    '/lina/lina-pai-mao.jpg',
+    '/lina/hero.jpg'
+  ];
+  let heroIdx = $state(0);
+  let heroTimer: ReturnType<typeof setInterval> | null = null;
+
   onMount(() => {
     const tracking = captureAndPersistFbclid();
     fbclid = tracking.fbclid;
@@ -170,6 +179,11 @@
       donorIdx = (donorIdx + 1) % donorsList.length;
     }, 4200);
 
+    // Hero carousel: troca a cada 2.5s
+    heroTimer = setInterval(() => {
+      heroIdx = (heroIdx + 1) % HERO_SLIDES.length;
+    }, 2500);
+
     if (typeof history !== 'undefined') {
       history.pushState({ pawsBackGuard: true }, '', window.location.pathname + window.location.search);
       const handlePopState = () => {
@@ -183,6 +197,7 @@
 
   onDestroy(() => {
     if (donorTimer) clearInterval(donorTimer);
+    if (heroTimer) clearInterval(heroTimer);
   });
 
   let exitPopupVsl: ReturnType<typeof ExitIntentPopup> | null = $state(null);
@@ -380,18 +395,26 @@
 
 <div class="page">
   <div class="container-app">
-    <!-- Hero image: split foto Lina + raio-x femur -->
-    <div class="hero-image-wrap" data-section="hero-image">
-      <img
-        class="hero-image hero-slide-active"
-        src="/lina/hero.jpg"
-        alt={LINA.title}
-        loading="eager"
-        fetchpriority="high"
-        decoding="async"
-        width="900"
-        height="600"
-      />
+    <!-- Hero carousel: 3 fotos da Lina, troca a cada 2.5s -->
+    <div class="hero-image-wrap hero-carousel" data-section="hero-image">
+      {#each HERO_SLIDES as src, i}
+        <img
+          class="hero-image"
+          class:hero-slide-active={heroIdx === i}
+          {src}
+          alt={LINA.title}
+          loading={i === 0 ? 'eager' : 'lazy'}
+          fetchpriority={i === 0 ? 'high' : 'auto'}
+          decoding="async"
+          width="900"
+          height="600"
+        />
+      {/each}
+      <div class="hero-dots" aria-hidden="true">
+        {#each HERO_SLIDES as _, i}
+          <span class="hero-dot" class:active={heroIdx === i}></span>
+        {/each}
+      </div>
     </div>
 
     <!-- Bloco principal -->
@@ -754,6 +777,31 @@
 <ExitIntentPopup bind:this={exitPopupVsl} onDonate={openDonation} onBack={() => goto('/wacht')} />
 
 <style>
+  /* Hero carousel — dots */
+  :global(.hero-carousel) { position: relative; }
+  .hero-dots {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    z-index: 3;
+    pointer-events: none;
+  }
+  .hero-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 9999px;
+    background: rgba(255,255,255,0.45);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: background 0.3s, transform 0.3s;
+  }
+  .hero-dot.active {
+    background: #fff;
+    transform: scale(1.25);
+  }
+
   .adopt-section { padding-top: 18px; padding-bottom: 24px; }
   .adopt-intro {
     margin-top: 8px;
