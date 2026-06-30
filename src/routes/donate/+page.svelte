@@ -8,18 +8,9 @@
   import { initTikTok, trackTikTok, getTtclid, getTtp } from '$lib/utils/tiktok';
   import { track as trackAnalytics, getSid } from '$lib/utils/analytics';
   import { SHOPIFY_SHOP_DOMAIN, pickVariantForAmount } from '$lib/data/variants';
-  import { CAMPAIGN } from '$lib/data/campaign';
   import type { PageData } from './$types';
 
   const { data } = $props<{ data: PageData }>();
-  // Stats da Lina (mesmas da LP /lina) — campanha separada do CAMPAIGN global animal
-  const raisedEur = $derived(3247);
-  const goalEur = 12450;
-  const pct = $derived(Math.min(100, Math.round((raisedEur / goalEur) * 100)));
-  // Circunferência do círculo SVG (r=24): 2*pi*24 = 150.8
-  const CIRC = 150.8;
-  const dashOffset = $derived(CIRC - (pct / 100) * CIRC);
-  const remaining = $derived(Math.max(0, goalEur - raisedEur));
 
   type AmountOption = {
     amount: number;
@@ -235,22 +226,6 @@
   </div>
 
   <div class="dn-card">
-
-    <!-- Progress row (dinâmico) -->
-    <div class="dn-progress-row">
-      <div class="dn-circ">
-        <svg width="58" height="58" viewBox="0 0 58 58">
-          <circle cx="29" cy="29" r="24" fill="none" stroke="#e8e8e8" stroke-width="4"/>
-          <circle cx="29" cy="29" r="24" fill="none" stroke="#02a95c" stroke-width="4"
-            stroke-dasharray={CIRC} stroke-dashoffset={dashOffset} stroke-linecap="round"/>
-        </svg>
-        <div class="dn-circ-label">{pct}%</div>
-      </div>
-      <div>
-        <div class="dn-progress-title">Nog maar <span>€ {remaining}</span> te gaan!</div>
-        <div class="dn-progress-sub">Maak een verschil.</div>
-      </div>
-    </div>
 
     <!-- Tax badge -->
     <div class="dn-tax">
