@@ -150,9 +150,9 @@
 
   // Hero carousel (rotativo 2.5s) — pos é object-position por slide
   const HERO_SLIDES = [
-    { src: '/lina/lina-desenho.jpg', pos: 'center center' },
-    { src: '/lina/lina-pai-mao.jpg', pos: 'center 35%' },
-    { src: '/lina/hero.jpg',         pos: 'center 35%' }
+    { src: '/lina/lina-desenho.webp', pos: 'center center' },
+    { src: '/lina/lina-pai-mao.webp', pos: 'center 35%' },
+    { src: '/lina/hero.webp',         pos: 'center 35%' }
   ];
   let heroIdx = $state(0);
   let heroTimer: ReturnType<typeof setInterval> | null = null;
@@ -491,7 +491,7 @@
 
       <figure class="before-photo">
         <img
-          src="/lina/lina-antes.jpg"
+          src="/lina/lina-antes.webp"
           alt="Lina rennend in het park, drie weken voor de diagnose"
           loading="lazy"
           decoding="async"
