@@ -126,7 +126,10 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
 
     if (isDashboard && !vitrackIsValid(event.cookies.get(VITRACK_AUTH_COOKIE))) {
-      const next = encodeURIComponent(path + event.url.search);
+      // url.search lança em prerender; cai pro pathname sozinho nesse caso
+      let nextPath = path;
+      try { nextPath += event.url.search; } catch { /* prerender */ }
+      const next = encodeURIComponent(nextPath);
       throw redirect(302, `/login?next=${next}`);
     }
 
