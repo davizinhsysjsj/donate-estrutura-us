@@ -149,11 +149,11 @@
   let donorTimer: ReturnType<typeof setInterval> | null = null;
   const lastDonor = $derived(donorsList[donorIdx % donorsList.length]);
 
-  // Hero carousel (rotativo 2.5s)
+  // Hero carousel (rotativo 2.5s) — pos é object-position por slide
   const HERO_SLIDES = [
-    '/lina/lina-desenho.jpg',
-    '/lina/lina-pai-mao.jpg',
-    '/lina/hero.jpg'
+    { src: '/lina/lina-desenho.jpg', pos: 'center center' },
+    { src: '/lina/lina-pai-mao.jpg', pos: 'center 35%' },
+    { src: '/lina/hero.jpg',         pos: 'center 35%' }
   ];
   let heroIdx = $state(0);
   let heroTimer: ReturnType<typeof setInterval> | null = null;
@@ -412,17 +412,18 @@
   <div class="container-app">
     <!-- Hero carousel: 3 fotos da Lina, troca a cada 2.5s -->
     <div class="hero-image-wrap hero-carousel" data-section="hero-image">
-      {#each HERO_SLIDES as src, i}
+      {#each HERO_SLIDES as slide, i}
         <img
           class="hero-image"
           class:hero-slide-active={heroIdx === i}
-          {src}
+          src={slide.src}
           alt={LINA.title}
           loading={i === 0 ? 'eager' : 'lazy'}
           fetchpriority={i === 0 ? 'high' : 'auto'}
           decoding="async"
           width="900"
           height="600"
+          style:object-position={slide.pos}
         />
       {/each}
       <div class="hero-dots" aria-hidden="true">
