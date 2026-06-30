@@ -30,23 +30,19 @@
   // Linha 1: €50, €100 · Linha 2: €200, €300 · Linha 3: €25*, €500
   // Linha 4: €80, €35 · Linha 5: €30, €20 · Linha 6: €15, €10
   const AMOUNTS: AmountOption[] = [
-    { amount: 50,  recommended: true, desc: "Voorbereiding op Shadow's operatie." },
-    { amount: 100, desc: 'Operatiekamer en steriel materiaal voor de ingreep.' },
-    { amount: 200, desc: "Een vierde van Shadow's tumor-operatie (€890 totaal)." },
-    { amount: 300, desc: 'Operatie en 2 dagen herstel onder toezicht.' },
-    { amount: 25,  desc: 'Eerste dierenarts-controle voor Shadow.' },
-    { amount: 500, desc: 'Volledige operatie en nazorg voor Shadow.' },
-    { amount: 80,  desc: 'Anesthesie tijdens de tumor-operatie.' },
-    { amount: 35,  desc: 'Bloedonderzoek om de tumor op te volgen.' },
-    { amount: 30,  desc: 'Een week voeding voor Shadow en 2 andere oude katten.' },
-    { amount: 20,  desc: 'Voer en een zachte deken voor 3 vergeten katten.' },
-    { amount: 15,  desc: 'Pijnstillers zodat Shadow rustig kan slapen.' },
-    { amount: 10,  desc: 'Een warme maaltijd voor Shadow vannacht.' },
+    { amount: 50,  recommended: true, desc: "Eén week voeding tijdens Lina's chemo." },
+    { amount: 100, desc: 'Helpt mee voor de pre-operatieve scan in UZ Gent.' },
+    { amount: 200, desc: "Eén volledige chemo-sessie." },
+    { amount: 300, desc: 'Twee chemo-sessies + medicatie thuis.' },
+    { amount: 25,  desc: 'Eén dag pijnstilling voor Lina.' },
+    { amount: 500, desc: "Een hele behandelingsweek (chemo + verblijf)." },
+    { amount: 80,  desc: 'Bloedonderzoek vóór de volgende chemo-cyclus.' },
+    { amount: 35,  desc: 'Voeding en supplementen tijdens herstel.' },
+    { amount: 30,  desc: 'Een paar dagen pijnstilling en anti-misselijkheid.' },
+    { amount: 20,  desc: 'Verbandmateriaal voor na de operatie.' },
+    { amount: 15,  desc: 'Een dag medicatie zodat Lina rustig kan slapen.' },
+    { amount: 10,  desc: 'Een warme maaltijd voor Lina vannacht.' },
   ];
-
-  function dogsForAmount(n: number): number {
-    return Math.max(1, Math.round(n / 4.2));
-  }
 
   // Tracking
   let fbclid: string | null = $state(null);
@@ -198,12 +194,12 @@
   }
 
   function goBack() {
-    window.location.href = '/katten';
+    window.location.href = '/lina';
   }
 </script>
 
 <svelte:head>
-  <title>Kies je donatiebedrag | Belgische Dierenopvang</title>
+  <title>Doneer voor Lina | UZ Gent</title>
   <meta name="referrer" content="no-referrer" />
 </svelte:head>
 
@@ -219,20 +215,20 @@
 
 <div class="dn-page">
 
-  <!-- Alerta urgente: Shadow piorou -->
+  <!-- Alerta urgente: Lina · 42 dagen pra operatie -->
   <div class="dn-urgent" role="alert">
     <div class="dn-urgent-pulse" aria-hidden="true">
       <span class="dn-urgent-dot"></span>
     </div>
     <div class="dn-urgent-body">
-      <div class="dn-urgent-title">URGENT · Update Shadow (laatste 24u)</div>
+      <div class="dn-urgent-title">URGENT · Update Lina (laatste 24u)</div>
       <div class="dn-urgent-text">
-        Shadow's gezondheid is sterk <strong>verslechterd</strong>. Als hij
-        <strong>binnen 48 uur</strong> de operatie ondergaat, wordt hij weer
-        gezond, hoeft hij niet geëuthanaseerd te worden en kan hij eindelijk
-        door een familie geadopteerd worden. De totale kosten van operatie
-        + voeding en medicatie bedragen <strong>€890</strong> — er ontbreekt
-        nog maar <strong>€250</strong>!
+        Lina's tumor is op de laatste scan met <strong>4mm gegroeid</strong>.
+        Haar arts in UZ Gent zegt: zonder operatie binnen <strong>42 dagen</strong>
+        verspreidt de tumor zich naar haar longen. Operatie + chemo + pediatrische
+        prothese kosten <strong>€12.450</strong> — haar ouders hebben er
+        <strong>€3.247</strong> bij elkaar. Elke euro brengt haar dichter bij
+        de operatiezaal.
       </div>
     </div>
   </div>
@@ -299,13 +295,13 @@
       </button>
 
       <div class="dn-popup-inner">
-        <div class="dn-popup-label">Jouw donatie voor Shadow</div>
+        <div class="dn-popup-label">Jouw donatie voor Lina</div>
         <div class="dn-popup-amount">€{selectedAmount}</div>
         <div class="dn-popup-animals">
-          Vandaag help je Shadow zijn operatie te halen.
+          Vandaag help je Lina haar operatie te halen.
         </div>
         <p class="dn-popup-note">
-          Jouw donatie gaat rechtstreeks naar Shadow's tumor-operatie en de zorg voor andere opvangkatten in België.
+          Jouw donatie gaat rechtstreeks naar Lina's operatie, chemo en de pediatrische prothese in UZ Gent.
         </p>
 
         <button class="dn-btn-bancontact" onclick={handleDonate} disabled={donating}>
@@ -383,7 +379,7 @@
     padding: 8px 12px 60px;
   }
 
-  /* ── Urgent alert (Shadow's toestand) ── */
+  /* ── Urgent alert (Lina's toestand) ── */
   .dn-urgent {
     display: flex;
     align-items: flex-start;

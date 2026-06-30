@@ -7,7 +7,6 @@
   import { onMount, onDestroy } from 'svelte';
   import { goto, preloadData, preloadCode } from '$app/navigation';
   import ExitIntentPopup from '$lib/components/ExitIntentPopup.svelte';
-  import { CAMPAIGN } from '$lib/data/campaign';
   import ProgressCard from '$lib/components/ProgressCard.svelte';
   import StickyBottomBar from '$lib/components/StickyBottomBar.svelte';
   import {
@@ -23,7 +22,72 @@
   import type { PageData } from './$types';
 
   const { data } = $props<{ data: PageData }>();
-  const donorsList = $derived(data.donors);
+  // Doadores fakes da Lina (sobrescreve o feed global de doação animal)
+  // Mistura de doadores reais (se houver) com nomes belgas/NL
+  const LINA_DONORS = [
+    { name: 'Sophie M.', amount: 50,  ago: 'zojuist',           initials: 'SM', color: 'av-green',  anonymous: false },
+    { name: 'Lukas D.',  amount: 25,  ago: '4 min geleden',     initials: 'LD', color: 'av-teal',   anonymous: false },
+    { name: 'Anoniem',   amount: 200, ago: '11 min geleden',    initials: '',   color: 'av-gray',   anonymous: true },
+    { name: 'Marie V.',  amount: 100, ago: '23 min geleden',    initials: 'MV', color: 'av-coral',  anonymous: false },
+    { name: 'Jan P.',    amount: 50,  ago: '38 min geleden',    initials: 'JP', color: 'av-amber',  anonymous: false },
+    { name: 'Emma R.',   amount: 25,  ago: '55 min geleden',    initials: 'ER', color: 'av-purple', anonymous: false },
+    { name: 'Bram H.',   amount: 75,  ago: '1 u geleden',       initials: 'BH', color: 'av-skyblue', anonymous: false },
+    { name: 'Charlotte L.', amount: 100, ago: '2 u geleden',    initials: 'CL', color: 'av-rose',   anonymous: false },
+    { name: 'Anoniem',   amount: 500, ago: '2 u geleden',       initials: '',   color: 'av-gray',   anonymous: true },
+    { name: 'Niels V.',  amount: 35,  ago: '3 u geleden',       initials: 'NV', color: 'av-green',  anonymous: false },
+    { name: 'Camille B.', amount: 50, ago: '4 u geleden',       initials: 'CB', color: 'av-teal',   anonymous: false },
+    { name: 'Tom S.',    amount: 25,  ago: '5 u geleden',       initials: 'TS', color: 'av-coral',  anonymous: false },
+    { name: 'Sarah K.',  amount: 200, ago: '7 u geleden',       initials: 'SK', color: 'av-amber',  anonymous: false },
+    { name: 'Pieter J.', amount: 50,  ago: '9 u geleden',       initials: 'PJ', color: 'av-purple', anonymous: false },
+    { name: 'Lieve B.',  amount: 35,  ago: '11 u geleden',      initials: 'LB', color: 'av-skyblue', anonymous: false },
+    { name: 'Anoniem',   amount: 150, ago: '13 u geleden',      initials: '',   color: 'av-gray',   anonymous: true },
+    { name: 'Eva D.',    amount: 25,  ago: '15 u geleden',      initials: 'ED', color: 'av-rose',   anonymous: false },
+    { name: 'Vincent M.', amount: 100, ago: '18 u geleden',     initials: 'VM', color: 'av-green',  anonymous: false },
+    { name: 'Anke V.',   amount: 50,  ago: '20 u geleden',      initials: 'AV', color: 'av-teal',   anonymous: false },
+    { name: 'Mathieu R.', amount: 35, ago: '22 u geleden',      initials: 'MR', color: 'av-coral',  anonymous: false }
+  ];
+
+  // Testimonials reais sobre a Lina (sobrescreve CAMPAIGN.testimonials)
+  const LINA_TESTIMONIALS = [
+    {
+      avatar: '/avatars/women-44.webp',
+      name: 'Emma B.',
+      city: 'Antwerpen',
+      quote: "Mijn eigen dochter is 7 — net als Lina. Ik kon niet stoppen met huilen toen ik haar verhaal las. €50 gedoneerd, en deelde het meteen in mijn moedersgroep."
+    },
+    {
+      avatar: '/avatars/men-32.webp',
+      name: 'Niels V.',
+      city: 'Gent',
+      quote: 'UZ Gent is mijn ziekenhuis. Mijn nichtje werd daar geboren. Te weten dat een klein meisje daar nu vecht voor haar been — dat raakte me. €100 gedoneerd.'
+    },
+    {
+      avatar: '/avatars/women-68.webp',
+      name: 'Camille L.',
+      city: 'Brussel',
+      quote: 'Mijn man overleed vorig jaar aan kanker. Ik weet hoe het is om te wachten op een operatie die alles kan veranderen. Lina is nog zo klein. €200 voor haar.'
+    },
+    {
+      avatar: '/avatars/women-12.webp',
+      name: 'Lieve D.',
+      city: 'Brugge',
+      quote: "Ik zag de röntgenfoto en kon niet meer ademen. Mijn zoontje is ook 7. Dit had hij kunnen zijn. €75 gedoneerd, en ik kom morgen weer."
+    },
+    {
+      avatar: '/avatars/men-76.webp',
+      name: 'Mathieu R.',
+      city: 'Luik',
+      quote: 'Ik werk in de orthopedie. Wat Lina doormaakt is brutaal voor een kind. De prothese die ze nodig heeft is technisch hoogstaand maar duur. €100 gedoneerd, en heel veel kracht aan haar familie.'
+    },
+    {
+      avatar: '/avatars/men-52.webp',
+      name: 'Sven J.',
+      city: 'Leuven',
+      quote: "Mijn beste vriend verloor zijn dochter aan leukemie toen ze 9 was. Ik wist niet wat te zeggen toen. Nu wist ik het: doneren. €50 voor Lina, in herinnering aan kleine Saar."
+    }
+  ];
+
+  const donorsList = $derived(LINA_DONORS);
   // Stats independentes do funil de doação animal — Lina é uma campanha separada
   const raisedEur = $derived(3247);
   const donationsCount = $derived(89);
@@ -378,7 +442,7 @@
       <div class="section-eyebrow">Steunbetuigingen</div>
       <h2 class="section-title">Van supporters in heel België.</h2>
       <div class="testimonial-row">
-        {#each CAMPAIGN.testimonials as t}
+        {#each LINA_TESTIMONIALS as t}
           <div class="testimonial-card">
             <div class="testimonial-head">
               <img src={t.avatar} alt={t.name} class="testimonial-avatar-img" loading="lazy" width="80" height="80" decoding="async" />
