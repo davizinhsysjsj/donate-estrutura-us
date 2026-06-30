@@ -12,8 +12,6 @@
     captureAndPersistFbclid, getFbp, getEid, trackEvent, uuid, buildShopifyCartUrl,
     type UtmData
   } from '$lib/utils/fbtracking';
-  import { initTaboola, trackTaboola, getTblci } from '$lib/utils/taboola';
-  import { initTikTok, trackTikTok, getTtclid, getTtp } from '$lib/utils/tiktok';
   import { getSid } from '$lib/utils/analytics';
   import {
     SHOPIFY_SHOP_DOMAIN, TIER_NAME_BY_AMOUNT, pickVariantForAmount
@@ -140,9 +138,6 @@
   let fbc: string | null = $state(null);
   let fbp: string | null = $state(null);
   let utm: UtmData | null = $state(null);
-  let tblci: string | null = $state(null);
-  let ttclid: string | null = $state(null);
-  let ttp: string | null = $state(null);
 
   let donorIdx = $state(0);
   let donorTimer: ReturnType<typeof setInterval> | null = null;
@@ -163,13 +158,6 @@
     fbc = tracking.fbc;
     utm = tracking.utm;
     setTimeout(() => { fbp = getFbp(); }, 500);
-
-    initTaboola();
-    tblci = getTblci();
-
-    initTikTok();
-    ttclid = getTtclid();
-    setTimeout(() => { ttp = getTtp(); }, 500);
 
     preloadCode('/donate').catch(() => {});
     setTimeout(() => { preloadData('/donate').catch(() => {}); }, 1200);
@@ -298,8 +286,6 @@
       content_type: 'product',
       num_items: 1
     }, eventId);
-    trackTaboola('IC', selectedAmount);
-    trackTikTok('InitiateCheckout', selectedAmount, contentId);
 
     const variantId = pickVariantForAmount(selectedAmount);
     const isPlaceholder = !variantId || variantId.startsWith('PLACEHOLDER');
@@ -317,9 +303,6 @@
           eventId,
           utm,
           sid: getSid(),
-          tblci,
-          ttclid,
-          ttp,
           eid: getEid()
         });
       }
@@ -347,7 +330,7 @@
 </svelte:head>
 
 <header class="header">
-  <a href="/" class="header-logo lina-logo" aria-label="Officiële Donaties België">
+  <span class="header-logo lina-logo" aria-label="Officiële Donaties België">
     <span class="lina-logo-word">Officiële&nbsp;D</span>
     <svg class="lina-logo-heart" viewBox="0 0 24 24" aria-hidden="true">
       <path
@@ -365,7 +348,7 @@
     </svg>
     <span class="lina-logo-word">naties&nbsp;België</span>
     <span class="header-flag" aria-hidden="true">🇧🇪</span>
-  </a>
+  </span>
   <button
     class="header-menu-btn"
     aria-label="Menu openen"

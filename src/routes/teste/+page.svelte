@@ -5,8 +5,6 @@
     captureAndPersistFbclid, getFbp, getEid, trackEvent, uuid, buildShopifyCartUrl,
     type UtmData
   } from '$lib/utils/fbtracking';
-  import { initTaboola, trackTaboola, getTblci } from '$lib/utils/taboola';
-  import { initTikTok, trackTikTok, getTtclid, getTtp } from '$lib/utils/tiktok';
   import { getSid } from '$lib/utils/analytics';
   import { SHOPIFY_SHOP_DOMAIN, pickVariantForAmount } from '$lib/data/variants';
 
@@ -71,20 +69,12 @@
   let fbclid: string | null = $state(null);
   let fbp: string | null = $state(null);
   let utm: UtmData | null = $state(null);
-  let tblci: string | null = $state(null);
-  let ttclid: string | null = $state(null);
-  let ttp: string | null = $state(null);
 
   onMount(() => {
     const tracking = captureAndPersistFbclid();
     fbclid = tracking.fbclid;
     utm = tracking.utm;
     setTimeout(() => { fbp = getFbp(); }, 300);
-    initTaboola();
-    tblci = getTblci();
-    initTikTok();
-    ttclid = getTtclid();
-    setTimeout(() => { ttp = getTtp(); }, 300);
   });
 
   function selectAmount(amount: number) {
@@ -115,8 +105,6 @@
       content_type: 'product',
       num_items: 1
     }, eventId);
-    trackTaboola('IC', selectedAmount);
-    trackTikTok('InitiateCheckout', selectedAmount, contentId);
 
     const variantId = pickVariantForAmount(selectedAmount);
     if (!variantId || variantId.startsWith('PLACEHOLDER')) {
@@ -134,9 +122,6 @@
         eventId,
         utm,
         sid: getSid(),
-        tblci,
-        ttclid,
-        ttp,
         eid: getEid()
       });
     }, 400);

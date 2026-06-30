@@ -266,15 +266,11 @@ function deriveSocialUtm(evt: IngestInput): { utm_source?: string; utm_medium?: 
   if (evt.utm_source) return {};
   // Click IDs (paid traffic — prioridade mais alta)
   if (evt.fbclid) return { utm_source: 'facebook', utm_medium: 'cpc' };
-  const d: any = evt.data || {};
-  if (d.ttclid || d.ttp) return { utm_source: 'tiktok', utm_medium: 'cpc' };
-  if (d.tblci) return { utm_source: 'taboola', utm_medium: 'cpc' };
   // Referrer (organico/social — fallback secundario)
   const ref = (evt.ref || '').toLowerCase();
   if (!ref) return {};
   if (/(^|\/\/)(l|lm|m|www)?\.?facebook\.com/.test(ref))      return { utm_source: 'facebook',  utm_medium: 'social' };
   if (/(^|\/\/)(l\.)?instagram\.com/.test(ref))               return { utm_source: 'instagram', utm_medium: 'social' };
-  if (/(^|\/\/)(t|m|www)?\.?tiktok\.com/.test(ref))           return { utm_source: 'tiktok',    utm_medium: 'social' };
   if (/(^|\/\/)(l\.)?youtube\.com|youtu\.be/.test(ref))       return { utm_source: 'youtube',   utm_medium: 'social' };
   if (/(^|\/\/)(www\.)?google\./.test(ref))                   return { utm_source: 'google',    utm_medium: 'organic' };
   if (/(^|\/\/)(www\.)?bing\.com/.test(ref))                  return { utm_source: 'bing',      utm_medium: 'organic' };

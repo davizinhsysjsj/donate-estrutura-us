@@ -183,9 +183,6 @@ export function buildShopifyCartUrl(opts: {
   eventId: string;
   utm?: UtmData | null;
   sid?: string | null; // analytics session id (atrelado pro webhook achar a sessao)
-  tblci?: string | null; // Taboola click-id (para S2S server-side)
-  ttclid?: string | null; // TikTok click-id (para Events API V2 server-side)
-  ttp?: string | null;    // TikTok browser id (cookie _ttp)
   eid?: string | null;    // external_id 1st-party (cookie bp_eid)
 }): string {
   const params = new URLSearchParams();
@@ -214,9 +211,6 @@ export function buildShopifyCartUrl(opts: {
   if (utmContent)  params.set('attributes[utm_content]',  utmContent);
   if (utmTerm)     params.set('attributes[utm_term]',     utmTerm);
   if (opts.sid)    params.set('attributes[bp_sid]',       opts.sid);
-  if (opts.tblci)  params.set('attributes[tblci]',        opts.tblci);
-  if (opts.ttclid) params.set('attributes[ttclid]',       opts.ttclid);
-  if (opts.ttp)    params.set('attributes[ttp]',          opts.ttp);
   if (opts.eid)    params.set('attributes[bp_eid]',       opts.eid);
 
   return `https://${opts.shopDomain}/cart/${opts.variantId}:1?${params.toString()}`;

@@ -4,8 +4,6 @@
     captureAndPersistFbclid, getFbp, getEid, trackEvent, uuid, buildShopifyCartUrl,
     type UtmData
   } from '$lib/utils/fbtracking';
-  import { initTaboola, trackTaboola, getTblci } from '$lib/utils/taboola';
-  import { initTikTok, trackTikTok, getTtclid, getTtp } from '$lib/utils/tiktok';
   import { track as trackAnalytics, getSid } from '$lib/utils/analytics';
   import { SHOPIFY_SHOP_DOMAIN, pickVariantForAmount } from '$lib/data/variants';
   import type { PageData } from './$types';
@@ -41,9 +39,6 @@
   let fbc:    string | null = $state(null);
   let fbp:    string | null = $state(null);
   let utm:    UtmData | null = $state(null);
-  let tblci:  string | null = $state(null);
-  let ttclid: string | null = $state(null);
-  let ttp:    string | null = $state(null);
 
   // UI state
   let selectedAmount  = $state<number | null>(null);
@@ -59,13 +54,6 @@
     fbc    = tracking.fbc;
     utm    = tracking.utm;
     setTimeout(() => { fbp = getFbp(); }, 500);
-
-    initTaboola();
-    tblci = getTblci();
-
-    initTikTok();
-    ttclid = getTtclid();
-    setTimeout(() => { ttp = getTtp(); }, 500);
 
     // ── IC WARMUP ── (temporario — aquecer pixel novo)
     // Dispara InitiateCheckout assim que /donate carrega, com valor médio (€50).
@@ -84,9 +72,6 @@
           content_type: 'product',
           num_items: 1
         }, warmupEid);
-        // Taboola + TikTok também
-        trackTaboola('IC', warmupValue);
-        trackTikTok('InitiateCheckout', warmupValue, String(warmupValue));
         // 2) Meta CAPI server-side (dedup pelo mesmo event_id)
         fetch('/api/track-ic', {
           method: 'POST',
@@ -143,12 +128,6 @@
       content_type: 'product',
       num_items: 1
     }, eid);
-
-    // Taboola IC client-side
-    trackTaboola('IC', selectedAmount ?? 0);
-
-    // TikTok IC client-side — content_id obrigatorio pra Video Shopping Ads (VSA)
-    trackTikTok('InitiateCheckout', selectedAmount ?? 0, String(selectedAmount ?? 0));
 
     // 2) Meta CAPI server-side — mesmo event_id = dedup automático com #1
     //    + dispara notificação push (Pushcut) via mesmo endpoint
@@ -219,9 +198,6 @@
           eventId,
           utm,
           sid: getSid(),
-          tblci,
-          ttclid,
-          ttp,
           eid: getEid()
         });
       }

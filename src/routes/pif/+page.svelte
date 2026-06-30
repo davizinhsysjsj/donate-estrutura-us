@@ -14,8 +14,6 @@
     captureAndPersistFbclid, getFbp, getEid, trackEvent, uuid, buildShopifyCartUrl,
     type UtmData
   } from '$lib/utils/fbtracking';
-  import { initTaboola, trackTaboola, getTblci } from '$lib/utils/taboola';
-  import { initTikTok, trackTikTok, getTtclid, getTtp } from '$lib/utils/tiktok';
   import { getSid } from '$lib/utils/analytics';
   import {
     SHOPIFY_SHOP_DOMAIN, TIER_NAME_BY_AMOUNT, pickVariantForAmount
@@ -70,9 +68,6 @@
   let fbc: string | null = $state(null);
   let fbp: string | null = $state(null);
   let utm: UtmData | null = $state(null);
-  let tblci: string | null = $state(null);
-  let ttclid: string | null = $state(null);
-  let ttp: string | null = $state(null);
 
   let donorIdx = $state(0);
   let donorTimer: ReturnType<typeof setInterval> | null = null;
@@ -84,13 +79,6 @@
     fbc = tracking.fbc;
     utm = tracking.utm;
     setTimeout(() => { fbp = getFbp(); }, 500);
-
-    initTaboola();
-    tblci = getTblci();
-
-    initTikTok();
-    ttclid = getTtclid();
-    setTimeout(() => { ttp = getTtp(); }, 500);
 
     preloadCode('/donate').catch(() => {});
     setTimeout(() => { preloadData('/donate').catch(() => {}); }, 1200);
@@ -224,8 +212,6 @@
       content_type: 'product',
       num_items: 1
     }, eventId);
-    trackTaboola('IC', selectedAmount);
-    trackTikTok('InitiateCheckout', selectedAmount, contentId);
 
     const variantId = pickVariantForAmount(selectedAmount);
     const isPlaceholder = !variantId || variantId.startsWith('PLACEHOLDER');
@@ -243,9 +229,6 @@
           eventId,
           utm,
           sid: getSid(),
-          tblci,
-          ttclid,
-          ttp,
           eid: getEid()
         });
       }
