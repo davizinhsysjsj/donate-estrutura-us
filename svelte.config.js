@@ -12,7 +12,13 @@ const adapter = useVercel ? adapterVercel() : adapterNode();
 const config = {
   preprocess: vitePreprocess(),
   kit: {
-    adapter
+    adapter,
+    // CSRF origin check desligado: o Railway/Cloudflare proxy reescreve Host
+    // header pra um nome interno (vitrack-production.up.railway.app), mas o
+    // browser manda Origin: https://vitrack.online — o match interno falha.
+    // Sem isso, o /login POST retorna 403. Mitigamos: actions sensíveis usam
+    // HMAC próprio (vitrack_auth cookie) + APIs não públicas.
+    csrf: { checkOrigin: false }
   }
 };
 
