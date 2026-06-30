@@ -941,7 +941,7 @@
     gap: 0;
     font-family: 'Quicksand', 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     font-weight: 700;
-    font-size: 1.0625rem;
+    font-size: 0.74rem;
     letter-spacing: -0.01em;
     color: #02A95C;
     text-decoration: none;
@@ -959,7 +959,7 @@
   }
   .lina-logo .header-flag { margin-left: 6px; font-size: 0.85em; }
   @media (max-width: 380px) {
-    .lina-logo { font-size: 0.92rem; }
+    .lina-logo { font-size: 0.64rem; }
   }
 
   /* Hero carousel — dots */
