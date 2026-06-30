@@ -6,7 +6,6 @@
   } from 'lucide-svelte';
   import { onMount, onDestroy } from 'svelte';
   import { goto, preloadData, preloadCode } from '$app/navigation';
-  import ExitIntentPopup from '$lib/components/ExitIntentPopup.svelte';
   import ProgressCard from '$lib/components/ProgressCard.svelte';
   import StickyBottomBar from '$lib/components/StickyBottomBar.svelte';
   import {
@@ -184,23 +183,12 @@
       heroIdx = (heroIdx + 1) % HERO_SLIDES.length;
     }, 2500);
 
-    if (typeof history !== 'undefined') {
-      history.pushState({ pawsBackGuard: true }, '', window.location.pathname + window.location.search);
-      const handlePopState = () => {
-        window.removeEventListener('popstate', handlePopState);
-        history.pushState({ pawsBackGuard: true }, '', window.location.pathname + window.location.search);
-        exitPopupVsl?.triggerBackExit();
-      };
-      window.addEventListener('popstate', handlePopState);
-    }
   });
 
   onDestroy(() => {
     if (donorTimer) clearInterval(donorTimer);
     if (heroTimer) clearInterval(heroTimer);
   });
-
-  let exitPopupVsl: ReturnType<typeof ExitIntentPopup> | null = $state(null);
 
   function scrollToDonors() {
     const el = document.getElementById('donations');
@@ -789,8 +777,6 @@
   </div>
 {/if}
 
-<!-- Exit intent popup -->
-<ExitIntentPopup bind:this={exitPopupVsl} onDonate={openDonation} onBack={() => goto('/wacht')} />
 
 <style>
   /* Lina logo (sem pata — heart + heartbeat pulse line) */
