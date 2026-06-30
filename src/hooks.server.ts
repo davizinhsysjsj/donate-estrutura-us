@@ -2,8 +2,40 @@ import { redirect } from '@sveltejs/kit';
 import type { Handle } from '@sveltejs/kit';
 import { lookupGeo } from '$lib/server/geo';
 import { env } from '$env/dynamic/private';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 
 export const API_ONLY_HOSTS = new Set<string>(['api.belgiancare.online']);
+
+// ── Vitrack mode ──────────────────────────────────────────────────────────
+// Quando VITRACK_MODE=true (env do projeto Railway "vitrack"), o serviço só
+// expõe /dashboard e /login. Tudo mais redireciona pra /dashboard.
+// Acesso ao /dashboard exige cookie de auth válido (48h).
+const VITRACK_MODE = env.VITRACK_MODE === 'true';
+const VITRACK_PASSWORD = env.VITRACK_PASSWORD || '';
+const VITRACK_AUTH_COOKIE = 'vitrack_auth';
+const VITRACK_AUTH_TTL_SEC = 48 * 60 * 60; // 48h
+
+function vitrackSign(ts: string): string {
+  return createHmac('sha256', VITRACK_PASSWORD).update(ts).digest('hex');
+}
+
+export function vitrackMakeCookie(): string {
+  const ts = String(Math.floor(Date.now() / 1000));
+  return `${ts}.${vitrackSign(ts)}`;
+}
+
+function vitrackIsValid(cookie: string | undefined): boolean {
+  if (!cookie || !VITRACK_PASSWORD) return false;
+  const [ts, sig] = cookie.split('.');
+  if (!ts || !sig) return false;
+  const expected = vitrackSign(ts);
+  try {
+    if (sig.length !== expected.length) return false;
+    if (!timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return false;
+  } catch { return false; }
+  const age = Math.floor(Date.now() / 1000) - Number(ts);
+  return age >= 0 && age < VITRACK_AUTH_TTL_SEC;
+}
 
 // ── Proteção Brasil ────────────────────────────────────────────────────────
 // Rotas do funil protegidas contra visitas do Brasil
@@ -78,6 +110,28 @@ function ensureFirstPartyCookies(event: Parameters<Handle>[0]['event']) {
 export const handle: Handle = async ({ event, resolve }) => {
   const host = (event.request.headers.get('host') ?? event.url.hostname).toLowerCase();
   const path = event.url.pathname;
+
+  // ── Vitrack: só /dashboard + /login + assets, com auth ──
+  if (VITRACK_MODE) {
+    const isAsset =
+      path.startsWith('/_app/') ||
+      path.startsWith('/api/') ||
+      path === '/favicon.ico' ||
+      path.includes('.');
+    const isLogin = path === '/login';
+    const isDashboard = path.startsWith('/dashboard');
+
+    if (!isAsset && !isLogin && !isDashboard) {
+      throw redirect(302, '/dashboard');
+    }
+
+    if (isDashboard && !vitrackIsValid(event.cookies.get(VITRACK_AUTH_COOKIE))) {
+      const next = encodeURIComponent(path + event.url.search);
+      throw redirect(302, `/login?next=${next}`);
+    }
+
+    return resolve(event);
+  }
 
   // Restrição de host (lógica original)
   if (API_ONLY_HOSTS.has(host) && !path.startsWith('/api/') && path !== '/bedankt') {
