@@ -359,8 +359,23 @@
 </svelte:head>
 
 <header class="header">
-  <a href="/" class="header-logo">
-    <img src="/logo.webp" alt="Officiële Donaties België" class="logo-img" />
+  <a href="/" class="header-logo lina-logo" aria-label="Officiële Donaties België">
+    <span class="lina-logo-word">Officiële&nbsp;D</span>
+    <svg class="lina-logo-heart" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+        fill="#02A95C"
+      />
+      <path
+        d="M5.5 12h2.2l1.1-2.4 2 5.4 1.6-3 1.1 1.6h4.0"
+        fill="none"
+        stroke="#fff"
+        stroke-width="1.6"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+    <span class="lina-logo-word">naties&nbsp;België</span>
     <span class="header-flag" aria-hidden="true">🇧🇪</span>
   </a>
   <button
@@ -777,6 +792,34 @@
 <ExitIntentPopup bind:this={exitPopupVsl} onDonate={openDonation} onBack={() => goto('/wacht')} />
 
 <style>
+  /* Lina logo (sem pata — heart + heartbeat pulse line) */
+  .lina-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    font-family: 'Quicksand', 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 700;
+    font-size: 1.0625rem;
+    letter-spacing: -0.01em;
+    color: #02A95C;
+    text-decoration: none;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .lina-logo-word { display: inline; }
+  .lina-logo-heart {
+    width: 1.05em;
+    height: 1.05em;
+    display: inline-block;
+    vertical-align: -0.18em;
+    margin: 0 0.04em;
+    flex-shrink: 0;
+  }
+  .lina-logo .header-flag { margin-left: 6px; font-size: 0.85em; }
+  @media (max-width: 380px) {
+    .lina-logo { font-size: 0.92rem; }
+  }
+
   /* Hero carousel — dots */
   :global(.hero-carousel) { position: relative; }
   .hero-dots {
