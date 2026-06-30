@@ -10,7 +10,7 @@
  */
 
 /** Pixel ID publico (aparece no source de qualquer site com Meta Pixel). */
-export const META_PIXEL_ID = '1017289997715683';
+export const META_PIXEL_ID = '1602024645266669';
 
 
 export type UtmData = {
