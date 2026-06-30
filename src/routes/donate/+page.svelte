@@ -12,8 +12,9 @@
   import type { PageData } from './$types';
 
   const { data } = $props<{ data: PageData }>();
-  const raisedEur = $derived(data.raisedEur ?? CAMPAIGN.raisedEur);
-  const goalEur = CAMPAIGN.goalEur;
+  // Stats da Lina (mesmas da LP /lina) — campanha separada do CAMPAIGN global animal
+  const raisedEur = $derived(3247);
+  const goalEur = 12450;
   const pct = $derived(Math.min(100, Math.round((raisedEur / goalEur) * 100)));
   // Circunferência do círculo SVG (r=24): 2*pi*24 = 150.8
   const CIRC = 150.8;
