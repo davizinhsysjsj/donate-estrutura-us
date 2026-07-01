@@ -3,7 +3,7 @@ import type { RequestHandler } from './$types';
 import { getFbToken, getDefaultAccountId } from '$lib/server/fb-token';
 
 const CACHE_TTL = 10 * 60 * 1000;
-let _cache: { data: any; ts: number } | null = null;
+const _cacheByBm = new Map<string, { data: any; ts: number }>();
 
 const STATUS_LABEL: Record<number, string> = {
   1: 'active',
@@ -83,8 +83,12 @@ function normalizeAccount(a: any, source: string, businessFromCtx?: { id: string
 
 export const GET: RequestHandler = async ({ url }) => {
   const force = url.searchParams.get('force') === '1';
-  if (!force && _cache && Date.now() - _cache.ts < CACHE_TTL) {
-    return json(_cache.data);
+  // Filtro opcional por BM(s): ?bm=id1,id2  (respeita o BM autorizado no consent)
+  const bmFilter = (url.searchParams.get('bm') || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const cacheKey = bmFilter.join(',') || 'all';
+  const cached = _cacheByBm.get(cacheKey);
+  if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
+    return json(cached.data);
   }
 
   const FB_TOKEN = getFbToken();
@@ -94,6 +98,8 @@ export const GET: RequestHandler = async ({ url }) => {
   const accountFields = 'id,account_id,name,account_status,currency,business,timezone_name,amount_spent,disable_reason';
 
   // 1) Contas atribuidas diretamente ao usuario / system user
+  //    (Meta já respeita o consent do OAuth aqui — se user selecionou 1 BM, so
+  //    retorna contas desse BM)
   try {
     const userAccounts = await fbFetchAll(
       `me/adaccounts?fields=${accountFields}&limit=200&access_token=${FB_TOKEN}`
@@ -106,7 +112,7 @@ export const GET: RequestHandler = async ({ url }) => {
     errors.push(`me/adaccounts: ${e.message}`);
   }
 
-  // 2) Lista todos os BMs que o token tem acesso
+  // 2) Lista todos os BMs que o token tem acesso (pra dropdown de filtro)
   let businesses: { id: string; name: string }[] = [];
   try {
     const bms = await fbFetchAll(
@@ -117,9 +123,11 @@ export const GET: RequestHandler = async ({ url }) => {
     errors.push(`me/businesses: ${e.message}`);
   }
 
-  // 3) Para cada BM, pega owned + client ad accounts em paralelo
-  if (businesses.length) {
-    const bmPromises = businesses.flatMap((biz) => [
+  // 3) Só varre owned/client de BMs SE o user filtrou explicitamente por BM.
+  //    Sem filtro: confia apenas em me/adaccounts (respeita consent do OAuth).
+  if (bmFilter.length) {
+    const targetBms = businesses.filter((b) => bmFilter.includes(b.id));
+    const bmPromises = targetBms.flatMap((biz) => [
       fbFetchAll(`${biz.id}/owned_ad_accounts?fields=${accountFields}&limit=200&access_token=${FB_TOKEN}`)
         .then((accs) => ({ source: 'business_owned', biz, accs }))
         .catch((e) => { errors.push(`${biz.id}/owned: ${e.message}`); return null; }),
@@ -127,13 +135,11 @@ export const GET: RequestHandler = async ({ url }) => {
         .then((accs) => ({ source: 'business_client', biz, accs }))
         .catch((e) => { errors.push(`${biz.id}/client: ${e.message}`); return null; }),
     ]);
-
     const results = await Promise.all(bmPromises);
     for (const r of results) {
       if (!r) continue;
       for (const a of r.accs) {
         const norm = normalizeAccount(a, r.source, r.biz);
-        // Se ja existe (vinda de me/adaccounts), enriquece o business name
         const existing = accountsMap.get(norm.id);
         if (existing) {
           if (!existing.business && norm.business) existing.business = norm.business;
@@ -145,7 +151,12 @@ export const GET: RequestHandler = async ({ url }) => {
     }
   }
 
-  const accounts = [...accountsMap.values()];
+  // Filtra saída pelo bmFilter se setado (ignora contas de outras BMs
+  // que possam ter vindo em me/adaccounts por acesso residual)
+  let accounts = [...accountsMap.values()];
+  if (bmFilter.length) {
+    accounts = accounts.filter((a) => a.businessId && bmFilter.includes(a.businessId));
+  }
 
   // Ordena: ativas primeiro, depois por gasto lifetime desc, depois por nome
   accounts.sort((a, b) => {
@@ -167,10 +178,10 @@ export const GET: RequestHandler = async ({ url }) => {
 
   // Cacheia apenas se conseguiu pelo menos algumas contas
   if (accounts.length > 0) {
-    _cache = { data: result, ts: Date.now() };
-  } else if (errors.length && _cache) {
-    // Falha total mas tem cache antigo: serve stale
-    return json({ ...(_cache.data as any), _stale: true, _errors: errors });
+    _cacheByBm.set(cacheKey, { data: result, ts: Date.now() });
+  } else if (errors.length) {
+    const stale = _cacheByBm.get(cacheKey);
+    if (stale) return json({ ...(stale.data as any), _stale: true, _errors: errors });
   }
 
   return json(result);
