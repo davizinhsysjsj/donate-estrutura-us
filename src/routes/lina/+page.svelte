@@ -467,9 +467,9 @@
       </div>
     </section>
 
-    <!-- Voor de diagnose — brief van haar mama -->
+    <!-- Brief van haar mama — geschreven om 3u 's nachts -->
     <section class="section before-section" id="voor-diagnose" data-section="voor-diagnose">
-      <div class="section-eyebrow">Voor de diagnose</div>
+      <div class="section-eyebrow">3 uur 's nachts</div>
       <h2 class="section-title">Een brief van haar mama.</h2>
 
       <figure class="before-photo">
@@ -486,66 +486,46 @@
         <p class="before-greeting">Lieve lezer,</p>
 
         <p>
-          Drie weken geleden was deze foto gewoon een dinsdagmiddag.
-          Niets bijzonders. Lina rende voor ons uit naar de glijbaan in het
-          park, gilde van het lachen, viel om in het gras, stond weer op en
-          rende verder. Mijn man en ik liepen erachteraan, moe van het werk,
-          en glimlachten naar elkaar zoals ouders dat doen wanneer ze even
-          vergeten hoe snel hun kindje aan het groeien is.
+          Het is drie uur 's nachts. Ik zit op de vloer naast Lina's bed.
+          Ik weet niet waarom ik dit typ.
         </p>
 
         <p>
-          Twee dagen later viel ze. Een gewone val — dachten we. Ze klaagde
-          's nachts over haar been. De volgende ochtend was er een kleine
-          bobbel op haar dijbeen. <strong>Niets groots. Niets duidelijks.</strong>
-          We dachten aan een blauwe plek.
+          Ik ga u niets vragen. Drie weken geleden scrolde ik ook langs
+          zulke berichten. Ik voelde iets. Ik las verder.
         </p>
 
         <p>
-          De huisarts vroeg een röntgenfoto aan "voor de zekerheid". Een week
-          later zat ik in een kantoor in UZ Gent en hoorde een woord dat ik
-          nooit had verwacht uit een dokter zijn mond bij mijn zevenjarige
-          dochter te horen.
+          Vanavond, in bad, keek ze me aan en vroeg:
         </p>
 
         <p class="before-key">
-          <strong>Osteosarcoma. Botkanker. Stadium II.</strong>
+          <strong>"Mama, groeit mijn been terug als ze het eruit halen?"</strong>
         </p>
 
         <p>
-          Ze had geen koorts. Ze had geen pijn die wij merkten. Ze sliep goed.
-          Ze at goed. Ze rende nog steeds achter haar broertje aan in de tuin.
-          <strong>Niets had ons gewaarschuwd.</strong> Behalve één bobbel,
-          twee weken na een val.
+          Ze is zeven. Ze denkt dat het werkt zoals melktanden.
         </p>
 
         <p>
-          Ik schrijf dit bericht niet om u alleen om hulp te vragen voor Lina.
-          Ik schrijf dit ook om u, lieve ouder die dit leest, om iets dringends
-          te vragen:
-        </p>
-
-        <p class="before-cta-text">
-          <strong>
-            Negeer kleine bobbels nooit. Negeer aanhoudende pijn 's nachts
-            nooit. Vraag de röntgenfoto. Vraag de scan. Vraag het bloedonderzoek.
-            Als het niets is — fantastisch. Als het iets is — vroeg vangen
-            is alles.
-          </strong>
+          Ik heb niet geantwoord. Ik draaide me om zodat ze mijn gezicht
+          niet zag. Toen ik terugkwam had ze zichzelf al ingestopt, met
+          haar knuffelbeer tegen haar rechterbeen.
         </p>
 
         <p>
-          Bij ons kwam de diagnose te laat voor een eenvoudige ingreep, maar
-          op tijd voor een operatie + chemo die haar been kan redden. Andere
-          ouders horen het te laat. Ik zou willen dat iemand mij dit drie weken
-          geleden had gezegd. Daarom zeg ik het nu, tegen u.
+          Doe wat u voelt. Deel het. Doneer. Of scrol verder — ik oordeel
+          niet, ik deed hetzelfde.
+        </p>
+
+        <p>
+          Alleen: kijk één keer naar haar gezicht voordat u dit tabblad sluit.
         </p>
 
         <p class="before-signoff">
-          Met dank voor elke euro, elk bericht, en elke ouder die vandaag een
-          afspraak maakt voor hun kind,
+          Dan mag u weg.
           <br />
-          <span class="before-name">Sofie M. — mama van Lina</span>
+          <span class="before-name">Sofie — mama van Lina</span>
         </p>
       </div>
     </section>
