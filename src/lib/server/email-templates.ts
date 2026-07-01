@@ -92,7 +92,7 @@ const STR = {
   nl: {
     htmlLang: 'nl',
     fallbackName: 'vriend',
-    tagline: 'Steun Lina — 7 jaar, botkanker, UZ Gent',
+    tagline: 'Steun Lina — 7 jaar, botkanker',
     footerBrand: 'Actie Lina · Steun voor Belgische kinderen met kanker',
     footerSupport: (mail: string) => `Heb je een vraag? Antwoord direct op deze e-mail of mail naar <a href="mailto:${mail}" style="color:${BRAND_DARK};text-decoration:none;">${mail}</a>.`,
     // Thank you — 1u na donatie. Bevestiging dat de donatie direct naar Lina's behandeling gaat.
@@ -100,7 +100,7 @@ const STR = {
     thankPreview: 'Vandaag begon haar eerste chemo. Uw naam staat op haar dossier.',
     thankH1: (name: string) => `Bedankt, ${name}. Lina begon vandaag aan haar behandeling — dankzij u.`,
     thankP1: (amount: string) =>
-      `Uw donatie van <strong style="color:${BRAND_DARK};">${amount}</strong> ging rechtstreeks naar Lina's eerste chemo-sessie in UZ Gent: pijnstilling, anti-emetica, en het bed op de kinderoncologie-afdeling waar ze vannacht slaapt. Haar moeder huilde toen ze het nieuws hoorde.`,
+      `Uw donatie van <strong style="color:${BRAND_DARK};">${amount}</strong> ging rechtstreeks naar Lina's eerste chemo-sessie: pijnstilling, anti-emetica, en het bed op de kinderoncologie-afdeling waar ze vannacht slaapt. Haar moeder huilde toen ze het nieuws hoorde.`,
     thankP2: 'De operatie aan haar rechterdijbeen staat gepland op 11 augustus. Tot dan moet ze 3 rondes chemo doorstaan om de tumor te verkleinen. Uw bijdrage betaalt letterlijk haar eerste ronde. We sturen u updates zodra ze op de operatietafel ligt.',
     thankCta: 'Volg Lina\'s voortgang',
     thankSignoff: 'Met warme groet,',
@@ -112,7 +112,7 @@ const STR = {
     upsellH1: (name: string) => `${name}, Lina ligt op de ISO-kamer. Ze heeft u opnieuw nodig.`,
     upsellP1: (amount: string) =>
       `Uw donatie van <strong style="color:${BRAND_DARK};">${amount}</strong> betaalde 5 dagen geleden haar eerste chemo. Het werkte — de tumor kromp met 8%. Maar de chemo brak ook haar afweer: gisternacht 39,8°C koorts, bloedkweek positief. Neutropene sepsis in vroeg stadium.`,
-    upsellP2: 'Haar arts in UZ Gent (Prof. Dr. Van Damme) heeft immunoglobuline IV voorgeschreven — €4.200 per behandeling, niet volledig terugbetaald door RIZIV. Zonder deze behandeling stopt de chemo en verplaatst de operatie van 11 augustus. Elke week uitstel verdubbelt het risico op longmetastase.',
+    upsellP2: 'Haar behandelend kinderoncoloog heeft immunoglobuline IV voorgeschreven — €4.200 per behandeling, niet volledig terugbetaald door de ziekteverzekering. Zonder deze behandeling stopt de chemo en verplaatst de operatie van 11 augustus. Elke week uitstel verdubbelt het risico op longmetastase.',
     upsellP3: 'Als u opnieuw kunt — al is het €5 — komen we dichter bij haar redding. Haar ouders hebben letterlijk niets meer om te verkopen.',
     upsellCta: 'Ja, ik help Lina opnieuw',
     upsellSignoff: 'Uit de grond van ons hart, bedankt.',
@@ -122,19 +122,19 @@ const STR = {
     upsellV2Preview: 'Uw donatie kocht haar eerste chemo. Vanavond beslist u of ze de tweede haalt — of dat haar longen de tumor krijgen.',
     upsellV2H1: (name: string) => `${name}, zonder uw 2de donatie wordt Lina's operatie afgezegd.`,
     upsellV2P1: (amount: string) =>
-      `48 uur geleden gaf u <strong style="color:${BRAND_DARK};">${amount}</strong> voor Lina's eerste chemo. Het werkte: de tumor kromp met 8%. Maar er is een tegenslag. Vanochtend 03:14 kreeg ze 40,1°C koorts. Bloedkweek: positief voor Klebsiella pneumoniae. Ze is nu op de ISO-kamer met breedspectrum-antibiotica.`,
-    upsellV2P2: 'Prof. Dr. Van Damme (kinderoncoloog UZ Gent) heeft <strong>immunoglobuline IV</strong> voorgeschreven — €4.200 per week, 3 weken lang. RIZIV dekt €900 per week. Er blijft <strong>€9.900</strong> over. Zonder deze behandeling stopt de chemo en wordt de operatie van 11 augustus geannuleerd. Daarna verspreidt de tumor zich naar haar longen. Dat is geen dreiging — dat staat op haar radiologisch verslag.',
+      `48 uur geleden gaf u <strong style="color:${BRAND_DARK};">${amount}</strong> voor Lina's eerste chemo. Het werkte: de tumor kromp met 8%. Maar er is een tegenslag. Vanochtend 03:14 kreeg ze 40,1°C koorts. Bloedkweek: positief voor een agressieve bacteriële infectie. Ze is nu op de ISO-kamer met breedspectrum-antibiotica.`,
+    upsellV2P2: 'Haar behandelend kinderoncoloog heeft <strong>immunoglobuline IV</strong> voorgeschreven — €4.200 per week, 3 weken lang. De ziekteverzekering dekt €900 per week. Er blijft <strong>€9.900</strong> over. Zonder deze behandeling stopt de chemo en wordt de operatie van 11 augustus geannuleerd. Daarna verspreidt de tumor zich naar haar longen. Dat is geen dreiging — dat staat op haar radiologisch verslag.',
     upsellV2MissionsTitle: 'Wat redt u vanavond?',
     upsellV2Mission25Title: '€25 — 1 dag pijnstilling + isolatie-zorg',
     upsellV2Mission25Desc: 'Paracetamol IV + hepafilter-masker + ISO-kamer voor 24u. Ze slaapt vannacht zonder pijn. Eén dag dichter bij de tweede chemo.',
     upsellV2Mission50Title: '€50 — 1 dag antibiotica breedspectrum',
-    upsellV2Mission50Desc: 'Meropenem IV — het antibioticum dat de Klebsiella aanpakt vóór het naar haar longen gaat. 24u dat haar koorts daalt.',
+    upsellV2Mission50Desc: 'Breedspectrum-antibiotica IV — de behandeling die de infectie aanpakt vóór het naar haar longen gaat. 24u dat haar koorts daalt.',
     upsellV2Mission100Badge: 'BESLISSEND',
     upsellV2Mission100Title: '€100 — Halve dosis immunoglobuline',
     upsellV2Mission100Desc: 'Met €100 dekt u de helft van 1 dagsdosis IVIG. Vermenigvuldigt met andere donateurs = de operatie blijft op 11 augustus staan. Uw naam staat in haar dossier.',
     upsellV2Mission300Title: '€300 — 1 volledige dag immunoglobuline IV',
     upsellV2Mission300Desc: 'U betaalt een volledige dagsdosis IVIG in één keer. Haar afweer herstelt zich binnen 24u. De chemo van maandag gaat door. De operatie blijft staan. Lina leeft door u. Letterlijk.',
-    upsellV2Footnote: 'Elke knop brengt u direct naar betalen. Bancontact, 30 seconden, klaar. Geen formulieren. Alle donaties gaan rechtstreeks naar UZ Gent-rekening op naam van Lina.',
+    upsellV2Footnote: 'Elke knop brengt u direct naar betalen. Bancontact, 30 seconden, klaar. Geen formulieren. Alle donaties gaan rechtstreeks naar de behandelrekening op naam van Lina.',
     upsellV2Signoff: 'Ze rekent op u. Letterlijk.',
     upsellV2HeroAlt: 'Lina slaapt met infuus op de kinderoncologie-ISO-kamer',
     // Recovery — 7 dias. Lina overleeft de infectie + operatie is bevestigd.
@@ -142,11 +142,11 @@ const STR = {
     recoveryPreview: 'Dankzij donateurs zoals u. Maar ze heeft nog één laatste hindernis.',
     recoveryH1: (name: string) => `${name}, Lina overleefde — dankzij u.`,
     recoveryP1: (count: string) =>
-      `Vanochtend nam Prof. Van Damme haar bloed opnieuw af. De Klebsiella is negatief. Haar koorts is weg. Ze at vandaag zelf een bord soep. Dat is dankzij <strong style="color:${BRAND_DARK};">${count} donateurs</strong> zoals u die de laatste 7 dagen samen de immunoglobuline betaalden.`,
+      `Vanochtend werd haar bloed opnieuw afgenomen. De bacteriële infectie is negatief. Haar koorts is weg. Ze at vandaag zelf een bord soep. Dat is dankzij <strong style="color:${BRAND_DARK};">${count} donateurs</strong> zoals u die de laatste 7 dagen samen de immunoglobuline betaalden.`,
     recoveryP2: 'Maar er is één laatste hindernis: de operatie van 11 augustus kost €7.800 die nog steeds ontbreekt. Prothese, chirurgen-team, revalidatie. Haar vader werkt nu 60 uur per week in de garage. Haar moeder heeft haar zilveren communie-armband verkocht. Ze hebben letterlijk niets meer.',
     recoveryP3: 'Als u ons weer kunt helpen — al is het €5 — brengt u Lina op 11 augustus op de operatietafel. Zonder die operatie verspreidt de tumor zich alsnog. Uw eerdere donatie was geen einde — het was een begin.',
     recoveryCta: 'Breng Lina naar de operatietafel',
-    recoveryFootnote: 'Geen abonnementen, geen verplichtingen. Elke donatie is eenmalig en gaat direct naar de UZ Gent-rekening op naam van Lina Vermeulen.',
+    recoveryFootnote: 'Geen abonnementen, geen verplichtingen. Elke donatie is eenmalig en gaat direct naar de behandelrekening op naam van Lina.',
     recoverySignoff: 'Met diepe dank dat u nog hier bent.',
     recoveryHeroAlt: 'Lina zit rechtop in bed met haar knuffel na de infectie',
     // Abandoned popup (1u na popup zonder afronding)
@@ -179,7 +179,7 @@ const STR = {
   pt: {
     htmlLang: 'pt-BR',
     fallbackName: 'amigo',
-    tagline: 'Apoie Lina — 7 anos, câncer no osso, UZ Gent',
+    tagline: 'Apoie Lina — 7 anos, câncer no osso',
     footerBrand: 'Ação Lina · Apoio a crianças belgas com câncer',
     footerSupport: (mail: string) => `Alguma dúvida? Responda direto este e-mail ou escreva para <a href="mailto:${mail}" style="color:${BRAND_DARK};text-decoration:none;">${mail}</a>.`,
     // Thank you
@@ -187,7 +187,7 @@ const STR = {
     thankPreview: 'Hoje começou a primeira quimio dela. Seu nome está no prontuário.',
     thankH1: (name: string) => `Obrigado, ${name}. Lina começou o tratamento hoje — graças a você.`,
     thankP1: (amount: string) =>
-      `Sua doação de <strong style="color:${BRAND_DARK};">${amount}</strong> foi direto pra primeira sessão de quimio da Lina no UZ Gent: analgésico, antiemético e a cama na oncologia pediátrica onde ela dorme essa noite. A mãe dela chorou quando soube da notícia.`,
+      `Sua doação de <strong style="color:${BRAND_DARK};">${amount}</strong> foi direto pra primeira sessão de quimio da Lina: analgésico, antiemético e a cama na oncologia pediátrica onde ela dorme essa noite. A mãe dela chorou quando soube da notícia.`,
     thankP2: 'A cirurgia no fêmur direito está marcada pra 11 de agosto. Até lá ela precisa fazer 3 rodadas de quimio pra diminuir o tumor. Sua doação paga literalmente a primeira rodada. Vamos te avisar quando ela subir na mesa.',
     thankCta: 'Acompanhar Lina',
     thankSignoff: 'Com carinho,',
@@ -199,7 +199,7 @@ const STR = {
     upsellH1: (name: string) => `${name}, Lina tá no isolamento. Ela precisa de você de novo.`,
     upsellP1: (amount: string) =>
       `Sua doação de <strong style="color:${BRAND_DARK};">${amount}</strong> pagou a primeira quimio dela 5 dias atrás. Funcionou — o tumor encolheu 8%. Mas a quimio também derrubou a imunidade: ontem à noite 39,8°C de febre, hemocultura positiva. Sepse neutropênica em fase inicial.`,
-    upsellP2: 'O médico dela no UZ Gent (Prof. Van Damme) prescreveu imunoglobulina IV — €4.200 por semana, sem cobertura total do INAMI. Sem esse tratamento, a quimio para e a cirurgia de 11 de agosto é adiada. Cada semana de atraso dobra o risco de metástase pulmonar.',
+    upsellP2: 'O oncologista pediátrico dela prescreveu imunoglobulina IV — €4.200 por semana, sem cobertura total do plano de saúde. Sem esse tratamento, a quimio para e a cirurgia de 11 de agosto é adiada. Cada semana de atraso dobra o risco de metástase pulmonar.',
     upsellP3: 'Se você puder ajudar de novo — nem que seja €5 — a gente chega mais perto de salvá-la. Os pais dela literalmente já venderam tudo que tinham.',
     upsellCta: 'Sim, quero ajudar Lina de novo',
     upsellSignoff: 'Do fundo do coração, obrigado.',
@@ -209,19 +209,19 @@ const STR = {
     upsellV2Preview: 'Sua doação pagou a 1ª quimio. Hoje à noite você decide se ela chega na 2ª — ou se o tumor vai pros pulmões.',
     upsellV2H1: (name: string) => `${name}, sem sua 2ª doação a cirurgia da Lina é cancelada.`,
     upsellV2P1: (amount: string) =>
-      `48 horas atrás você deu <strong style="color:${BRAND_DARK};">${amount}</strong> pra primeira quimio da Lina. Funcionou: o tumor encolheu 8%. Mas veio um problema. Hoje às 03:14 ela chegou a 40,1°C. Hemocultura: positiva pra Klebsiella pneumoniae. Ela tá agora no quarto de isolamento com antibiótico de amplo espectro.`,
-    upsellV2P2: 'O Prof. Van Damme (oncologista pediátrico UZ Gent) prescreveu <strong>imunoglobulina IV</strong> — €4.200 por semana, por 3 semanas. INAMI cobre €900 por semana. Sobra <strong>€9.900</strong>. Sem esse tratamento a quimio para e a cirurgia de 11 de agosto é cancelada. Depois disso o tumor se espalha pros pulmões dela. Não é ameaça — está no laudo radiológico.',
+      `48 horas atrás você deu <strong style="color:${BRAND_DARK};">${amount}</strong> pra primeira quimio da Lina. Funcionou: o tumor encolheu 8%. Mas veio um problema. Hoje às 03:14 ela chegou a 40,1°C. Hemocultura: positiva pra uma infecção bacteriana agressiva. Ela tá agora no quarto de isolamento com antibiótico de amplo espectro.`,
+    upsellV2P2: 'O oncologista pediátrico dela prescreveu <strong>imunoglobulina IV</strong> — €4.200 por semana, por 3 semanas. O plano de saúde cobre €900 por semana. Sobra <strong>€9.900</strong>. Sem esse tratamento a quimio para e a cirurgia de 11 de agosto é cancelada. Depois disso o tumor se espalha pros pulmões dela. Não é ameaça — está no laudo radiológico.',
     upsellV2MissionsTitle: 'O que você salva hoje à noite?',
     upsellV2Mission25Title: '€25 — 1 dia de analgésico + isolamento',
     upsellV2Mission25Desc: 'Paracetamol IV + máscara HEPA + quarto de isolamento por 24h. Ela dorme sem dor essa noite. 1 dia mais perto da 2ª quimio.',
     upsellV2Mission50Title: '€50 — 1 dia de antibiótico amplo espectro',
-    upsellV2Mission50Desc: 'Meropenem IV — o antibiótico que ataca a Klebsiella antes dela chegar nos pulmões. 24h de febre caindo.',
+    upsellV2Mission50Desc: 'Antibiótico de amplo espectro IV — o tratamento que ataca a infecção antes dela chegar nos pulmões. 24h de febre caindo.',
     upsellV2Mission100Badge: 'DECISIVA',
     upsellV2Mission100Title: '€100 — Meia dose de imunoglobulina',
     upsellV2Mission100Desc: 'Com €100 você cobre metade de 1 dose diária de IVIG. Somando com outros doadores = cirurgia mantida em 11 de agosto. Seu nome no prontuário dela.',
     upsellV2Mission300Title: '€300 — 1 dia inteiro de imunoglobulina IV',
     upsellV2Mission300Desc: 'Você paga uma dose diária inteira de IVIG. Imunidade dela se recupera em 24h. A quimio de segunda acontece. A cirurgia fica de pé. Lina vive por você. Literalmente.',
-    upsellV2Footnote: 'Cada botão te leva direto pro pagamento. Bancontact, 30 segundos, pronto. Sem formulário. Todas as doações vão pra conta do UZ Gent no nome da Lina.',
+    upsellV2Footnote: 'Cada botão te leva direto pro pagamento. Bancontact, 30 segundos, pronto. Sem formulário. Todas as doações vão pra conta de tratamento no nome da Lina.',
     upsellV2Signoff: 'Ela conta com você. Literalmente.',
     upsellV2HeroAlt: 'Lina dormindo no isolamento da oncologia pediátrica',
     // Recovery
@@ -229,11 +229,11 @@ const STR = {
     recoveryPreview: 'Graças a doadores como você. Mas ainda falta um último obstáculo.',
     recoveryH1: (name: string) => `${name}, Lina sobreviveu — graças a você.`,
     recoveryP1: (count: string) =>
-      `Hoje de manhã o Prof. Van Damme colheu o sangue dela de novo. Klebsiella negativa. A febre passou. Ela comeu uma tigela de sopa sozinha hoje. Isso é graças a <strong style="color:${BRAND_DARK};">${count} doadores</strong> como você que nos últimos 7 dias pagaram juntos a imunoglobulina.`,
+      `Hoje de manhã colheram o sangue dela de novo. A infecção bacteriana está negativa. A febre passou. Ela comeu uma tigela de sopa sozinha hoje. Isso é graças a <strong style="color:${BRAND_DARK};">${count} doadores</strong> como você que nos últimos 7 dias pagaram juntos a imunoglobulina.`,
     recoveryP2: 'Mas tem um último obstáculo: a cirurgia de 11 de agosto custa €7.800 que ainda faltam. Prótese, equipe cirúrgica, reabilitação. O pai dela agora trabalha 60h por semana na oficina. A mãe vendeu a pulseira de prata da primeira comunhão. Eles literalmente já não têm mais nada.',
     recoveryP3: 'Se você puder ajudar de novo — nem que seja €5 — você leva a Lina pra mesa de cirurgia no dia 11. Sem essa cirurgia, o tumor se espalha mesmo assim. Sua doação anterior não foi o fim — foi só o começo.',
     recoveryCta: 'Leve Lina pra mesa de cirurgia',
-    recoveryFootnote: 'Sem assinatura, sem amarra. Cada doação é única e vai direto pra conta do UZ Gent no nome da Lina Vermeulen.',
+    recoveryFootnote: 'Sem assinatura, sem amarra. Cada doação é única e vai direto pra conta de tratamento no nome da Lina.',
     recoverySignoff: 'Com profunda gratidão por ainda estar aqui.',
     recoveryHeroAlt: 'Lina sentada na cama com o ursinho depois da infecção',
     // Abandoned popup
