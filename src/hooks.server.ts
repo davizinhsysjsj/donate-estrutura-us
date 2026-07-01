@@ -120,6 +120,17 @@ export const handle: Handle = async ({ event, resolve }) => {
   ).toLowerCase();
   const path = event.url.pathname;
 
+  // ── Alias /vitrack → /dashboard (enquanto vitrack.online está morto) ──
+  if (path === '/vitrack' || path === '/vitrack/') {
+    throw redirect(302, '/dashboard');
+  }
+  if (path === '/vitrack/login') {
+    throw redirect(302, '/login');
+  }
+  if (path.startsWith('/vitrack/')) {
+    throw redirect(302, '/dashboard' + path.slice('/vitrack'.length));
+  }
+
   // ── Vitrack: só /dashboard + /login + assets, com auth ──
   // Ativa se env VITRACK_MODE=true OU se o hostname é vitrack.online
   // (mesmo service donate-belgica agora serve os dois modos, decidindo por host)
