@@ -4,7 +4,7 @@
   let { data } = $props();
 
   // ── State ──
-  type Tab = 'overview' | 'live' | 'funnel' | 'vsl' | 'heatmap' | 'sessions' | 'revenue' | 'tech' | 'ads' | 'taxas' | 'campanhas' | 'cleaner' | 'contas';
+  type Tab = 'overview' | 'live' | 'funnel' | 'vsl' | 'heatmap' | 'sessions' | 'revenue' | 'tech' | 'ads' | 'taxas' | 'campanhas' | 'cleaner' | 'contas' | 'status';
   type Period = 'hoje' | 'ontem' | 'hoje_ontem' | 'ultimos_7d' | 'este_mes';
   let activeTab = $state<Tab>('overview');
   let period = $state<Period>('hoje');
@@ -475,6 +475,69 @@
   let fbDebug = $state<any>(null);
   let debugLoading = $state(false);
   let refreshingToken = $state(false);
+
+  // ── Status de domínios (aba Status) ──
+  type DomainEntry = {
+    domain: string;
+    status: 'up' | 'down' | 'unknown';
+    consecutiveFailures: number;
+    lastCheckedAt: number;
+    lastStatusChangeAt: number;
+    lastHttpStatus?: number;
+    lastError?: string;
+    lastLatencyMs?: number;
+  };
+  let domainStatus = $state<DomainEntry[]>([]);
+  let domainLoading = $state(false);
+  let domainRechecking = $state(false);
+  let domainStatusCheckedAt = $state<number | null>(null);
+  let domainPollTimer: ReturnType<typeof setInterval> | null = null;
+
+  async function loadDomainStatus(force = false) {
+    if (force) domainRechecking = true;
+    else domainLoading = true;
+    try {
+      const r = await fetch(force ? '/api/admin/domain-status?force=1' : '/api/admin/domain-status', { cache: 'no-store' });
+      if (r.ok) {
+        const j = await r.json();
+        domainStatus = j.domains ?? [];
+        domainStatusCheckedAt = j.checkedAt ?? Date.now();
+      }
+    } catch {}
+    domainLoading = false;
+    domainRechecking = false;
+  }
+
+  function startDomainPolling() {
+    if (domainPollTimer) return;
+    domainPollTimer = setInterval(() => loadDomainStatus(false), 60_000);
+  }
+  function stopDomainPolling() {
+    if (domainPollTimer) { clearInterval(domainPollTimer); domainPollTimer = null; }
+  }
+
+  function fmtLatency(ms?: number): string {
+    if (typeof ms !== 'number') return '—';
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(2)}s`;
+  }
+  function fmtRelative(ts: number): string {
+    if (!ts) return '—';
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 60) return `${s}s atrás`;
+    if (s < 3600) return `${Math.floor(s / 60)}min atrás`;
+    if (s < 86400) return `${Math.floor(s / 3600)}h atrás`;
+    return `${Math.floor(s / 86400)}d atrás`;
+  }
+  function fmtDuration(ms: number): string {
+    const s = Math.floor(ms / 1000);
+    if (s < 60) return `${s}s`;
+    const m = Math.floor(s / 60);
+    if (m < 60) return `${m}min`;
+    const h = Math.floor(m / 60);
+    const remM = m % 60;
+    return remM ? `${h}h${remM}min` : `${h}h`;
+  }
 
   async function loadTokenStatus() {
     try {
@@ -1453,6 +1516,16 @@
     else if (campSubTab === 'ads') pullAds();
   });
 
+  // Aba Status — abrir carrega estado + inicia polling; sair pára o polling
+  $effect(() => {
+    if (activeTab === 'status') {
+      loadDomainStatus(false);
+      startDomainPolling();
+    } else {
+      stopDomainPolling();
+    }
+  });
+
   async function pullCampaigns(force = false) {
     campaignsLoading = true;
     fbCampaigns = [];
@@ -1735,6 +1808,7 @@
         { id: 'sessions', label: 'Sessões', icon: '☰' },
         { id: 'revenue', label: 'Receita', icon: '$' },
         { id: 'tech', label: 'Performance', icon: '⏱︎' },
+        { id: 'status', label: 'Status', icon: '◉' },
         { id: 'cleaner', label: 'Burlador Meta', icon: '⌽' }
       ] as item}
         <button class="nav-item" data-tab={item.id} class:active={activeTab === item.id} onclick={() => { activeTab = item.id as Tab; mobileMenuOpen = false; }}>
@@ -3720,6 +3794,80 @@
       </div><!-- /tab-content contas -->
       {/if}
 
+      {#if activeTab === 'status'}
+      <div class="tab-content">
+        <div class="status-header">
+          <div>
+            <h2 class="status-title">Status dos domínios</h2>
+            <p class="status-subtitle">
+              Monitor automático a cada 5min. Notifica pelo mesmo Pushcut do IC nas transições UP↔DOWN.
+              {#if domainStatusCheckedAt}
+                <span class="status-checked"> · Última consulta: {fmtRelative(domainStatusCheckedAt)}</span>
+              {/if}
+            </p>
+          </div>
+          <button class="status-recheck" onclick={() => loadDomainStatus(true)} disabled={domainRechecking}>
+            {domainRechecking ? 'Rechecando…' : '↻ Recheck agora'}
+          </button>
+        </div>
+
+        {#if domainLoading && domainStatus.length === 0}
+          <div class="status-empty">Carregando…</div>
+        {:else if domainStatus.length === 0}
+          <div class="status-empty">
+            Nenhum domínio checado ainda. Aguarde ~10s após o boot ou clique em "Recheck agora".
+          </div>
+        {:else}
+          <div class="status-grid">
+            {#each domainStatus as d (d.domain)}
+              <div class="status-card status-{d.status}">
+                <div class="status-card-head">
+                  <span class="status-dot"></span>
+                  <div class="status-card-name">
+                    <a href="https://{d.domain}/" target="_blank" rel="noopener">{d.domain} ↗</a>
+                  </div>
+                  <span class="status-badge">{d.status.toUpperCase()}</span>
+                </div>
+                <div class="status-card-body">
+                  <div class="status-row">
+                    <span class="status-lbl">HTTP</span>
+                    <span class="status-val">{d.lastHttpStatus ?? '—'}</span>
+                  </div>
+                  <div class="status-row">
+                    <span class="status-lbl">Latência</span>
+                    <span class="status-val">{fmtLatency(d.lastLatencyMs)}</span>
+                  </div>
+                  <div class="status-row">
+                    <span class="status-lbl">Última check</span>
+                    <span class="status-val">{fmtRelative(d.lastCheckedAt)}</span>
+                  </div>
+                  {#if d.status === 'down'}
+                    <div class="status-row">
+                      <span class="status-lbl">Fora há</span>
+                      <span class="status-val status-alert">{d.lastStatusChangeAt ? fmtDuration(Date.now() - d.lastStatusChangeAt) : '—'}</span>
+                    </div>
+                    {#if d.lastError}
+                      <div class="status-error">{d.lastError}</div>
+                    {/if}
+                  {:else if d.status === 'up' && d.consecutiveFailures > 0}
+                    <div class="status-row">
+                      <span class="status-lbl">Falhas parciais</span>
+                      <span class="status-val status-warn">{d.consecutiveFailures}</span>
+                    </div>
+                  {:else if d.lastStatusChangeAt}
+                    <div class="status-row">
+                      <span class="status-lbl">Uptime</span>
+                      <span class="status-val">{fmtDuration(Date.now() - d.lastStatusChangeAt)}</span>
+                    </div>
+                  {/if}
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </div><!-- /tab-content status -->
+      {/if}
+
     {/if}
 
     <footer class="dash-foot">
@@ -5436,6 +5584,86 @@
     cursor: pointer; transition: background 0.15s;
   }
   .account-menu-manage:hover { background: #141a23; }
+
+  /* ─── Aba STATUS (monitor de domínios) ─── */
+  .status-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .status-title { font-size: 1.5rem; font-weight: 700; margin: 0 0 4px; color: #e6e9ef; }
+  .status-subtitle { color: #8b94a4; font-size: 0.875rem; margin: 0; max-width: 640px; line-height: 1.5; }
+  .status-checked { color: #64748b; }
+  .status-recheck {
+    background: #11161d; border: 1px solid #1f2630; color: #e6e9ef;
+    padding: 10px 16px; border-radius: 10px; cursor: pointer;
+    font-size: 0.875rem; font-weight: 600; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .status-recheck:hover:not(:disabled) { background: #1a212c; border-color: #2a3340; }
+  .status-recheck:disabled { opacity: 0.6; cursor: not-allowed; }
+  .status-empty {
+    background: #11151c; border: 1px dashed #1f2630;
+    border-radius: 12px; padding: 32px; text-align: center; color: #8b94a4;
+  }
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+  }
+  .status-card {
+    background: #11151c;
+    border: 1px solid #1f2630;
+    border-left: 4px solid #1f2630;
+    border-radius: 12px;
+    padding: 18px 20px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .status-card.status-up { border-left-color: #10b981; }
+  .status-card.status-down { border-left-color: #ef4444; background: #1a1214; }
+  .status-card.status-unknown { border-left-color: #64748b; }
+  .status-card-head {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .status-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    background: #64748b;
+  }
+  .status-up .status-dot { background: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.18); }
+  .status-down .status-dot { background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.22); animation: statusPulse 1.2s ease-in-out infinite; }
+  @keyframes statusPulse {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(239,68,68,0.22); }
+    50% { box-shadow: 0 0 0 8px rgba(239,68,68,0.05); }
+  }
+  .status-card-name { flex: 1; min-width: 0; font-weight: 600; font-size: 0.9375rem; }
+  .status-card-name a {
+    color: #e6e9ef; text-decoration: none;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: block;
+  }
+  .status-card-name a:hover { color: #10b981; }
+  .status-badge {
+    font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.08em;
+    padding: 3px 8px; border-radius: 999px;
+    background: #0a0d12; color: #64748b;
+  }
+  .status-up .status-badge { color: #10b981; background: rgba(16,185,129,0.1); }
+  .status-down .status-badge { color: #ef4444; background: rgba(239,68,68,0.14); }
+  .status-card-body { display: flex; flex-direction: column; gap: 6px; }
+  .status-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 0.8125rem;
+  }
+  .status-lbl { color: #64748b; }
+  .status-val { color: #cbd5e1; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .status-val.status-alert { color: #ef4444; font-weight: 700; }
+  .status-val.status-warn { color: #f59e0b; font-weight: 700; }
+  .status-error {
+    margin-top: 4px; padding: 8px 10px;
+    background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 6px; color: #fca5a5; font-size: 0.75rem;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    word-break: break-all;
+  }
 
   /* ─── Aba CONTAS ─── */
   .contas-header { margin-bottom: 24px; }

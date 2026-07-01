@@ -139,7 +139,9 @@ export function notifyDomainDown(p: {
   error?: string;
   latencyMs?: number;
 }): void {
-  const NAME = env.PUSHCUT_DOMAIN_NOTIFICATION || 'DOMAIN STATUS';
+  // Reusa a mesma notification que o IC (PUSHCUT_NOTIFICATION, default "IC INICIADO")
+  const NAME =
+    env.PUSHCUT_DOMAIN_NOTIFICATION || env.PUSHCUT_NOTIFICATION || 'IC INICIADO';
   const title = `🔴 ${p.domain} caiu`;
   const detail = p.status
     ? `HTTP ${p.status}`
@@ -154,7 +156,8 @@ export function notifyDomainUp(p: {
   domain: string;
   downtimeMs?: number;
 }): void {
-  const NAME = env.PUSHCUT_DOMAIN_NOTIFICATION || 'DOMAIN STATUS';
+  const NAME =
+    env.PUSHCUT_DOMAIN_NOTIFICATION || env.PUSHCUT_NOTIFICATION || 'IC INICIADO';
   const title = `✅ ${p.domain} voltou`;
   const downtimeTxt = p.downtimeMs
     ? `Ficou fora ${formatDuration(p.downtimeMs)}`
