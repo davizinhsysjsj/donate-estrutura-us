@@ -5,78 +5,28 @@ import { getPrefs } from '$lib/server/dashboard-prefs';
 
 const COOKIE = 'dash_token';
 
-export const load: PageServerLoad = async ({ cookies, url, request }) => {
-  // Em VITRACK_MODE (via env OU hostname vitrack.online), o hook ja bloqueou
-  // acesso sem cookie vitrack_auth. Retornamos authed=true + DASHBOARD_TOKEN
-  // pras APIs internas (/api/analytics, /api/dashboard/*) que checam header.
-  // Cloudflare Worker proxy reescreve Host, mas passa x-forwarded-host original.
-  const originalHost = (
-    request.headers.get('x-forwarded-host') || url.hostname
-  ).toLowerCase();
-  const isVitrackHost = originalHost === 'vitrack.online' || originalHost === 'www.vitrack.online';
-  if (env.VITRACK_MODE === 'true' || isVitrackHost) {
-    const prefs = getPrefs();
-    const dashToken = env.DASHBOARD_TOKEN ?? '';
-    // As APIs internas (/api/analytics, /api/dashboard/*) checam cookie dash_token.
-    // Seta pro browser aqui em vez de exigir POST /dashboard/login.
-    if (dashToken) {
-      cookies.set(COOKIE, dashToken, {
-        path: '/',
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: true,
-        maxAge: 60 * 60 * 24 * 30
-      });
-    }
-    return {
-      authed: true,
-      token: dashToken,
-      selectedAccountIds: prefs.selectedAccountIds
-    };
-  }
-
-  const expected = env.DASHBOARD_TOKEN;
-  // Sem token configurado = libera (dev / preview)
-  if (!expected) {
-    const prefs = getPrefs();
-    return { authed: true, token: '', selectedAccountIds: prefs.selectedAccountIds };
-  }
-
-  // Aceita ?token=XXX e seta cookie pra navegacoes futuras
-  const fromUrl = url.searchParams.get('token');
-  if (fromUrl && fromUrl === expected) {
-    cookies.set(COOKIE, fromUrl, {
+export const load: PageServerLoad = async ({ cookies }) => {
+  // Autenticação única centralizada em hooks.server.ts (cookie vitrack_auth,
+  // senha 'davizkx'). Se o request chegou aqui, o hook já validou.
+  // Ainda seta cookie dash_token pras APIs internas (/api/analytics,
+  // /api/dashboard/*) que verificam header — se DASHBOARD_TOKEN estiver
+  // configurado como env.
+  const dashToken = env.DASHBOARD_TOKEN ?? '';
+  if (dashToken) {
+    cookies.set(COOKIE, dashToken, {
       path: '/',
       httpOnly: true,
       sameSite: 'lax',
       secure: true,
       maxAge: 60 * 60 * 24 * 30
     });
-    throw redirect(303, '/dashboard');
   }
-
-  const cookie = cookies.get(COOKIE);
-  if (cookie === expected) {
-    const prefs = getPrefs();
-    return { authed: true, token: cookie, selectedAccountIds: prefs.selectedAccountIds };
-  }
-  return { authed: false, token: '', selectedAccountIds: [] };
+  const prefs = getPrefs();
+  return {
+    authed: true,
+    token: dashToken,
+    selectedAccountIds: prefs.selectedAccountIds
+  };
 };
 
-export const actions: Actions = {
-  login: async ({ request, cookies }) => {
-    const expected = env.DASHBOARD_TOKEN;
-    if (!expected) return { success: true };
-    const form = await request.formData();
-    const token = (form.get('token') as string) || '';
-    if (token !== expected) return fail(401, { error: 'Token incorreto' });
-    cookies.set(COOKIE, token, {
-      path: '/',
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: true,
-      maxAge: 60 * 60 * 24 * 30
-    });
-    throw redirect(303, '/dashboard');
-  }
-};
+export const actions: Actions = {};

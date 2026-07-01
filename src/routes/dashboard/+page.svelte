@@ -1708,18 +1708,6 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" />
 </svelte:head>
 
-{#if !data.authed}
-  <div class="login-wrap">
-    <form method="POST" action="?/login" class="login-card">
-      <div class="login-brand">
-        <img src="/dashboard/vitrack-logo.png?v=2" alt="Vitrack" class="brand-logo" />
-      </div>
-      <p>Acesso restrito. Insira o token de acesso.</p>
-      <input type="password" name="token" placeholder="Token" autofocus autocomplete="current-password" />
-      <button type="submit">Entrar</button>
-    </form>
-  </div>
-{:else}
 <div class="app" class:sidebar-collapsed={!sidebarOpen} class:mobile-menu-open={mobileMenuOpen}>
 
   {#if mobileMenuOpen}
@@ -3816,7 +3804,6 @@
       {/if}
     </div>
   </div>
-{/if}
 {/if}
 
 <style>
