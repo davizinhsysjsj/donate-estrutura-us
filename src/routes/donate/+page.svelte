@@ -55,45 +55,7 @@
     utm    = tracking.utm;
     setTimeout(() => { fbp = getFbp(); }, 500);
 
-    // ── IC WARMUP ── (temporario — aquecer pixel novo)
-    // Dispara InitiateCheckout assim que /donate carrega, com valor médio (€50).
-    // Desligue setando WARMUP_IC = false quando o pixel sair do learning phase.
-    const WARMUP_IC = true;
-    if (WARMUP_IC) {
-      const warmupValue = 50;
-      const warmupEid = uuid();
-      // Aguarda fbp/ttp serem populados (são setados em setTimeout 500ms acima)
-      setTimeout(() => {
-        // 1) Meta Pixel client-side
-        trackEvent('InitiateCheckout', {
-          value: warmupValue,
-          currency: 'EUR',
-          content_ids: [String(warmupValue)],
-          content_type: 'product',
-          num_items: 1
-        }, warmupEid);
-        // 2) Meta CAPI server-side (dedup pelo mesmo event_id)
-        fetch('/api/track-ic', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            eventId: warmupEid,
-            value: warmupValue,
-            currency: 'EUR',
-            fbclid,
-            fbp,
-            fbc: fbc ?? undefined,
-            userAgent: navigator.userAgent,
-            sourceUrl: window.location.href,
-            sid: getSid(),
-            utm_source: utm?.source ?? undefined,
-            utm_campaign: utm?.campaign ?? undefined,
-            warmup: true
-          })
-        }).catch((e) => console.warn('[donate] warmup CAPI failed', e));
-        console.log('[donate] IC warmup disparado (€' + warmupValue + ')');
-      }, 700);
-    }
+    // IC só dispara em selectAmount() → openPopup() — nunca em pageview.
 
     // Auto-seleciona valor se vier de link com ?amount= (sticky bar, abandoned recovery)
     const params = new URLSearchParams(window.location.search);
