@@ -146,8 +146,8 @@
     <section class="over-section over-contact">
       <h2>Contact</h2>
       <p>Heeft u vragen over uw donatie of wilt u meer weten?</p>
-      <a href="mailto:contact@belgiancare.online" class="over-contact-btn">
-        contact@belgiancare.online
+      <a href="mailto:contact@belgiancarestore.com" class="over-contact-btn">
+        contact@belgiancarestore.com
       </a>
     </section>
 

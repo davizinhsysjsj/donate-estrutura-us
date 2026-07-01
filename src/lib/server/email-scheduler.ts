@@ -154,7 +154,7 @@ async function processOne(item: ScheduledItem): Promise<boolean> {
     to: item.toEmail,
     subject: rendered.subject,
     html: rendered.html,
-    replyTo: process.env.RESEND_REPLY_TO || 'contact@belgiancare.online'
+    replyTo: process.env.RESEND_REPLY_TO || 'contact@belgiancarestore.com'
   });
 
   if (r.ok) {
@@ -433,7 +433,7 @@ export async function sendNow(input: {
     to: input.toEmail,
     subject: rendered.subject,
     html: rendered.html,
-    replyTo: process.env.RESEND_REPLY_TO || 'contact@belgiancare.online'
+    replyTo: process.env.RESEND_REPLY_TO || 'contact@belgiancarestore.com'
   });
 }
 

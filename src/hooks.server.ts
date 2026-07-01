@@ -5,7 +5,7 @@ import { env } from '$env/dynamic/private';
 import { building } from '$app/environment';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
-export const API_ONLY_HOSTS = new Set<string>(['api.belgiancare.online']);
+export const API_ONLY_HOSTS = new Set<string>(['api.belgiancarestore.com']);
 
 // ── Vitrack mode ──────────────────────────────────────────────────────────
 // Quando VITRACK_MODE=true (env do projeto Railway "vitrack"), o serviço só

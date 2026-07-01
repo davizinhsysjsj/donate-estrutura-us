@@ -6,10 +6,10 @@
  *
  * Config via env vars (Railway):
  *  - RESEND_API_KEY        (formato: re_...)
- *  - RESEND_MAIL_FROM      (ex: "Belgian Paws Helper <contact@belgiancare.online>")
+ *  - RESEND_MAIL_FROM      (ex: "Belgian Paws Helper <contact@belgiancarestore.com>")
  *
  * Limites Resend Free: 3000 emails/mes, 100/dia.
- * Domain belgiancare.online verificado na regiao eu-west-1.
+ * Domain belgiancarestore.com verificado na regiao eu-west-1.
  */
 
 const RESEND_API = 'https://api.resend.com/emails';
@@ -32,7 +32,7 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
   const apiKey = process.env.RESEND_API_KEY;
   const from =
     process.env.RESEND_MAIL_FROM ||
-    'Belgian Paws Helper <contact@belgiancare.online>';
+    'Belgian Paws Helper <contact@belgiancarestore.com>';
   if (!apiKey) {
     return { ok: false, error: 'RESEND_API_KEY nao configurado' };
   }

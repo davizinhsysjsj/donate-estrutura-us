@@ -10,7 +10,7 @@
 
   // ── Pagina de TESTE de Express Checkout (Apple Pay / Google Pay / Bancontact / Shop Pay)
   // Tracking completo: CAPI + 1st-party. Redirect real pro Shopify cart.
-  // Use em https://belgiancare.online/teste pra Shopify nao ver dominio da LP principal.
+  // Use em https://belgiancarestore.com/teste pra Shopify nao ver dominio da LP principal.
 
   type Tier = 'bronze' | 'lifesaver' | 'hero' | 'patron';
   type AmountOption = {

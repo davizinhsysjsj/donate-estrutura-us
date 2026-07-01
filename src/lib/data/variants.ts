@@ -5,7 +5,7 @@
  * (handle: complete-care-package-for-belgian-dogs-copia, id 9074861179018)
  */
 
-export const SHOPIFY_SHOP_DOMAIN = 'belgiancare.online';
+export const SHOPIFY_SHOP_DOMAIN = 'belgiancarestore.com';
 
 export const VARIANT_BY_AMOUNT: Record<number, string> = {
   10:  '49473431011466', // Bronze

@@ -665,7 +665,7 @@
         <a href="#">Privacy</a>
         <a href="#">Terugbetalingen</a>
         <a href="#">Cookies</a>
-        <a href="mailto:contact@belgiancare.online">Contact</a>
+        <a href="mailto:contact@belgiancarestore.com">Contact</a>
       </div>
     </footer>
   </div>

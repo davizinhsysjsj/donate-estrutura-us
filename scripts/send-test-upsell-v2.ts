@@ -3,7 +3,7 @@ import { upsellV2Html, upsellV2Subject } from '../src/lib/server/email-templates
 async function main() {
   const to = process.env.TEST_TO || 'luscasimoni@gmail.com';
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_MAIL_FROM || 'Belgian Paws Helper <contact@belgiancare.online>';
+  const from = process.env.RESEND_MAIL_FROM || 'Belgian Paws Helper <contact@belgiancarestore.com>';
 
   if (!apiKey) {
     console.error('RESEND_API_KEY missing');
