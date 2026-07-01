@@ -82,8 +82,20 @@ function captureFbclid(): string | undefined {
   return undefined;
 }
 
+// Rotas/hosts que NÃO devem trackear (dashboard interno + login) — evita poluir
+// a própria dashboard com eventos do usuário navegando nela.
+function isVitrackRoute(): boolean {
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname;
+  const host = window.location.hostname;
+  if (path.startsWith('/dashboard') || path === '/login') return true;
+  if (host === 'vitrack.online' || host === 'www.vitrack.online') return true;
+  return false;
+}
+
 export function track(ev: string, data?: Record<string, unknown>) {
   if (typeof window === 'undefined') return;
+  if (isVitrackRoute()) return;
   queue.push({
     ev,
     sid: getSid(),
