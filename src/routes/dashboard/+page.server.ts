@@ -5,11 +5,15 @@ import { getPrefs } from '$lib/server/dashboard-prefs';
 
 const COOKIE = 'dash_token';
 
-export const load: PageServerLoad = async ({ cookies, url }) => {
+export const load: PageServerLoad = async ({ cookies, url, request }) => {
   // Em VITRACK_MODE (via env OU hostname vitrack.online), o hook ja bloqueou
   // acesso sem cookie vitrack_auth. Retornamos authed=true + DASHBOARD_TOKEN
   // pras APIs internas (/api/analytics, /api/dashboard/*) que checam header.
-  const isVitrackHost = url.hostname === 'vitrack.online' || url.hostname === 'www.vitrack.online';
+  // Cloudflare Worker proxy reescreve Host, mas passa x-forwarded-host original.
+  const originalHost = (
+    request.headers.get('x-forwarded-host') || url.hostname
+  ).toLowerCase();
+  const isVitrackHost = originalHost === 'vitrack.online' || originalHost === 'www.vitrack.online';
   if (env.VITRACK_MODE === 'true' || isVitrackHost) {
     const prefs = getPrefs();
     return {

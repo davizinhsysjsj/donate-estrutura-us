@@ -111,7 +111,13 @@ function ensureFirstPartyCookies(event: Parameters<Handle>[0]['event']) {
 // ──────────────────────────────────────────────────────────────────────────
 
 export const handle: Handle = async ({ event, resolve }) => {
-  const host = (event.request.headers.get('host') ?? event.url.hostname).toLowerCase();
+  // x-forwarded-host tem prioridade — o Cloudflare Worker reescreve Host pra o
+  // domínio interno do Railway ao proxear, mas seta x-forwarded-host com o
+  // original (vitrack.online). Sem isso, VITRACK_MODE nunca ativa via hostname.
+  const forwardedHost = event.request.headers.get('x-forwarded-host');
+  const host = (
+    forwardedHost ?? event.request.headers.get('host') ?? event.url.hostname
+  ).toLowerCase();
   const path = event.url.pathname;
 
   // ── Vitrack: só /dashboard + /login + assets, com auth ──
