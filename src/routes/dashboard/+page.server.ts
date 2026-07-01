@@ -16,9 +16,21 @@ export const load: PageServerLoad = async ({ cookies, url, request }) => {
   const isVitrackHost = originalHost === 'vitrack.online' || originalHost === 'www.vitrack.online';
   if (env.VITRACK_MODE === 'true' || isVitrackHost) {
     const prefs = getPrefs();
+    const dashToken = env.DASHBOARD_TOKEN ?? '';
+    // As APIs internas (/api/analytics, /api/dashboard/*) checam cookie dash_token.
+    // Seta pro browser aqui em vez de exigir POST /dashboard/login.
+    if (dashToken) {
+      cookies.set(COOKIE, dashToken, {
+        path: '/',
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: true,
+        maxAge: 60 * 60 * 24 * 30
+      });
+    }
     return {
       authed: true,
-      token: env.DASHBOARD_TOKEN ?? '',
+      token: dashToken,
       selectedAccountIds: prefs.selectedAccountIds
     };
   }
