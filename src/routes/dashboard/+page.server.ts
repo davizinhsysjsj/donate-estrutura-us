@@ -6,11 +6,11 @@ import { getPrefs } from '$lib/server/dashboard-prefs';
 const COOKIE = 'dash_token';
 
 export const load: PageServerLoad = async ({ cookies, url }) => {
-  // Em VITRACK_MODE, o hooks.server.ts ja bloqueia /dashboard sem cookie
-  // vitrack_auth valido — a tela de token interna do dashboard fica redundante.
-  // Ainda passamos o DASHBOARD_TOKEN pro client pra ele autenticar nas APIs
-  // internas (/api/analytics, /api/dashboard/*) que checam esse header.
-  if (env.VITRACK_MODE === 'true') {
+  // Em VITRACK_MODE (via env OU hostname vitrack.online), o hook ja bloqueou
+  // acesso sem cookie vitrack_auth. Retornamos authed=true + DASHBOARD_TOKEN
+  // pras APIs internas (/api/analytics, /api/dashboard/*) que checam header.
+  const isVitrackHost = url.hostname === 'vitrack.online' || url.hostname === 'www.vitrack.online';
+  if (env.VITRACK_MODE === 'true' || isVitrackHost) {
     const prefs = getPrefs();
     return {
       authed: true,

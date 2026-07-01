@@ -11,7 +11,9 @@ export const API_ONLY_HOSTS = new Set<string>(['api.belgiancare.online']);
 // Quando VITRACK_MODE=true (env do projeto Railway "vitrack"), o serviço só
 // expõe /dashboard e /login. Tudo mais redireciona pra /dashboard.
 // Acesso ao /dashboard exige cookie de auth válido (48h).
-const VITRACK_MODE = env.VITRACK_MODE === 'true';
+// Hosts que ativam vitrack mode automaticamente (o mesmo service serve LP + vitrack)
+const VITRACK_HOSTS = new Set<string>(['vitrack.online', 'www.vitrack.online']);
+const VITRACK_MODE_ENV = env.VITRACK_MODE === 'true';
 const VITRACK_PASSWORD = env.VITRACK_PASSWORD || '';
 const VITRACK_AUTH_COOKIE = 'vitrack_auth';
 const VITRACK_AUTH_TTL_SEC = 48 * 60 * 60; // 48h
@@ -113,8 +115,10 @@ export const handle: Handle = async ({ event, resolve }) => {
   const path = event.url.pathname;
 
   // ── Vitrack: só /dashboard + /login + assets, com auth ──
-  // Bypass durante prerender (build-time) — só aplica em runtime real
-  if (VITRACK_MODE && !building) {
+  // Ativa se env VITRACK_MODE=true OU se o hostname é vitrack.online
+  // (mesmo service donate-belgica agora serve os dois modos, decidindo por host)
+  const isVitrackMode = VITRACK_MODE_ENV || VITRACK_HOSTS.has(host);
+  if (isVitrackMode && !building) {
     const isAsset =
       path.startsWith('/_app/') ||
       path.startsWith('/api/') ||
