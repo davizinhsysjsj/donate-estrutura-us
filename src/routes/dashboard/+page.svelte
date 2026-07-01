@@ -708,33 +708,11 @@
     return out;
   }
 
-  // Filtro de BMs selecionados pelo user (persistido em localStorage)
-  let fbBmFilter = $state<string[]>([]);
-  try {
-    const savedBm = typeof localStorage !== 'undefined' ? localStorage.getItem('vitrack_fb_bm_filter') : null;
-    if (savedBm) fbBmFilter = JSON.parse(savedBm) as string[];
-  } catch {}
-  function toggleBmFilter(id: string) {
-    if (fbBmFilter.includes(id)) fbBmFilter = fbBmFilter.filter((x) => x !== id);
-    else fbBmFilter = [...fbBmFilter, id];
-    try { localStorage.setItem('vitrack_fb_bm_filter', JSON.stringify(fbBmFilter)); } catch {}
-    loadFbAccounts(true);
-  }
-  function clearBmFilter() {
-    fbBmFilter = [];
-    try { localStorage.removeItem('vitrack_fb_bm_filter'); } catch {}
-    loadFbAccounts(true);
-  }
-
   async function loadFbAccounts(force = false) {
     fbAccountsLoading = true;
     fbAccountsError = '';
     try {
-      const params = new URLSearchParams();
-      if (force) params.set('force', '1');
-      if (fbBmFilter.length) params.set('bm', fbBmFilter.join(','));
-      const qs = params.toString();
-      const r = await fetch(`/api/fb-ads/accounts${qs ? '?' + qs : ''}`, { cache: 'no-store' });
+      const r = await fetch(`/api/fb-ads/accounts${force ? '?force=1' : ''}`, { cache: 'no-store' });
       if (r.ok) {
         const d = await r.json();
         fbAccounts = d.accounts || [];
@@ -3700,31 +3678,6 @@
             <div class="contas-empty">
               <p>Nenhuma conta encontrada.</p>
               <p>Conecte-se ao Facebook acima para puxar todas as suas contas e BMs.</p>
-            </div>
-          {/if}
-
-          {#if fbBusinesses.length > 1}
-            <div class="bm-filter-wrap">
-              <div class="bm-filter-head">
-                <span class="bm-filter-label">Mostrar apenas contas destas BMs:</span>
-                {#if fbBmFilter.length > 0}
-                  <button class="bm-filter-clear" onclick={clearBmFilter}>Limpar filtro</button>
-                {/if}
-              </div>
-              <div class="bm-filter-chips">
-                {#each fbBusinesses as bm (bm.id)}
-                  <button
-                    class="bm-filter-chip"
-                    class:active={fbBmFilter.includes(bm.id)}
-                    onclick={() => toggleBmFilter(bm.id)}
-                  >
-                    {fbBmFilter.includes(bm.id) ? '✓ ' : ''}{bm.name}
-                  </button>
-                {/each}
-              </div>
-              {#if fbBmFilter.length === 0}
-                <p class="bm-filter-hint">Sem filtro: mostrando todas as contas às quais o token tem acesso.</p>
-              {/if}
             </div>
           {/if}
 
@@ -6790,36 +6743,6 @@
     color: #4ade80; font-size: 0.8125rem;
     line-height: 1.4;
   }
-
-  /* BM filter chips */
-  .bm-filter-wrap {
-    background: #0e1319; border: 1px solid #1e2530;
-    border-radius: 10px; padding: 12px 14px;
-    margin: 16px 0;
-  }
-  .bm-filter-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-  .bm-filter-label { font-size: 0.8125rem; color: #a3afbf; font-weight: 500; }
-  .bm-filter-clear {
-    background: transparent; border: none; color: #66a3ff;
-    font-size: 0.75rem; cursor: pointer; padding: 0;
-    font-family: inherit; text-decoration: underline;
-  }
-  .bm-filter-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .bm-filter-chip {
-    background: #14181f; border: 1px solid #2a3140;
-    color: #e6e9ef; border-radius: 8px;
-    padding: 6px 10px; font-size: 0.8125rem;
-    cursor: pointer; font-family: inherit;
-    transition: background 0.12s, border-color 0.12s;
-  }
-  .bm-filter-chip:hover { background: #1c2129; }
-  .bm-filter-chip.active {
-    background: rgba(2, 169, 92, 0.14);
-    border-color: rgba(2, 169, 92, 0.5);
-    color: #4ade80;
-    font-weight: 500;
-  }
-  .bm-filter-hint { margin: 8px 0 0; font-size: 0.75rem; color: #6e7886; }
 
   /* Perfil FB conectado — badge ao lado do titulo */
   .contas-profile-badge {

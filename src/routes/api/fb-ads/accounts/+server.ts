@@ -83,10 +83,7 @@ function normalizeAccount(a: any, source: string, businessFromCtx?: { id: string
 
 export const GET: RequestHandler = async ({ url }) => {
   const force = url.searchParams.get('force') === '1';
-  // Filtro opcional por BM(s): ?bm=id1,id2  (respeita o BM autorizado no consent)
-  const bmFilter = (url.searchParams.get('bm') || '').split(',').map((s) => s.trim()).filter(Boolean);
-  const cacheKey = bmFilter.join(',') || 'all';
-  const cached = _cacheByBm.get(cacheKey);
+  const cached = _cacheByBm.get('all');
   if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
     return json(cached.data);
   }
@@ -98,8 +95,6 @@ export const GET: RequestHandler = async ({ url }) => {
   const accountFields = 'id,account_id,name,account_status,currency,business,timezone_name,amount_spent,disable_reason';
 
   // 1) Contas atribuidas diretamente ao usuario / system user
-  //    (Meta já respeita o consent do OAuth aqui — se user selecionou 1 BM, so
-  //    retorna contas desse BM)
   try {
     const userAccounts = await fbFetchAll(
       `me/adaccounts?fields=${accountFields}&limit=200&access_token=${FB_TOKEN}`
@@ -112,7 +107,7 @@ export const GET: RequestHandler = async ({ url }) => {
     errors.push(`me/adaccounts: ${e.message}`);
   }
 
-  // 2) Lista todos os BMs que o token tem acesso (pra dropdown de filtro)
+  // 2) Lista todos os BMs que o token tem acesso
   let businesses: { id: string; name: string }[] = [];
   try {
     const bms = await fbFetchAll(
@@ -123,11 +118,9 @@ export const GET: RequestHandler = async ({ url }) => {
     errors.push(`me/businesses: ${e.message}`);
   }
 
-  // 3) Só varre owned/client de BMs SE o user filtrou explicitamente por BM.
-  //    Sem filtro: confia apenas em me/adaccounts (respeita consent do OAuth).
-  if (bmFilter.length) {
-    const targetBms = businesses.filter((b) => bmFilter.includes(b.id));
-    const bmPromises = targetBms.flatMap((biz) => [
+  // 3) Para cada BM, pega owned + client ad accounts em paralelo
+  if (businesses.length) {
+    const bmPromises = businesses.flatMap((biz) => [
       fbFetchAll(`${biz.id}/owned_ad_accounts?fields=${accountFields}&limit=200&access_token=${FB_TOKEN}`)
         .then((accs) => ({ source: 'business_owned', biz, accs }))
         .catch((e) => { errors.push(`${biz.id}/owned: ${e.message}`); return null; }),
@@ -151,12 +144,7 @@ export const GET: RequestHandler = async ({ url }) => {
     }
   }
 
-  // Filtra saída pelo bmFilter se setado (ignora contas de outras BMs
-  // que possam ter vindo em me/adaccounts por acesso residual)
-  let accounts = [...accountsMap.values()];
-  if (bmFilter.length) {
-    accounts = accounts.filter((a) => a.businessId && bmFilter.includes(a.businessId));
-  }
+  const accounts = [...accountsMap.values()];
 
   // Ordena: ativas primeiro, depois por gasto lifetime desc, depois por nome
   accounts.sort((a, b) => {
@@ -178,9 +166,9 @@ export const GET: RequestHandler = async ({ url }) => {
 
   // Cacheia apenas se conseguiu pelo menos algumas contas
   if (accounts.length > 0) {
-    _cacheByBm.set(cacheKey, { data: result, ts: Date.now() });
+    _cacheByBm.set('all', { data: result, ts: Date.now() });
   } else if (errors.length) {
-    const stale = _cacheByBm.get(cacheKey);
+    const stale = _cacheByBm.get('all');
     if (stale) return json({ ...(stale.data as any), _stale: true, _errors: errors });
   }
 
