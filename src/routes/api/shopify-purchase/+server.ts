@@ -57,6 +57,13 @@ export const POST: RequestHandler = async ({ request }) => {
 		throw error(401, 'invalid hmac');
 	}
 
+	// ── Test payload detection ─────────────────────────────────────────
+	// "Send test notification" do Shopify Admin manda header X-Shopify-Test:
+	// true e payload template com IDs fixos. Nunca contar como venda real.
+	const isTest =
+		request.headers.get('x-shopify-test') === 'true' ||
+		request.headers.get('X-Shopify-Test') === 'true';
+
 	let order: any;
 	try {
 		order = JSON.parse(rawBody);
@@ -65,6 +72,21 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 
 	const orderId: string | number = order.id;
+
+	// IDs conhecidos do payload template Shopify (nunca são orders reais)
+	const KNOWN_TEST_ORDER_IDS = new Set<string>(['820982911946154508', '820982911946154500']);
+	const looksLikeTest =
+		isTest ||
+		KNOWN_TEST_ORDER_IDS.has(String(orderId)) ||
+		order.email === 'jon@example.com' ||
+		order.email === 'jane@example.com';
+
+	if (looksLikeTest) {
+		console.log('[shopify-purchase] test payload detected — skipping ingest/CAPI/emails', {
+			orderId, isTestHeader: isTest, email: order.email
+		});
+		return json({ ok: true, skipped: 'test_payload', orderId });
+	}
 	const noteAttrs = order.note_attributes as
 		| Array<{ name: string; value: string }>
 		| undefined;

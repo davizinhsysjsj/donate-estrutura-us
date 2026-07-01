@@ -54,6 +54,11 @@ export const POST: RequestHandler = async ({ request }) => {
 		throw error(401, 'invalid hmac');
 	}
 
+	// Test payload detection (Send test notification do Shopify Admin)
+	const isTest =
+		request.headers.get('x-shopify-test') === 'true' ||
+		request.headers.get('X-Shopify-Test') === 'true';
+
 	let checkout: any;
 	try {
 		checkout = JSON.parse(rawBody);
@@ -63,6 +68,14 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	const checkoutId = checkout.id;
 	const email: string | undefined = checkout.email || checkout.customer?.email;
+
+	// Payload template Shopify: email fixo example@email.com; nunca agendar
+	if (isTest || email === 'example@email.com' || email === 'jon@example.com') {
+		console.log('[shopify-abandoned-checkout] test payload detected — skipping', {
+			checkoutId, isTestHeader: isTest, email
+		});
+		return json({ ok: true, skipped: 'test_payload', checkoutId });
+	}
 	const recoverUrl: string | undefined = checkout.abandoned_checkout_url;
 
 	// Sem email, nao tem pra quem mandar. Shopify gera webhooks antes do email ser preenchido.
