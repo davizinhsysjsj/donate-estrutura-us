@@ -8,9 +8,15 @@ const COOKIE = 'dash_token';
 export const load: PageServerLoad = async ({ cookies, url }) => {
   // Em VITRACK_MODE, o hooks.server.ts ja bloqueia /dashboard sem cookie
   // vitrack_auth valido — a tela de token interna do dashboard fica redundante.
+  // Ainda passamos o DASHBOARD_TOKEN pro client pra ele autenticar nas APIs
+  // internas (/api/analytics, /api/dashboard/*) que checam esse header.
   if (env.VITRACK_MODE === 'true') {
     const prefs = getPrefs();
-    return { authed: true, token: '', selectedAccountIds: prefs.selectedAccountIds };
+    return {
+      authed: true,
+      token: env.DASHBOARD_TOKEN ?? '',
+      selectedAccountIds: prefs.selectedAccountIds
+    };
   }
 
   const expected = env.DASHBOARD_TOKEN;
