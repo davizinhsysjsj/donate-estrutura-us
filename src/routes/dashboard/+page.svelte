@@ -529,7 +529,7 @@
     if (s < 86400) return `${Math.floor(s / 3600)}h atrás`;
     return `${Math.floor(s / 86400)}d atrás`;
   }
-  function fmtDuration(ms: number): string {
+  function fmtStatusDuration(ms: number): string {
     const s = Math.floor(ms / 1000);
     if (s < 60) return `${s}s`;
     const m = Math.floor(s / 60);
@@ -3844,7 +3844,7 @@
                   {#if d.status === 'down'}
                     <div class="status-row">
                       <span class="status-lbl">Fora há</span>
-                      <span class="status-val status-alert">{d.lastStatusChangeAt ? fmtDuration(Date.now() - d.lastStatusChangeAt) : '—'}</span>
+                      <span class="status-val status-alert">{d.lastStatusChangeAt ? fmtStatusDuration(Date.now() - d.lastStatusChangeAt) : '—'}</span>
                     </div>
                     {#if d.lastError}
                       <div class="status-error">{d.lastError}</div>
@@ -3857,7 +3857,7 @@
                   {:else if d.lastStatusChangeAt}
                     <div class="status-row">
                       <span class="status-lbl">Uptime</span>
-                      <span class="status-val">{fmtDuration(Date.now() - d.lastStatusChangeAt)}</span>
+                      <span class="status-val">{fmtStatusDuration(Date.now() - d.lastStatusChangeAt)}</span>
                     </div>
                   {/if}
                 </div>
