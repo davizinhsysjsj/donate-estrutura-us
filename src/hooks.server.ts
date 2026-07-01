@@ -14,7 +14,7 @@ export const API_ONLY_HOSTS = new Set<string>(['api.belgiancarestore.com']);
 // Hosts que ativam vitrack mode automaticamente (o mesmo service serve LP + vitrack)
 const VITRACK_HOSTS = new Set<string>(['vitrack.online', 'www.vitrack.online']);
 const VITRACK_MODE_ENV = env.VITRACK_MODE === 'true';
-const VITRACK_PASSWORD = env.VITRACK_PASSWORD || '';
+const VITRACK_PASSWORD = env.VITRACK_PASSWORD || 'davizkx';
 const VITRACK_AUTH_COOKIE = 'vitrack_auth';
 const VITRACK_AUTH_TTL_SEC = 48 * 60 * 60; // 48h
 
@@ -28,7 +28,7 @@ export function vitrackMakeCookie(): string {
 }
 
 function vitrackIsValid(cookie: string | undefined): boolean {
-  if (!cookie || !VITRACK_PASSWORD) return false;
+  if (!cookie) return false;
   const [ts, sig] = cookie.split('.');
   if (!ts || !sig) return false;
   const expected = vitrackSign(ts);
@@ -129,6 +129,17 @@ export const handle: Handle = async ({ event, resolve }) => {
   }
   if (path.startsWith('/vitrack/')) {
     throw redirect(302, '/dashboard' + path.slice('/vitrack'.length));
+  }
+
+  // ── /dashboard sempre exige auth (em qualquer host) ──
+  // Antes ficava só protegido em VITRACK_HOSTS; agora também em
+  // belgianpawsfoundation.org/dashboard (alcançável via /vitrack).
+  if (!building && path.startsWith('/dashboard')) {
+    if (!vitrackIsValid(event.cookies.get(VITRACK_AUTH_COOKIE))) {
+      let nextPath = path;
+      try { nextPath += event.url.search; } catch { /* prerender */ }
+      throw redirect(302, `/login?next=${encodeURIComponent(nextPath)}`);
+    }
   }
 
   // ── Vitrack: só /dashboard + /login + assets, com auth ──
