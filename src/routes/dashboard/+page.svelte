@@ -484,6 +484,30 @@
   // Abre OAuth FB em popup centralizado. Listener message reage no mount.
   let oauthPopup: Window | null = null;
   let oauthInProgress = $state(false);
+  let connectMenuOpen = $state(false);
+  let connectCopiedMsg = $state('');
+
+  async function copyMultiloginLink() {
+    const url = new URL('/api/fb-ads/oauth/start', window.location.origin).toString();
+    try {
+      await navigator.clipboard.writeText(url);
+      connectCopiedMsg = '✓ Link copiado — cole em outro navegador (ex: multilogin) pra conectar por lá';
+    } catch {
+      // Fallback pra browsers sem clipboard API
+      const el = document.createElement('textarea');
+      el.value = url;
+      el.style.position = 'fixed';
+      el.style.opacity = '0';
+      document.body.appendChild(el);
+      el.select();
+      try { document.execCommand('copy'); connectCopiedMsg = '✓ Link copiado'; }
+      catch { connectCopiedMsg = 'Copie manual: ' + url; }
+      document.body.removeChild(el);
+    }
+    connectMenuOpen = false;
+    setTimeout(() => { connectCopiedMsg = ''; }, 6000);
+  }
+
   function openOAuthPopup() {
     if (!tokenStatus?.oauthConfigured) return;
     const w = 600, h = 700;
@@ -1703,6 +1727,21 @@
 
   <!-- Main -->
   <main class="main">
+    <!-- Alerta: sem conta FB conectada -->
+    {#if tokenStatus && tokenStatus.source !== 'disk'}
+      <div class="fb-warning-banner" role="alert">
+        <span class="fb-warning-icon" aria-hidden="true">⚠</span>
+        <span class="fb-warning-text">
+          Nenhuma conta do Facebook conectada. Conecte agora pra ver dados de campanhas.
+        </span>
+        <button
+          class="fb-warning-cta"
+          onclick={() => { activeTab = 'contas'; }}
+        >
+          Ir para Contas →
+        </button>
+      </div>
+    {/if}
     <!-- Topbar -->
     <header class="topbar">
       <div class="topbar-left">
@@ -3475,10 +3514,49 @@
 
           <div class="contas-actions">
             {#if tokenStatus?.oauthConfigured}
-              <button class="account-token-oauth" onclick={openOAuthPopup} disabled={oauthInProgress}>
-                <span class="oauth-icon">f</span>
-                {oauthInProgress ? 'Aguardando autorização…' : (tokenStatus.kind === 'oauth' ? 'Reconectar com Facebook' : 'Conectar com Facebook')}
-              </button>
+              <div class="connect-wrap">
+                <button
+                  class="account-token-oauth"
+                  onclick={() => (connectMenuOpen = !connectMenuOpen)}
+                  disabled={oauthInProgress}
+                >
+                  <span class="oauth-icon">f</span>
+                  {oauthInProgress ? 'Aguardando autorização…' : (tokenStatus.kind === 'oauth' ? 'Reconectar' : 'Conectar')}
+                  <span class="connect-caret" aria-hidden="true">▾</span>
+                </button>
+                {#if connectMenuOpen}
+                  <button
+                    class="connect-backdrop"
+                    aria-label="fechar menu"
+                    onclick={() => (connectMenuOpen = false)}
+                  ></button>
+                  <div class="connect-menu" role="menu">
+                    <button
+                      class="connect-menu-item"
+                      role="menuitem"
+                      onclick={() => { connectMenuOpen = false; openOAuthPopup(); }}
+                    >
+                      <span class="connect-menu-icon">f</span>
+                      <span>
+                        <div class="connect-menu-title">Fazer login com Facebook</div>
+                        <div class="connect-menu-sub">Abre o popup do Facebook neste navegador</div>
+                      </span>
+                    </button>
+                    <button
+                      class="connect-menu-item"
+                      role="menuitem"
+                      onclick={copyMultiloginLink}
+                    >
+                      <span class="connect-menu-icon">⧉</span>
+                      <span>
+                        <div class="connect-menu-title">Copiar link para multilogin</div>
+                        <div class="connect-menu-sub">Cola em outro navegador (multilogin, etc)</div>
+                      </span>
+                    </button>
+                  </div>
+                {/if}
+              </div>
+              {#if connectCopiedMsg}<div class="connect-copied">{connectCopiedMsg}</div>{/if}
               {#if tokenStatus.kind === 'oauth'}
                 <button class="account-token-refresh" onclick={refreshTokenNow} disabled={refreshingToken}>
                   {refreshingToken ? 'Renovando…' : '↻ Renovar agora'}
@@ -6547,5 +6625,80 @@
     max-width: 200px; max-height: 280px; margin-top: 8px;
     border: 1px solid #2a3140; border-radius: 6px; object-fit: contain;
     background: #14181f;
+  }
+
+  /* ── FB warning banner ── */
+  .fb-warning-banner {
+    display: flex; align-items: center; gap: 12px;
+    background: linear-gradient(180deg, #4a3300 0%, #3d2900 100%);
+    border-bottom: 1px solid #6b4900;
+    color: #ffd54a;
+    padding: 10px 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+  .fb-warning-icon { font-size: 1.125rem; line-height: 1; }
+  .fb-warning-text { flex: 1; }
+  .fb-warning-cta {
+    background: #ffd54a; color: #3d2900;
+    border: none; border-radius: 6px;
+    padding: 6px 12px; font-size: 0.8125rem; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    transition: opacity 0.15s;
+  }
+  .fb-warning-cta:hover { opacity: 0.85; }
+
+  /* ── Connect menu (dropdown do botão Conectar) ── */
+  .connect-wrap { position: relative; display: inline-block; }
+  .connect-caret { margin-left: 6px; font-size: 0.75rem; opacity: 0.75; }
+  .connect-backdrop {
+    position: fixed; inset: 0;
+    background: transparent; border: none; padding: 0; cursor: default;
+    z-index: 90;
+  }
+  .connect-menu {
+    position: absolute; top: calc(100% + 6px); left: 0;
+    background: #14181f; border: 1px solid #2a3140;
+    border-radius: 10px;
+    padding: 6px;
+    min-width: 320px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+    z-index: 100;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .connect-menu-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: transparent; border: none; color: #e6e9ef;
+    padding: 10px 12px; border-radius: 8px;
+    text-align: left; font-family: inherit; cursor: pointer;
+    transition: background 0.12s;
+  }
+  .connect-menu-item:hover { background: #1c2129; }
+  .connect-menu-icon {
+    font-family: Georgia, serif;
+    width: 32px; height: 32px; flex-shrink: 0;
+    background: #1877f2; color: #fff;
+    border-radius: 8px;
+    display: grid; place-items: center;
+    font-size: 1.125rem; font-weight: 700;
+  }
+  .connect-menu-item:nth-child(2) .connect-menu-icon {
+    background: #02a95c; font-family: inherit;
+  }
+  .connect-menu-title {
+    font-size: 0.9375rem; font-weight: 600; color: #e6e9ef;
+    line-height: 1.3;
+  }
+  .connect-menu-sub {
+    font-size: 0.75rem; color: #8b94a4;
+    margin-top: 2px;
+  }
+  .connect-copied {
+    margin-top: 10px; padding: 8px 12px;
+    background: rgba(2, 169, 92, 0.14);
+    border: 1px solid rgba(2, 169, 92, 0.35);
+    border-radius: 8px;
+    color: #4ade80; font-size: 0.8125rem;
+    line-height: 1.4;
   }
 </style>
