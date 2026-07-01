@@ -464,6 +464,8 @@
     needsRefresh?: boolean;
     oauthConfigured?: boolean;
     authorizeUrl?: string | null;
+    profileName?: string | null;
+    profileId?: string | null;
   };
   let tokenStatus = $state<TokenStatus | null>(null);
   let tokenInput = $state('');
@@ -481,6 +483,31 @@
     } catch {}
   }
 
+  // Polling: quando não conectado (source !== 'disk'), verifica status a cada 3s
+  // e, ao detectar conexão, para o polling e recarrega contas. Serve pro fluxo
+  // multilogin (OAuth completa em outro browser — este descobre sozinho).
+  let tokenPollTimer: ReturnType<typeof setInterval> | null = null;
+  function startTokenPolling() {
+    if (tokenPollTimer) return;
+    tokenPollTimer = setInterval(async () => {
+      const before = tokenStatus?.source;
+      await loadTokenStatus();
+      if (tokenStatus?.source === 'disk' && before !== 'disk') {
+        // Acabou de conectar
+        stopTokenPolling();
+        tokenSuccessMsg = tokenStatus?.profileName
+          ? `✓ Conectado como ${tokenStatus.profileName}`
+          : '✓ Conectado ao Facebook!';
+        setTimeout(() => { tokenSuccessMsg = ''; }, 6000);
+        oauthInProgress = false;
+        loadFbAccounts(true);
+      }
+    }, 3000);
+  }
+  function stopTokenPolling() {
+    if (tokenPollTimer) { clearInterval(tokenPollTimer); tokenPollTimer = null; }
+  }
+
   // Abre OAuth FB em popup centralizado. Listener message reage no mount.
   let oauthPopup: Window | null = null;
   let oauthInProgress = $state(false);
@@ -489,9 +516,10 @@
 
   async function copyMultiloginLink() {
     const url = new URL('/api/fb-ads/oauth/start', window.location.origin).toString();
+    startTokenPolling();
     try {
       await navigator.clipboard.writeText(url);
-      connectCopiedMsg = '✓ Link copiado — cole em outro navegador (ex: multilogin) pra conectar por lá';
+      connectCopiedMsg = '✓ Link copiado — cole em outro navegador (ex: multilogin). Aguardando conexão…';
     } catch {
       // Fallback pra browsers sem clipboard API
       const el = document.createElement('textarea');
@@ -524,7 +552,9 @@
     if (!oauthPopup) {
       oauthInProgress = false;
       tokenError = 'Popup bloqueado pelo navegador. Permita popups para este site e tente de novo.';
+      return;
     }
+    startTokenPolling();
   }
 
   async function refreshTokenNow() {
@@ -999,11 +1029,17 @@
       try { oauthPopup?.close(); } catch {}
       oauthPopup = null;
       if (data.payload?.ok) {
-        tokenSuccessMsg = '✓ Conectado ao Facebook! Token renova sozinho.';
-        setTimeout(() => { tokenSuccessMsg = ''; }, 5000);
-        loadTokenStatus();
-        loadFbAccounts(true);
+        stopTokenPolling();
+        (async () => {
+          await loadTokenStatus();
+          tokenSuccessMsg = tokenStatus?.profileName
+            ? `✓ Conectado como ${tokenStatus.profileName}`
+            : '✓ Conectado ao Facebook! Token renova sozinho.';
+          setTimeout(() => { tokenSuccessMsg = ''; }, 6000);
+          loadFbAccounts(true);
+        })();
       } else {
+        stopTokenPolling();
         tokenError = data.payload?.error || 'Falha no OAuth';
       }
     };
@@ -1534,6 +1570,7 @@
     }, 1000);
   });
   onDestroy(() => { if (agoTimer) clearInterval(agoTimer); });
+  onDestroy(() => { stopTokenPolling(); });
 
   function vitalGrade(metric: 'lcp' | 'inp' | 'cls', val: number): 'good' | 'ok' | 'bad' {
     if (metric === 'lcp') return val < 2500 ? 'good' : val < 4000 ? 'ok' : 'bad';
@@ -3461,8 +3498,13 @@
         <div class="contas-card">
           <div class="contas-card-head">
             <span class="contas-card-icon" style="background:#1877f2">f</span>
-            <div>
-              <h3 class="contas-card-title">Conexão com Facebook</h3>
+            <div style="flex:1;min-width:0">
+              <h3 class="contas-card-title">
+                Conexão com Facebook
+                {#if tokenStatus?.profileName}
+                  <span class="contas-profile-badge">· {tokenStatus.profileName}</span>
+                {/if}
+              </h3>
               <p class="contas-card-desc">
                 {#if tokenStatus?.kind === 'oauth'}
                   Conectado via OAuth. Token renova automaticamente.
@@ -6700,5 +6742,18 @@
     border-radius: 8px;
     color: #4ade80; font-size: 0.8125rem;
     line-height: 1.4;
+  }
+
+  /* Perfil FB conectado — badge ao lado do titulo */
+  .contas-profile-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(24, 119, 242, 0.14);
+    color: #66a3ff;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    vertical-align: middle;
   }
 </style>

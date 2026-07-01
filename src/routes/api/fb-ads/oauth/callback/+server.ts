@@ -69,7 +69,24 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
     const expiresAt = info.expires_at && info.expires_at > 0
       ? info.expires_at * 1000
       : (longLived.expires_in ? Date.now() + longLived.expires_in * 1000 : null);
-    saveToken(longLived.access_token, { expiresAt, kind: 'oauth' });
+
+    // Busca nome do perfil FB pra exibir no dashboard
+    let profileName: string | undefined;
+    let profileId: string | undefined;
+    try {
+      const meRes = await fetch(
+        `https://graph.facebook.com/v21.0/me?fields=name,id&access_token=${encodeURIComponent(longLived.access_token)}`
+      );
+      if (meRes.ok) {
+        const me = await meRes.json();
+        if (me?.name) profileName = String(me.name);
+        if (me?.id) profileId = String(me.id);
+      }
+    } catch (e) {
+      console.warn('[fb-oauth/callback] falha ao buscar /me', e);
+    }
+
+    saveToken(longLived.access_token, { expiresAt, kind: 'oauth', profileName, profileId });
     return popupResponse({ ok: true, expiresAt });
   } catch (e: any) {
     console.error('[fb-oauth/callback]', e);

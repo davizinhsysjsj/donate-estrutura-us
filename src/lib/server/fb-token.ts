@@ -15,6 +15,9 @@ interface StoredToken {
   expiresAt?: number | null;
   // Tipo: 'oauth' = veio do flow OAuth, 'manual' = colado no painel, 'system' = system user
   kind?: 'oauth' | 'manual' | 'system';
+  // Nome do perfil FB conectado (exibido no dashboard).
+  profileName?: string;
+  profileId?: string;
 }
 
 function resolvePath(): string {
@@ -48,7 +51,13 @@ function readFromDisk(): StoredToken | null {
 
 export function saveToken(
   token: string,
-  opts: { defaultAccount?: string; expiresAt?: number | null; kind?: StoredToken['kind'] } = {}
+  opts: {
+    defaultAccount?: string;
+    expiresAt?: number | null;
+    kind?: StoredToken['kind'];
+    profileName?: string;
+    profileId?: string;
+  } = {}
 ): void {
   const p = resolvePath();
   try {
@@ -60,6 +69,8 @@ export function saveToken(
       updatedAt: Date.now(),
       expiresAt: opts.expiresAt ?? null,
       kind: opts.kind ?? prev?.kind ?? 'manual',
+      profileName: opts.profileName ?? prev?.profileName,
+      profileId: opts.profileId ?? prev?.profileId,
     };
     fs.writeFileSync(p, JSON.stringify(data, null, 2), 'utf8');
     _cached = data;
@@ -118,6 +129,8 @@ export function getTokenStatus() {
     daysLeft,
     kind: stored?.kind ?? null,
     needsRefresh: expiresAt ? daysLeft! < 7 : false,
+    profileName: stored?.profileName ?? null,
+    profileId: stored?.profileId ?? null,
   };
 }
 
