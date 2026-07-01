@@ -4,6 +4,11 @@ import { lookupGeo } from '$lib/server/geo';
 import { env } from '$env/dynamic/private';
 import { building } from '$app/environment';
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { initDomainMonitor } from '$lib/server/domain-monitor';
+
+if (!building) {
+  initDomainMonitor();
+}
 
 export const API_ONLY_HOSTS = new Set<string>(['api.belgiancarestore.com']);
 

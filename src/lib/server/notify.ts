@@ -108,3 +108,67 @@ export function notifyIcStarted(p: IcNotifyPayload): void {
     })
     .catch((e) => console.warn('[notify] pushcut failed', e));
 }
+
+/**
+ * Notificação genérica Pushcut — usa notification "DOMAIN STATUS" no app.
+ * title/text são sobrescritos pela API. Fire-and-forget.
+ */
+function pushcutRaw(notificationName: string, title: string, text: string): void {
+  const API_KEY = env.PUSHCUT_API_KEY;
+  if (!API_KEY) return;
+  const url = `https://api.pushcut.io/v1/notifications/${encodeURIComponent(notificationName)}`;
+  fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'API-Key': API_KEY },
+    body: JSON.stringify({ title, text })
+  })
+    .then(async (r) => {
+      if (!r.ok) {
+        const t = await r.text().catch(() => '');
+        console.warn('[notify] pushcut not ok', r.status, t.slice(0, 200));
+      } else {
+        console.log('[notify] pushcut sent', { title });
+      }
+    })
+    .catch((e) => console.warn('[notify] pushcut failed', e));
+}
+
+export function notifyDomainDown(p: {
+  domain: string;
+  status?: number;
+  error?: string;
+  latencyMs?: number;
+}): void {
+  const NAME = env.PUSHCUT_DOMAIN_NOTIFICATION || 'DOMAIN STATUS';
+  const title = `🔴 ${p.domain} caiu`;
+  const detail = p.status
+    ? `HTTP ${p.status}`
+    : p.error
+      ? p.error.slice(0, 80)
+      : 'timeout';
+  const text = `${detail}\n${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`;
+  pushcutRaw(NAME, title, text);
+}
+
+export function notifyDomainUp(p: {
+  domain: string;
+  downtimeMs?: number;
+}): void {
+  const NAME = env.PUSHCUT_DOMAIN_NOTIFICATION || 'DOMAIN STATUS';
+  const title = `✅ ${p.domain} voltou`;
+  const downtimeTxt = p.downtimeMs
+    ? `Ficou fora ${formatDuration(p.downtimeMs)}`
+    : 'Voltou ao ar';
+  const text = `${downtimeTxt}\n${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`;
+  pushcutRaw(NAME, title, text);
+}
+
+function formatDuration(ms: number): string {
+  const s = Math.round(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m}min`;
+  const h = Math.floor(m / 60);
+  const remM = m % 60;
+  return remM ? `${h}h ${remM}min` : `${h}h`;
+}
