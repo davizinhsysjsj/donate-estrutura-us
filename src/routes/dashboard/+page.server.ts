@@ -6,6 +6,13 @@ import { getPrefs } from '$lib/server/dashboard-prefs';
 const COOKIE = 'dash_token';
 
 export const load: PageServerLoad = async ({ cookies, url }) => {
+  // Em VITRACK_MODE, o hooks.server.ts ja bloqueia /dashboard sem cookie
+  // vitrack_auth valido — a tela de token interna do dashboard fica redundante.
+  if (env.VITRACK_MODE === 'true') {
+    const prefs = getPrefs();
+    return { authed: true, token: '', selectedAccountIds: prefs.selectedAccountIds };
+  }
+
   const expected = env.DASHBOARD_TOKEN;
   // Sem token configurado = libera (dev / preview)
   if (!expected) {
