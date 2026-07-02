@@ -1,6 +1,6 @@
 <script lang="ts">
   import {
-    ChevronRight, Calendar, Shield, Heart, BadgeCheck,
+    ChevronLeft, ChevronRight, Calendar, Shield, Heart, BadgeCheck,
     Facebook, Youtube, Twitter, Instagram,
     Menu, X
   } from 'lucide-svelte';
@@ -143,14 +143,24 @@
   let donorTimer: ReturnType<typeof setInterval> | null = null;
   const lastDonor = $derived(donorsList[donorIdx % donorsList.length]);
 
-  // Hero carousel (rotativo 2.5s) — pos é object-position por slide
+  // Hero carousel (rotativo 4s, pausa em interação) — pos é object-position por slide
   const HERO_SLIDES = [
+    { src: '/lina/lina-bed.webp',     pos: 'center 30%' },
     { src: '/lina/lina-desenho.webp', pos: 'center center' },
     { src: '/lina/lina-pai-mao.webp', pos: 'center 35%' },
     { src: '/lina/hero.webp',         pos: 'center 35%' }
   ];
   let heroIdx = $state(0);
   let heroTimer: ReturnType<typeof setInterval> | null = null;
+  let heroPausedByUser = $state(false);
+
+  function heroGoTo(i: number) {
+    heroIdx = (i + HERO_SLIDES.length) % HERO_SLIDES.length;
+    heroPausedByUser = true;
+    if (heroTimer) { clearInterval(heroTimer); heroTimer = null; }
+  }
+  function heroNext() { heroGoTo(heroIdx + 1); }
+  function heroPrev() { heroGoTo(heroIdx - 1); }
 
   onMount(() => {
     const tracking = captureAndPersistFbclid();
@@ -166,10 +176,11 @@
       donorIdx = (donorIdx + 1) % donorsList.length;
     }, 4200);
 
-    // Hero carousel: troca a cada 2.5s
+    // Hero carousel: troca a cada 4s (para se user interagir)
     heroTimer = setInterval(() => {
+      if (heroPausedByUser) return;
       heroIdx = (heroIdx + 1) % HERO_SLIDES.length;
-    }, 2500);
+    }, 4000);
 
   });
 
@@ -381,7 +392,7 @@
 
 <div class="page">
   <div class="container-app">
-    <!-- Hero carousel: 3 fotos da Lina, troca a cada 2.5s -->
+    <!-- Hero carousel: fotos da Lina, autoplay 4s + navegação manual -->
     <div class="hero-image-wrap hero-carousel" data-section="hero-image">
       {#each HERO_SLIDES as slide, i}
         <img
@@ -397,9 +408,33 @@
           style:object-position={slide.pos}
         />
       {/each}
-      <div class="hero-dots" aria-hidden="true">
+
+      <button
+        type="button"
+        class="hero-arrow hero-arrow-prev"
+        aria-label="Vorige foto"
+        onclick={heroPrev}
+      >
+        <ChevronLeft size={22} strokeWidth={2.5} />
+      </button>
+      <button
+        type="button"
+        class="hero-arrow hero-arrow-next"
+        aria-label="Volgende foto"
+        onclick={heroNext}
+      >
+        <ChevronRight size={22} strokeWidth={2.5} />
+      </button>
+
+      <div class="hero-dots">
         {#each HERO_SLIDES as _, i}
-          <span class="hero-dot" class:active={heroIdx === i}></span>
+          <button
+            type="button"
+            class="hero-dot"
+            class:active={heroIdx === i}
+            aria-label={`Foto ${i + 1}`}
+            onclick={() => heroGoTo(i)}
+          ></button>
         {/each}
       </div>
     </div>
@@ -932,7 +967,7 @@
     .lina-logo { font-size: 0.64rem; }
   }
 
-  /* Hero carousel — dots */
+  /* Hero carousel — dots + arrows */
   :global(.hero-carousel) { position: relative; }
   .hero-dots {
     position: absolute;
@@ -940,21 +975,57 @@
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 6px;
+    gap: 8px;
     z-index: 3;
-    pointer-events: none;
   }
   .hero-dot {
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border: 0;
     border-radius: 9999px;
-    background: rgba(255,255,255,0.45);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    transition: background 0.3s, transform 0.3s;
+    background: rgba(255,255,255,0.5);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+    transition: background 0.25s, transform 0.25s;
+    cursor: pointer;
   }
   .hero-dot.active {
     background: #fff;
-    transform: scale(1.25);
+    transform: scale(1.35);
+  }
+  .hero-dot:hover:not(.active) { background: rgba(255,255,255,0.75); }
+  .hero-dot:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+  .hero-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    border-radius: 9999px;
+    border: 0;
+    background: rgba(20,20,20,0.42);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 3;
+    padding: 0;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: background 0.2s, transform 0.15s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  }
+  .hero-arrow:hover { background: rgba(20,20,20,0.6); }
+  .hero-arrow:active { transform: translateY(-50%) scale(0.94); }
+  .hero-arrow:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .hero-arrow-prev { left: 10px; }
+  .hero-arrow-next { right: 10px; }
+  @media (max-width: 480px) {
+    .hero-arrow { width: 36px; height: 36px; }
+    .hero-arrow-prev { left: 8px; }
+    .hero-arrow-next { right: 8px; }
   }
 
   .adopt-section { padding-top: 18px; padding-bottom: 24px; }
