@@ -1,6 +1,6 @@
 <script lang="ts">
   import {
-    ChevronRight, Calendar, Shield, Heart,
+    ChevronRight, Calendar, Shield, Heart, BadgeCheck,
     Facebook, Youtube, Twitter, Instagram,
     Menu, X
   } from 'lucide-svelte';
@@ -608,10 +608,17 @@
     <div class="organizer" id="organizer-section">
       <h3>Organisator</h3>
       <div class="organizer-row">
-        <div class="organizer-avatar">BC</div>
+        <div class="organizer-avatar">
+          <img src="/lina/organizer-avatar.png" alt="Belgian Care Foundation" loading="lazy" decoding="async" />
+        </div>
         <div style="flex:1;min-width:0">
-          <div class="organizer-name">Belgian Care Foundation</div>
-          <div class="organizer-sub">Organisator</div>
+          <div class="organizer-name">
+            <span>Belgian Care Foundation</span>
+            <span class="verified-badge" title="Geverifieerde organisatie" aria-label="Geverifieerde organisatie">
+              <BadgeCheck size={16} strokeWidth={2.5} />
+            </span>
+          </div>
+          <div class="organizer-sub">Officieel geverifieerd · Organisator</div>
           <div class="organizer-sub">Gent, België</div>
         </div>
       </div>
