@@ -49,37 +49,37 @@
     {
       avatar: '/avatars/women-44.webp',
       name: 'Emma B.',
-      city: 'Antwerpen',
+      city: 'Rotterdam',
       quote: "Mijn eigen dochter is 7 — net als Lina. Ik kon niet stoppen met huilen toen ik haar verhaal las. €50 gedoneerd, en deelde het meteen in mijn moedersgroep."
     },
     {
       avatar: '/avatars/men-32.webp',
       name: 'Niels V.',
-      city: 'Gent',
-      quote: 'UZ Gent is mijn ziekenhuis. Mijn nichtje werd daar geboren. Te weten dat een klein meisje daar nu vecht voor haar been — dat raakte me. €100 gedoneerd.'
+      city: 'Utrecht',
+      quote: 'Ik ben zelf in het academisch ziekenhuis hier geboren. Te weten dat een klein meisje nu vecht voor haar been — dat raakte me. €100 gedoneerd.'
     },
     {
       avatar: '/avatars/women-68.webp',
       name: 'Camille L.',
-      city: 'Brussel',
+      city: 'Amsterdam',
       quote: 'Mijn man overleed vorig jaar aan kanker. Ik weet hoe het is om te wachten op een operatie die alles kan veranderen. Lina is nog zo klein. €200 voor haar.'
     },
     {
       avatar: '/avatars/women-12.webp',
       name: 'Lieve D.',
-      city: 'Brugge',
+      city: 'Delft',
       quote: "Ik zag de röntgenfoto en kon niet meer ademen. Mijn zoontje is ook 7. Dit had hij kunnen zijn. €75 gedoneerd, en ik kom morgen weer."
     },
     {
       avatar: '/avatars/men-76.webp',
       name: 'Mathieu R.',
-      city: 'Luik',
+      city: 'Nijmegen',
       quote: 'Ik werk in de orthopedie. Wat Lina doormaakt is brutaal voor een kind. De prothese die ze nodig heeft is technisch hoogstaand maar duur. €100 gedoneerd, en heel veel kracht aan haar familie.'
     },
     {
       avatar: '/avatars/men-52.webp',
       name: 'Sven J.',
-      city: 'Leuven',
+      city: 'Groningen',
       quote: "Mijn beste vriend verloor zijn dochter aan leukemie toen ze 9 was. Ik wist niet wat te zeggen toen. Nu wist ik het: doneren. €50 voor Lina, in herinnering aan kleine Saar."
     }
   ];
@@ -104,8 +104,8 @@
       "Drie weken geleden viel ze tijdens het buitenspelen. Een gewone val — dachten haar ouders. De arts maakte een röntgenfoto. En toen viel de wereld stil."
     ],
     storyRest: [
-      "Osteosarcoma. Een agressieve bottumor in haar rechterdijbeen. Haar arts in UZ Gent zegt het zonder eromheen te draaien: zonder operatie binnen 42 dagen verspreidt de tumor zich naar haar longen. Met operatie + chemo + een pediatrische prothese is haar overlevingskans 78%.",
-      "Haar ouders verkochten hun auto. Haar moeder werkt nachtdiensten. Haar vader (monteur in Gent) pakt extra shifts. Ze hebben €3.200 bij elkaar. De operatie + behandeling kost €12.450. Het ontbrekende bedrag is wat tussen Lina en haar volgende verjaardag staat.",
+      "Osteosarcoma. Een agressieve bottumor in haar rechterdijbeen. De artsen zeggen het zonder eromheen te draaien: zonder operatie binnen 42 dagen verspreidt de tumor zich naar haar longen. Met operatie + chemo + een pediatrische prothese is haar overlevingskans 78%.",
+      "Haar ouders verkochten hun auto. Haar moeder werkt nachtdiensten. Haar vader (monteur in Utrecht) pakt extra shifts. Ze hebben €3.200 bij elkaar. De operatie + behandeling kost €12.450. Het ontbrekende bedrag is wat tussen Lina en haar volgende verjaardag staat.",
       "€25 dekt één dag pijnstilling. €100 helpt mee voor de scan vóór de operatie. €200 betaalt één chemo-sessie. Elke euro brengt haar dichter bij een toekomst waarin ze opnieuw kan rennen."
     ],
     highlight: 'De klok tikt. Help Lina vandaag — €12.450 voor haar operatie.',
@@ -485,7 +485,7 @@
     <!-- Testimonials -->
     <section class="section" id="testimonials-section" data-section="testimonials">
       <div class="section-eyebrow">Steunbetuigingen</div>
-      <h2 class="section-title">Van supporters in heel België.</h2>
+      <h2 class="section-title">Van supporters in heel Nederland.</h2>
       <div class="testimonial-row">
         {#each LINA_TESTIMONIALS as t}
           <div class="testimonial-card">
@@ -573,7 +573,7 @@
           </label>
           <label class="adopt-field">
             <span>Stad</span>
-            <input type="text" bind:value={adoptCity} placeholder="Bijv. Antwerpen" autocomplete="address-level2" required />
+            <input type="text" bind:value={adoptCity} placeholder="Bijv. Rotterdam" autocomplete="address-level2" required />
           </label>
           <label class="adopt-field">
             <span>E-mail (voor de update)</span>
@@ -633,17 +633,17 @@
       <h3>Organisator</h3>
       <div class="organizer-row">
         <div class="organizer-avatar">
-          <img src="/lina/organizer-avatar.png" alt="Belgian Care Foundation" loading="lazy" decoding="async" />
+          <img src="/lina/organizer-avatar.png" alt="Nederlandse Kinderzorg Stichting" loading="lazy" decoding="async" />
         </div>
         <div style="flex:1;min-width:0">
           <div class="organizer-name">
-            <span>Belgian Care Foundation</span>
+            <span>Nederlandse Kinderzorg Stichting</span>
             <span class="verified-badge" title="Geverifieerde organisatie" aria-label="Geverifieerde organisatie">
               <BadgeCheck size={16} strokeWidth={2.5} />
             </span>
           </div>
           <div class="organizer-sub">Officieel geverifieerd · Organisator</div>
-          <div class="organizer-sub">Gent, België</div>
+          <div class="organizer-sub">Utrecht, Nederland</div>
         </div>
       </div>
 
@@ -669,7 +669,7 @@
         <a href="#" aria-label="Instagram"><Instagram size={20} /></a>
       </div>
 
-      <div class="footer-copy">© 2026 Belgian Care Foundation</div>
+      <div class="footer-copy">© 2026 Nederlandse Kinderzorg Stichting</div>
 
       <div class="footer-links">
         <a href="#">Voorwaarden</a>
@@ -742,7 +742,7 @@
           <p class="confirm-sub">{labelForAmount(selectedAmount)}.</p>
 
           <p class="confirm-direct-note">
-            Jouw donatie gaat rechtstreeks naar Lina's operatie, chemo en de pediatrische prothese in UZ Gent.
+            Jouw donatie gaat rechtstreeks naar Lina's operatie, chemo en de pediatrische prothese.
           </p>
 
           <button class="btn-bancontact" onclick={handleDonate} disabled={donating}>
@@ -813,7 +813,7 @@
   <div class="sheet sheet-donors" role="document">
     <div class="sheet-handle"></div>
     <div class="sheet-title">Alle donaties ({donationsCount})</div>
-    <p class="sheet-subtitle">Laatste supporters die Belgische opvangcentra helpen.</p>
+    <p class="sheet-subtitle">Laatste supporters die Nederlandse opvangcentra helpen.</p>
     <ul class="donor-list donor-list-full">
       {#each donorsList as d}
         <li class="donor-item">
