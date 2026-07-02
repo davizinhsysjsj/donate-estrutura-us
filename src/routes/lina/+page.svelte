@@ -507,16 +507,6 @@
       <div class="section-eyebrow">3 uur 's nachts</div>
       <h2 class="section-title">Een brief van haar mama.</h2>
 
-      <figure class="before-photo">
-        <img
-          src="/lina/lina-antes.webp"
-          alt="Lina rennend in het park, drie weken voor de diagnose"
-          loading="lazy"
-          decoding="async"
-        />
-        <figcaption>Lina, drie weken vóór de diagnose — 6 juni 2026</figcaption>
-      </figure>
-
       <div class="before-letter">
         <p class="before-greeting">Lieve lezer,</p>
 
@@ -873,27 +863,6 @@
     padding-bottom: 32px;
     border-top: 1px solid #e5e7eb;
     margin-top: 8px;
-  }
-  .before-photo {
-    margin: 16px 0 22px;
-    border-radius: 14px;
-    overflow: hidden;
-    background: #f3f4f6;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-  }
-  .before-photo img {
-    width: 100%;
-    height: auto;
-    display: block;
-    object-fit: cover;
-  }
-  .before-photo figcaption {
-    padding: 10px 14px;
-    font-size: 0.8125rem;
-    color: #6b7280;
-    background: #fafafa;
-    border-top: 1px solid #f0f0f0;
-    font-style: italic;
   }
   .before-letter {
     font-family: Georgia, 'Times New Roman', serif;
