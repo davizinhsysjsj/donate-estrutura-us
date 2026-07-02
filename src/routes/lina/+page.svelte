@@ -539,17 +539,16 @@
         </p>
 
         <p>
-          Doe wat u voelt. Deel het. Doneer. Of scrol verder — ik oordeel
-          niet, ik deed hetzelfde.
+          Dit is een oproep waarvan ik dacht dat ik hem nooit in mijn leven
+          zou moeten doen — en vandaag sta ik hier.
         </p>
 
         <p>
-          Alleen: kijk één keer naar haar gezicht voordat u dit tabblad sluit.
+          Alstublieft, help mij het been van Lina te redden. Elke euro die u
+          doneert redt haar leven. Ik wil haar gewoon weer zien lopen.
         </p>
 
         <p class="before-signoff">
-          Dan mag u weg.
-          <br />
           <span class="before-name">Sofie — mama van Lina</span>
         </p>
       </div>
