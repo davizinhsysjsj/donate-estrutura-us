@@ -12,7 +12,7 @@
     captureAndPersistFbclid, getFbp, getEid, trackEvent, uuid, buildShopifyCartUrl,
     type UtmData
   } from '$lib/utils/fbtracking';
-  import { getSid } from '$lib/utils/analytics';
+  import { track as trackAnalytics, getSid } from '$lib/utils/analytics';
   import {
     SHOPIFY_SHOP_DOMAIN, TIER_NAME_BY_AMOUNT, pickVariantForAmount
   } from '$lib/data/variants';
@@ -306,6 +306,10 @@
     const eventId = uuid();
     const contentId = `lina-${amount}`;
 
+    // Vitrack: seleção de valor + CTA (flush imediato via IMMEDIATE_EVENTS)
+    trackAnalytics('amount_select', { amount, source: 'lina_quick' });
+    trackAnalytics('cta_click', { amount, tier: contentId, source: 'lina_quick' });
+
     // 1) Meta Pixel client-side (fbq) — dedup com CAPI via mesmo event_id
     trackEvent('InitiateCheckout', {
       value: amount,
@@ -363,6 +367,7 @@
 
   function selectAmount(amount: number) {
     selectedAmount = amount;
+    trackAnalytics('amount_select', { amount, source: 'lina_step' });
     setTimeout(() => {
       currentStep = 2;
     }, 200);
@@ -373,6 +378,9 @@
 
     const eventId = uuid();
     const contentId = `lina-${selectedAmount}`;
+
+    // Vitrack: CTA final (botão Bancontact do modal 2-step)
+    trackAnalytics('bancontact_click', { amount: selectedAmount, tier: contentId, source: 'lina_step' });
 
     // Meta + Taboola + TikTok IC com content_id especifico de Lina pra atribuicao limpa
     trackEvent('InitiateCheckout', {
