@@ -116,12 +116,24 @@
 
   // Tiers humanos: copy NL pra doação pediátrica
   const TIERS = [
-    { amount: 25,  label: '1 dag pijnstilling' },
-    { amount: 50,  label: '1 week voeding tijdens chemo' },
-    { amount: 100, label: 'Helpt mee voor de scan' },
-    { amount: 200, label: 'Eén chemo-sessie' }
+    { amount: 15, label: '4 uur pijnstilling' },
+    { amount: 20, label: 'Verband + steriel materiaal' },
+    { amount: 25, label: '1 dag pijnstilling' },
+    { amount: 50, label: '1 week voeding tijdens chemo' }
   ];
   const DEFAULT_TIER = 50;
+
+  // Valores extras (modal "Ander bedrag")
+  const OTHER_AMOUNTS = [
+    { amount: 10,  label: '1 uur ademhalingssteun' },
+    { amount: 30,  label: 'Anti-misselijkheid medicatie' },
+    { amount: 35,  label: '1 fysio-sessie na chemo' },
+    { amount: 80,  label: 'Helpt mee voor de PET-scan' },
+    { amount: 100, label: 'Volledige pre-op scan' },
+    { amount: 200, label: 'Eén chemo-sessie' },
+    { amount: 300, label: 'Twee chemo-sessies' },
+    { amount: 500, label: 'Een hele behandelingsweek' }
+  ];
 
   function labelForAmount(amount: number): string {
     const t = TIERS.find((x) => x.amount === amount);
@@ -197,6 +209,8 @@
   let descExpanded = $state(false);
   let donationOpen = $state(false);
   let shareOpen = $state(false);
+  let otherAmountOpen = $state(false);
+  let quickDonating = $state<number | null>(null);
   let currentStep = $state<1 | 2>(1);
   let selectedAmount = $state<number>(DEFAULT_TIER);
   let donating = $state(false);
@@ -274,6 +288,42 @@
 
   function openDonation() {
     goto('/donate');
+  }
+
+  // Redirect direto pro checkout Shopify — SEM passar por /donate, SEM step de confirmação
+  function quickDonate(amount: number) {
+    if (quickDonating !== null) return;
+    quickDonating = amount;
+
+    const eventId = uuid();
+    const contentId = `lina-${amount}`;
+
+    trackEvent('InitiateCheckout', {
+      value: amount,
+      currency: 'EUR',
+      content_ids: [contentId],
+      content_type: 'product',
+      num_items: 1
+    }, eventId);
+
+    const variantId = pickVariantForAmount(amount);
+
+    setTimeout(() => {
+      if (!variantId || variantId.startsWith('PLACEHOLDER')) {
+        window.location.href = `/supporter?tier=${amount}&event_id=${eventId}`;
+      } else {
+        window.location.href = buildShopifyCartUrl({
+          shopDomain: SHOPIFY_SHOP_DOMAIN,
+          variantId,
+          fbclid,
+          fbp,
+          eventId,
+          utm,
+          sid: getSid(),
+          eid: getEid()
+        });
+      }
+    }, 300);
   }
 
   function selectAmount(amount: number) {
@@ -554,6 +604,61 @@
       </div>
     </section>
 
+    <!-- ────────────────────────────────────────────────────────────────
+         SEÇÃO INLINE DE DOAÇÃO — checkout direto, sem passar por /donate
+    ──────────────────────────────────────────────────────────────── -->
+    <section class="section inline-donate" id="doneer-nu">
+      <div class="inline-donate-eyebrow">
+        <span class="pulse-dot"></span>
+        DIRECTE STEUN VOOR LINA
+      </div>
+      <h2 class="inline-donate-title">Kies je bijdrage</h2>
+      <p class="inline-donate-sub">
+        100% gaat rechtstreeks naar de operatie, chemo en de pediatrische prothese.
+        <br />Betaal veilig met <strong>Bancontact</strong>, iDEAL, kaart of Apple/Google Pay.
+      </p>
+
+      <div class="inline-tier-grid">
+        {#each TIERS as tier}
+          <button
+            type="button"
+            class="inline-tier"
+            class:popular={tier.amount === 50}
+            disabled={quickDonating !== null}
+            onclick={() => quickDonate(tier.amount)}
+          >
+            {#if tier.amount === 50}
+              <span class="inline-tier-badge">Meest gekozen</span>
+            {/if}
+            <span class="inline-tier-value">€{tier.amount}</span>
+            <span class="inline-tier-label">{tier.label}</span>
+            {#if quickDonating === tier.amount}
+              <span class="inline-tier-loading"><span class="spinner"></span> Doorverwijzen…</span>
+            {:else}
+              <span class="inline-tier-cta">Doneer nu →</span>
+            {/if}
+          </button>
+        {/each}
+      </div>
+
+      <button
+        type="button"
+        class="inline-other-btn"
+        onclick={() => (otherAmountOpen = true)}
+        disabled={quickDonating !== null}
+      >
+        Ander bedrag kiezen
+      </button>
+
+      <div class="inline-trust">
+        <span class="trust-item"><Shield size="14" /> SSL beveiligd</span>
+        <span class="trust-sep">·</span>
+        <span class="trust-item"><BadgeCheck size="14" /> UZ Gent geverifieerd</span>
+        <span class="trust-sep">·</span>
+        <span class="trust-item"><Heart size="14" /> 100% direct naar Lina</span>
+      </div>
+    </section>
+
     <!-- Berichtje voor Lina (mantém form que captura email pro update) -->
     <section class="section adopt-section" id="berichtje-lina">
       <div class="section-eyebrow">Stuur haar kracht</div>
@@ -797,6 +902,43 @@
         </div>
         <span class="share-label">Link kopiëren</span>
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────
+     Modal "Ander bedrag" — lista os valores extras
+──────────────────────────────────────────────────────── -->
+<div
+  class="overlay"
+  class:open={otherAmountOpen}
+  role="dialog"
+  aria-modal="true"
+  aria-label="Ander bedrag"
+  onclick={(e) => e.target === e.currentTarget && (otherAmountOpen = false)}
+>
+  <div class="sheet sheet-tall" role="document">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Kies een ander bedrag</div>
+    <p class="sheet-subtitle">Elk bedrag telt. 100% naar Lina's behandeling.</p>
+
+    <div class="other-amount-list">
+      {#each OTHER_AMOUNTS as opt}
+        <button
+          type="button"
+          class="other-amount-row"
+          disabled={quickDonating !== null}
+          onclick={() => { otherAmountOpen = false; quickDonate(opt.amount); }}
+        >
+          <span class="other-amount-value">€{opt.amount}</span>
+          <span class="other-amount-label">{opt.label}</span>
+          {#if quickDonating === opt.amount}
+            <span class="spinner spinner-dark"></span>
+          {:else}
+            <span class="other-amount-arrow">→</span>
+          {/if}
+        </button>
+      {/each}
     </div>
   </div>
 </div>
@@ -1140,4 +1282,243 @@
     transition: background 0.15s;
   }
   .adopt-thanks-close:hover { background: #0A3A20; }
+
+  /* ─────────────────────────────────────────────
+     Seção inline de doação (checkout direto)
+  ───────────────────────────────────────────── */
+  .inline-donate {
+    background: linear-gradient(180deg, #fff 0%, #fef7f0 100%);
+    padding: 2.5rem 1.25rem 3rem;
+    text-align: center;
+    border-top: 1px solid #f3e8dc;
+    border-bottom: 1px solid #f3e8dc;
+  }
+  .inline-donate-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #b91c1c;
+    background: #fee2e2;
+    padding: 0.375rem 0.875rem;
+    border-radius: 999px;
+    margin-bottom: 0.875rem;
+  }
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #dc2626;
+    box-shadow: 0 0 0 0 rgba(220,38,38,0.55);
+    animation: pulse-dot 1.6s infinite;
+  }
+  @keyframes pulse-dot {
+    0%   { box-shadow: 0 0 0 0 rgba(220,38,38,0.55); }
+    70%  { box-shadow: 0 0 0 10px rgba(220,38,38,0);  }
+    100% { box-shadow: 0 0 0 0 rgba(220,38,38,0);     }
+  }
+  .inline-donate-title {
+    font-size: 1.875rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: #111;
+    margin: 0 0 0.5rem;
+    line-height: 1.15;
+  }
+  .inline-donate-sub {
+    font-size: 0.9375rem;
+    color: #4b5563;
+    line-height: 1.5;
+    max-width: 500px;
+    margin: 0 auto 1.75rem;
+  }
+  .inline-donate-sub strong { color: #111; font-weight: 700; }
+
+  .inline-tier-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    max-width: 520px;
+    margin: 0 auto 1rem;
+  }
+  .inline-tier {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 1.375rem 0.5rem 1.125rem;
+    background: #fff;
+    border: 2px solid #e5e7eb;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+    min-height: 130px;
+  }
+  .inline-tier:hover:not(:disabled) {
+    border-color: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(220,38,38,0.12);
+  }
+  .inline-tier:active:not(:disabled) { transform: translateY(0); }
+  .inline-tier:disabled { opacity: 0.55; cursor: wait; }
+
+  .inline-tier.popular {
+    border-color: #dc2626;
+    background: linear-gradient(180deg, #fff 0%, #fef2f2 100%);
+    box-shadow: 0 4px 14px rgba(220,38,38,0.15);
+  }
+  .inline-tier-badge {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #dc2626;
+    color: #fff;
+    font-size: 0.6875rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.625rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(220,38,38,0.35);
+  }
+  .inline-tier-value {
+    font-size: 1.625rem;
+    font-weight: 900;
+    color: #111;
+    letter-spacing: -0.02em;
+  }
+  .inline-tier.popular .inline-tier-value { color: #dc2626; }
+  .inline-tier-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 600;
+    line-height: 1.3;
+    padding: 0 0.25rem;
+  }
+  .inline-tier-cta {
+    margin-top: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #dc2626;
+    letter-spacing: 0.02em;
+  }
+  .inline-tier-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-top: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #6b7280;
+  }
+  .inline-tier-loading .spinner {
+    width: 12px; height: 12px;
+    border: 2px solid #e5e7eb;
+    border-top-color: #dc2626;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .inline-other-btn {
+    display: inline-block;
+    background: transparent;
+    color: #374151;
+    border: 1.5px solid #d1d5db;
+    padding: 0.75rem 1.5rem;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin: 0.75rem 0 1.25rem;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .inline-other-btn:hover:not(:disabled) {
+    border-color: #374151;
+    background: #f9fafb;
+  }
+  .inline-other-btn:disabled { opacity: 0.5; cursor: wait; }
+
+  .inline-trust {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 600;
+  }
+  .inline-trust .trust-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  .inline-trust .trust-sep { color: #d1d5db; }
+
+  /* Modal "Ander bedrag" */
+  .sheet-tall { max-height: 85vh; }
+  .other-amount-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    overflow-y: auto;
+    max-height: 60vh;
+    padding-right: 4px;
+  }
+  .other-amount-row {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.875rem 1rem;
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .other-amount-row:hover:not(:disabled) {
+    border-color: #dc2626;
+    background: #fef7f0;
+  }
+  .other-amount-row:disabled { opacity: 0.55; cursor: wait; }
+  .other-amount-value {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #111;
+    min-width: 68px;
+    letter-spacing: -0.01em;
+  }
+  .other-amount-label {
+    flex: 1;
+    font-size: 0.875rem;
+    color: #4b5563;
+    font-weight: 600;
+  }
+  .other-amount-arrow {
+    font-size: 1.125rem;
+    color: #dc2626;
+    font-weight: 900;
+  }
+
+  /* Mobile ajuste */
+  @media (max-width: 480px) {
+    .inline-donate { padding: 2rem 1rem 2.5rem; }
+    .inline-donate-title { font-size: 1.5rem; }
+    .inline-tier { min-height: 118px; padding: 1.125rem 0.375rem 1rem; }
+    .inline-tier-value { font-size: 1.375rem; }
+    .inline-tier-badge { font-size: 0.625rem; padding: 0.2rem 0.5rem; }
+  }
 </style>
