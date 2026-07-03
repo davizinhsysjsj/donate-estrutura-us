@@ -209,7 +209,7 @@
   onMount(() => {
     if (!data.authed) return;
     pull();
-    pollTimer = setInterval(pull, 3000);
+    pollTimer = setInterval(pull, 1500);
   });
   onDestroy(() => { if (pollTimer) clearInterval(pollTimer); });
 

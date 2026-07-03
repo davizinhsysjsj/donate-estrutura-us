@@ -18,7 +18,7 @@ function getClientIP(request: Request, getAddr: () => string): string {
   }
 }
 
-export const load: PageServerLoad = async ({ request, getClientAddress, setHeaders }) => {
+export const load: PageServerLoad = async ({ request, getClientAddress }) => {
   const ip = getClientIP(request, getClientAddress);
   let cc: string | undefined;
 
@@ -31,10 +31,5 @@ export const load: PageServerLoad = async ({ request, getClientAddress, setHeade
   }
 
   const flag = flagFor(cc);
-
-  // Cache curto por país — reduz o custo de repetir o lookup, mas mantém a
-  // resposta dinâmica se o visitante entrar de um IP com outra geolocalização.
-  setHeaders({ 'cache-control': 'private, max-age=300' });
-
   return { visitorCountry: flag.code, visitorFlag: flag.emoji };
 };

@@ -93,6 +93,18 @@ function isVitrackRoute(): boolean {
   return false;
 }
 
+// Eventos críticos do funil: flushar na hora pra dashboard live refletir sem
+// esperar o batch timer de 3s. Sem isso o "amount_select" só aparece na
+// dashboard após até 6s (batch client + poll dashboard).
+const IMMEDIATE_EVENTS = new Set([
+  'amount_select',
+  'cta_click',
+  'bancontact_click',
+  'purchase',
+  'vsl_play_with_sound',
+  'vsl_complete'
+]);
+
 export function track(ev: string, data?: Record<string, unknown>) {
   if (typeof window === 'undefined') return;
   if (isVitrackRoute()) return;
@@ -106,7 +118,7 @@ export function track(ev: string, data?: Record<string, unknown>) {
     ts: Date.now(),
     data
   });
-  if (queue.length >= BATCH_MAX) flush();
+  if (IMMEDIATE_EVENTS.has(ev) || queue.length >= BATCH_MAX) flush();
 }
 
 function flush(useBeacon = false) {
