@@ -287,10 +287,18 @@
   }
 
   function openDonation() {
-    goto('/donate');
+    const el = document.getElementById('doneer-nu');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Destaque visual rápido pra chamar atenção pro grid de tiers
+      el.classList.add('highlight');
+      setTimeout(() => el.classList.remove('highlight'), 1400);
+    }
   }
 
   // Redirect direto pro checkout Shopify — SEM passar por /donate, SEM step de confirmação
+  // IC (Meta Pixel + CAPI) + notificação Pushcut disparam IMEDIATAMENTE no clique,
+  // antes do redirect. Usa keepalive:true pra request sobreviver ao unload da página.
   function quickDonate(amount: number) {
     if (quickDonating !== null) return;
     quickDonating = amount;
@@ -298,6 +306,7 @@
     const eventId = uuid();
     const contentId = `lina-${amount}`;
 
+    // 1) Meta Pixel client-side (fbq) — dedup com CAPI via mesmo event_id
     trackEvent('InitiateCheckout', {
       value: amount,
       currency: 'EUR',
@@ -306,8 +315,34 @@
       num_items: 1
     }, eventId);
 
+    // 2) Meta CAPI server-side (bypassa ad-blocker) + Pushcut notify — fire-and-forget
+    //    keepalive:true garante que a request completa mesmo com window.location logo abaixo
+    try {
+      fetch('/api/track-ic', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        keepalive: true,
+        body: JSON.stringify({
+          eventId,
+          value: amount,
+          currency: 'EUR',
+          fbclid,
+          fbp,
+          fbc: fbc ?? undefined,
+          userAgent: navigator.userAgent,
+          sourceUrl: window.location.href,
+          sid: getSid(),
+          utm_source: utm?.source ?? undefined,
+          utm_campaign: utm?.campaign ?? undefined
+        })
+      }).catch((e) => console.warn('[lina] CAPI IC failed', e));
+    } catch (e) {
+      console.warn('[lina] CAPI IC fetch threw', e);
+    }
+
     const variantId = pickVariantForAmount(amount);
 
+    // Pequeno delay pra Pixel client-side terminar de enfileirar o beacon
     setTimeout(() => {
       if (!variantId || variantId.startsWith('PLACEHOLDER')) {
         window.location.href = `/supporter?tier=${amount}&event_id=${eventId}`;
@@ -323,7 +358,7 @@
           eid: getEid()
         });
       }
-    }, 300);
+    }, 250);
   }
 
   function selectAmount(amount: number) {
@@ -1285,13 +1320,19 @@
 
   /* ─────────────────────────────────────────────
      Seção inline de doação (checkout direto)
+     Tema branco + verde (--primary #02A95C)
   ───────────────────────────────────────────── */
   .inline-donate {
-    background: linear-gradient(180deg, #fff 0%, #fef7f0 100%);
+    background: #ffffff;
     padding: 2.5rem 1.25rem 3rem;
     text-align: center;
-    border-top: 1px solid #f3e8dc;
-    border-bottom: 1px solid #f3e8dc;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    scroll-margin-top: 72px;
+    transition: background 0.4s;
+  }
+  .inline-donate.highlight {
+    background: var(--primary-soft);
   }
   .inline-donate-eyebrow {
     display: inline-flex;
@@ -1301,8 +1342,8 @@
     font-weight: 800;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: #b91c1c;
-    background: #fee2e2;
+    color: var(--primary-darker);
+    background: var(--primary-soft);
     padding: 0.375rem 0.875rem;
     border-radius: 999px;
     margin-bottom: 0.875rem;
@@ -1311,14 +1352,14 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #dc2626;
-    box-shadow: 0 0 0 0 rgba(220,38,38,0.55);
+    background: var(--primary);
+    box-shadow: 0 0 0 0 rgba(2,169,92,0.55);
     animation: pulse-dot 1.6s infinite;
   }
   @keyframes pulse-dot {
-    0%   { box-shadow: 0 0 0 0 rgba(220,38,38,0.55); }
-    70%  { box-shadow: 0 0 0 10px rgba(220,38,38,0);  }
-    100% { box-shadow: 0 0 0 0 rgba(220,38,38,0);     }
+    0%   { box-shadow: 0 0 0 0 rgba(2,169,92,0.55); }
+    70%  { box-shadow: 0 0 0 10px rgba(2,169,92,0);  }
+    100% { box-shadow: 0 0 0 0 rgba(2,169,92,0);     }
   }
   .inline-donate-title {
     font-size: 1.875rem;
@@ -1360,24 +1401,24 @@
     min-height: 130px;
   }
   .inline-tier:hover:not(:disabled) {
-    border-color: #dc2626;
+    border-color: var(--primary);
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(220,38,38,0.12);
+    box-shadow: 0 8px 20px rgba(2,169,92,0.14);
   }
   .inline-tier:active:not(:disabled) { transform: translateY(0); }
   .inline-tier:disabled { opacity: 0.55; cursor: wait; }
 
   .inline-tier.popular {
-    border-color: #dc2626;
-    background: linear-gradient(180deg, #fff 0%, #fef2f2 100%);
-    box-shadow: 0 4px 14px rgba(220,38,38,0.15);
+    border-color: var(--primary);
+    background: linear-gradient(180deg, #fff 0%, var(--primary-soft) 100%);
+    box-shadow: 0 4px 14px rgba(2,169,92,0.18);
   }
   .inline-tier-badge {
     position: absolute;
     top: -10px;
     left: 50%;
     transform: translateX(-50%);
-    background: #dc2626;
+    background: var(--primary);
     color: #fff;
     font-size: 0.6875rem;
     font-weight: 800;
@@ -1386,7 +1427,7 @@
     padding: 0.25rem 0.625rem;
     border-radius: 999px;
     white-space: nowrap;
-    box-shadow: 0 2px 6px rgba(220,38,38,0.35);
+    box-shadow: 0 2px 6px rgba(2,169,92,0.35);
   }
   .inline-tier-value {
     font-size: 1.625rem;
@@ -1394,7 +1435,7 @@
     color: #111;
     letter-spacing: -0.02em;
   }
-  .inline-tier.popular .inline-tier-value { color: #dc2626; }
+  .inline-tier.popular .inline-tier-value { color: var(--primary-darker); }
   .inline-tier-label {
     font-size: 0.75rem;
     color: #6b7280;
@@ -1406,7 +1447,7 @@
     margin-top: 0.375rem;
     font-size: 0.75rem;
     font-weight: 700;
-    color: #dc2626;
+    color: var(--primary-darker);
     letter-spacing: 0.02em;
   }
   .inline-tier-loading {
@@ -1421,7 +1462,7 @@
   .inline-tier-loading .spinner {
     width: 12px; height: 12px;
     border: 2px solid #e5e7eb;
-    border-top-color: #dc2626;
+    border-top-color: var(--primary);
     border-radius: 50%;
     animation: spin 0.6s linear infinite;
   }
@@ -1490,8 +1531,8 @@
     transition: border-color 0.15s, background 0.15s;
   }
   .other-amount-row:hover:not(:disabled) {
-    border-color: #dc2626;
-    background: #fef7f0;
+    border-color: var(--primary);
+    background: var(--primary-soft);
   }
   .other-amount-row:disabled { opacity: 0.55; cursor: wait; }
   .other-amount-value {
@@ -1509,7 +1550,7 @@
   }
   .other-amount-arrow {
     font-size: 1.125rem;
-    color: #dc2626;
+    color: var(--primary-darker);
     font-weight: 900;
   }
 
