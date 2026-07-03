@@ -426,7 +426,7 @@
 </svelte:head>
 
 <header class="header">
-  <span class="header-logo lina-logo" aria-label="Officiële Donaties Nederland">
+  <span class="header-logo lina-logo" aria-label="Officiële Donaties">
     <span class="lina-logo-word">Officiële&nbsp;D</span>
     <svg class="lina-logo-heart" viewBox="0 0 24 24" aria-hidden="true">
       <path
@@ -442,8 +442,8 @@
         stroke-linejoin="round"
       />
     </svg>
-    <span class="lina-logo-word">naties&nbsp;Nederland</span>
-    <span class="header-flag" aria-hidden="true">🇳🇱</span>
+    <span class="lina-logo-word">naties</span>
+    <span class="header-flag" aria-hidden="true">{data.visitorFlag ?? '🇳🇱'}</span>
   </span>
   <button
     class="header-menu-btn"
