@@ -56,6 +56,9 @@ export interface Session {
   sid: string;
   startedAt: number;
   lastSeenAt: number;
+  // Último evento de INTERAÇÃO real (exclui heartbeat/web_vital/js_error).
+  // Usado pelo filtro Live pra tirar aba aberta sem atividade após 2min.
+  lastActivityAt: number;
   currentPath: string;
   landingPath: string;
   device: 'mobile' | 'desktop' | 'tablet';
@@ -327,6 +330,7 @@ export function ingest(evt: IngestInput) {
       sid: evt.sid,
       startedAt: evt.ts,
       lastSeenAt: evt.ts,
+      lastActivityAt: evt.ts,
       currentPath: evt.path,
       landingPath: evt.path,
       device: evt.device,
@@ -366,6 +370,11 @@ export function ingest(evt: IngestInput) {
   }
 
   s.lastSeenAt = evt.ts;
+  // Interação real = qualquer evento exceto heartbeat/web_vital/js_error.
+  // Assim aba aberta sem clique cai do Live após 2min mesmo com heartbeat.
+  if (evt.ev !== 'heartbeat' && evt.ev !== 'web_vital' && evt.ev !== 'js_error') {
+    s.lastActivityAt = evt.ts;
+  }
   s.currentPath = evt.path;
   if (evt.utm_source && !s.utm_source) s.utm_source = evt.utm_source;
   if (evt.utm_medium && !s.utm_medium) s.utm_medium = evt.utm_medium;
@@ -559,7 +568,9 @@ export function snapshot(opts: SnapshotOpts) {
     ? (opts.liveWindowSec as number)
     : 120;
   const liveCutoff = now - liveWindowSec * 1000;
-  const liveSessions = sessionsInWindow.filter((s) => s.lastSeenAt >= liveCutoff);
+  // Filtra por lastActivityAt (interação real): aba aberta sem clique não conta.
+  // Sessões antigas (pré-fix) sem esse campo caem no fallback lastSeenAt.
+  const liveSessions = sessionsInWindow.filter((s) => (s.lastActivityAt ?? s.lastSeenAt) >= liveCutoff);
 
   // Contagem de online por rota (path atual da sessao)
   const onlineByPath: Record<string, number> = {};
@@ -807,7 +818,7 @@ export function snapshot(opts: SnapshotOpts) {
 
   // Live sessoes detalhadas
   const liveSorted = liveSessions
-    .sort((a, b) => b.lastSeenAt - a.lastSeenAt)
+    .sort((a, b) => (b.lastActivityAt ?? b.lastSeenAt) - (a.lastActivityAt ?? a.lastSeenAt))
     .slice(0, 100)
     .map((s) => ({
       sid: s.sid.slice(0, 10),
@@ -820,7 +831,7 @@ export function snapshot(opts: SnapshotOpts) {
       countryCode: s.countryCode,
       city: s.city,
       durationSec: Math.round((s.lastSeenAt - s.startedAt) / 1000),
-      idleSec: Math.round((now - s.lastSeenAt) / 1000),
+      idleSec: Math.round((now - (s.lastActivityAt ?? s.lastSeenAt)) / 1000),
       utm_source: s.utm_source || null,
       utm_campaign: s.utm_campaign || null,
       reachedDonate: s.reachedDonate,
