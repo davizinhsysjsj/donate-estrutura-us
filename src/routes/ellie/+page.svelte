@@ -159,7 +159,7 @@
   // Hero carousel (rotativo 4s, pausa em interação) — pos é object-position por slide
   // TODO: substituir os slides 2-4 (placeholders da Lina) por assets reais da Ellie
   const HERO_SLIDES = [
-    { src: '/ellie/ellie-coma-hero.webp', pos: 'center 40%' },
+    { src: '/ellie/ellie-coma-hero.webp', pos: 'center center' },
     { src: '/ellie/ellie-drawing.webp',   pos: 'center center' },
     { src: '/ellie/ellie-mum-hand.webp',  pos: 'center 35%' },
     { src: '/ellie/hero.webp',            pos: 'center 35%' }
