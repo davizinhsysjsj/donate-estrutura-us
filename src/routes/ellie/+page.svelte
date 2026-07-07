@@ -159,7 +159,8 @@
   // Hero carousel (rotativo 4s, pausa em interação) — pos é object-position por slide
   // TODO: adicionar mais cenas reais da Ellie (mum-hand, before-park, etc.) na próxima leva
   const HERO_SLIDES = [
-    { src: '/ellie/ellie-coma-hero.webp', pos: 'center center' }
+    { src: '/ellie/ellie-coma-hero.webp', pos: 'center center' },
+    { src: '/ellie/ellie-mri.webp',       pos: 'center center' }
   ];
   let heroIdx = $state(0);
   let heroTimer: ReturnType<typeof setInterval> | null = null;
