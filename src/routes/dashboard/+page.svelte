@@ -3268,41 +3268,80 @@
             </div>
           </div>
 
-          <!-- Filtros + densidade -->
-          <div class="camp-filters-bar">
-            <div class="camp-filter-group">
-              <button class="camp-filter-pill" class:active={campStatusFilter === 'all'}    onclick={() => { campStatusFilter = 'all';    persistCampFilters(); }}>Todas <span class="pill-count">{fbCampaigns.length}</span></button>
-              <button class="camp-filter-pill camp-filter-active" class:active={campStatusFilter === 'active'} onclick={() => { campStatusFilter = 'active'; persistCampFilters(); }}>● Ativas <span class="pill-count">{kpiActive}</span></button>
-              <button class="camp-filter-pill" class:active={campStatusFilter === 'paused'} onclick={() => { campStatusFilter = 'paused'; persistCampFilters(); }}>○ Pausadas <span class="pill-count">{kpiPaused}</span></button>
+          <!-- Filtros estilo UTMify — cards com label acima + campo/select abaixo -->
+          <div class="camp-fields-bar">
+            <div class="camp-field">
+              <label for="camp-fld-name" class="camp-field-label">Nome da Campanha</label>
+              <div class="camp-field-input-wrap">
+                <input
+                  id="camp-fld-name"
+                  type="search"
+                  class="camp-field-input"
+                  placeholder="Filtrar por nome"
+                  bind:value={campSearchQuery}
+                />
+                {#if campSearchQuery}
+                  <button class="camp-field-clear" onclick={() => (campSearchQuery = '')} title="Limpar">✕</button>
+                {/if}
+              </div>
             </div>
-            <div class="camp-filter-group">
-              <button class="camp-filter-pill" class:active={campRoasFilter === 'all'}     onclick={() => { campRoasFilter = 'all';     persistCampFilters(); }}>ROAS: tudo</button>
-              <button class="camp-filter-pill camp-filter-good" class:active={campRoasFilter === 'winners'} onclick={() => { campRoasFilter = 'winners'; persistCampFilters(); }}>≥ 2x</button>
-              <button class="camp-filter-pill camp-filter-bad"  class:active={campRoasFilter === 'losers'}  onclick={() => { campRoasFilter = 'losers';   persistCampFilters(); }}>&lt; 1x</button>
+
+            <div class="camp-field">
+              <label for="camp-fld-status" class="camp-field-label">Status da Campanha</label>
+              <select
+                id="camp-fld-status"
+                class="camp-field-select"
+                bind:value={campStatusFilter}
+                onchange={persistCampFilters}
+              >
+                <option value="all">Todas ({fbCampaigns.length})</option>
+                <option value="active">Ativas ({kpiActive})</option>
+                <option value="paused">Pausadas ({kpiPaused})</option>
+              </select>
             </div>
-            <label class="camp-filter-check">
-              <input type="checkbox" bind:checked={campOnlyWithSales} onchange={persistCampFilters} />
-              Só com venda
-            </label>
-            <div class="camp-filter-search">
-              <input
-                type="search"
-                placeholder="Buscar por nome…"
-                bind:value={campSearchQuery}
-                class="camp-search-input"
-              />
-              {#if campSearchQuery}
-                <button class="camp-search-clear" onclick={() => (campSearchQuery = '')} title="Limpar">✕</button>
-              {/if}
+
+            <div class="camp-field">
+              <label for="camp-fld-roas" class="camp-field-label">ROAS</label>
+              <select
+                id="camp-fld-roas"
+                class="camp-field-select"
+                bind:value={campRoasFilter}
+                onchange={persistCampFilters}
+              >
+                <option value="all">Qualquer</option>
+                <option value="winners">≥ 2x (winners)</option>
+                <option value="losers">&lt; 1x (losers)</option>
+              </select>
             </div>
+
+            <div class="camp-field">
+              <span class="camp-field-label">Vendas</span>
+              <label class="camp-field-checkbox">
+                <input
+                  type="checkbox"
+                  bind:checked={campOnlyWithSales}
+                  onchange={persistCampFilters}
+                />
+                <span>Só com venda</span>
+              </label>
+            </div>
+
+            <div class="camp-field">
+              <label for="camp-fld-view" class="camp-field-label">Colunas</label>
+              <select
+                id="camp-fld-view"
+                class="camp-field-select"
+                bind:value={campView}
+              >
+                <option value="essential">Essencial</option>
+                <option value="funnel">Funil</option>
+                <option value="full">Tudo</option>
+              </select>
+            </div>
+
             {#if campStatusFilter !== 'all' || campRoasFilter !== 'all' || campSearchQuery || campOnlyWithSales}
-              <button class="camp-clear-all" onclick={clearCampFilters} title="Limpar filtros">Limpar filtros</button>
+              <button class="camp-fields-clear-all" onclick={clearCampFilters} title="Limpar filtros">Limpar filtros</button>
             {/if}
-            <span class="camp-filter-spacer"></span>
-            <span class="camp-view-label">Colunas:</span>
-            <button class="camp-view-pill" class:active={campView === 'essential'} onclick={() => (campView = 'essential')}>Essencial</button>
-            <button class="camp-view-pill" class:active={campView === 'funnel'} onclick={() => (campView = 'funnel')}>Funil</button>
-            <button class="camp-view-pill" class:active={campView === 'full'} onclick={() => (campView = 'full')}>Tudo</button>
           </div>
 
           {#if campSuccessMsg}<div class="camp-flash success">{campSuccessMsg}</div>{/if}
@@ -6135,6 +6174,116 @@
   }
   .camp-tr-paused { opacity: 0.55; }
   .camp-tr-paused:hover { opacity: 0.85; }
+
+  /* ── Filtros estilo UTMify (cards labeled) ── */
+  .camp-fields-bar {
+    display: flex;
+    align-items: stretch;
+    background: #0d1117;
+    border: 1px solid #1a1f28;
+    border-radius: 12px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .camp-field {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 14px 18px;
+    border-right: 1px solid #1a1f28;
+    min-width: 0;
+  }
+  .camp-field:last-child { border-right: none; }
+  .camp-field-label {
+    font-size: 0.75rem;
+    color: #8b94a4;
+    font-weight: 500;
+    margin-bottom: 6px;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .camp-field-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .camp-field-input {
+    background: transparent;
+    border: none;
+    color: #e6e9ef;
+    font-family: inherit;
+    font-size: 0.9375rem;
+    padding: 0;
+    width: 100%;
+    outline: none;
+    min-width: 0;
+  }
+  .camp-field-input::placeholder { color: #4b5160; }
+  .camp-field-input::-webkit-search-cancel-button { display: none; }
+  .camp-field-clear {
+    background: none;
+    border: none;
+    color: #6b7180;
+    cursor: pointer;
+    font-size: 0.875rem;
+    padding: 0 4px;
+    line-height: 1;
+  }
+  .camp-field-clear:hover { color: #e6e9ef; }
+  .camp-field-select {
+    background: transparent;
+    border: none;
+    color: #e6e9ef;
+    font-family: inherit;
+    font-size: 0.9375rem;
+    padding: 0 22px 0 0;
+    width: 100%;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7180' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: 12px;
+  }
+  .camp-field-select:hover { color: #ffffff; }
+  .camp-field-select option { background: #0d1117; color: #e6e9ef; }
+  .camp-field-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: #e6e9ef;
+    font-size: 0.9375rem;
+    user-select: none;
+  }
+  .camp-field-checkbox input {
+    accent-color: #02a95c;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+  }
+  .camp-fields-clear-all {
+    align-self: center;
+    margin: 8px 14px;
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.25);
+    color: #f87171;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .camp-fields-clear-all:hover { background: rgba(239,68,68,0.16); }
+
   .camp-objective {
     display: block;
     font-size: 0.6875rem; color: #6b7787;
@@ -6447,6 +6596,24 @@
     .camp-search-input { min-width: 0; width: 100%; }
     .camp-filter-search { width: 100%; }
     .camp-filter-spacer { display: none; }
+    /* ── Filtros novos (UTMify style): vira grid 2 colunas no mobile ── */
+    .camp-fields-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+    .camp-field {
+      padding: 12px 14px;
+      border-right: 1px solid #1a1f28;
+      border-bottom: 1px solid #1a1f28;
+    }
+    .camp-field:nth-child(2n) { border-right: none; }
+    .camp-field:nth-last-child(-n+2) { border-bottom: none; }
+    .camp-fields-clear-all {
+      grid-column: 1 / -1;
+      margin: 10px 14px;
+      text-align: center;
+    }
     /* ── Toggle view (Essencial/Funil/Tudo) compacto ── */
     .camp-view-toggle { flex-wrap: wrap; }
     .camp-view-pill { padding: 6px 10px; font-size: 0.6875rem; }
