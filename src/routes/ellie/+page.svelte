@@ -115,20 +115,20 @@
 
   // Tiers em GBP — copy UK pra doação pediátrica NHS-adjacent
   const TIERS = [
-    { amount: 15, label: '1 day of anti-nausea meds' },
-    { amount: 20, label: 'Sterile dressings + PICC line care' },
-    { amount: 25, label: '1 day of pain relief' },
-    { amount: 50, label: '1 week of nutrition during chemo' }
+    { amount: 25,  label: '1 day of pain relief' },
+    { amount: 50,  label: '1 week of nutrition during chemo' },
+    { amount: 100, label: 'Full pre-treatment MIBG scan' },
+    { amount: 200, label: 'Three chemotherapy sessions' }
   ];
   const DEFAULT_TIER = 50;
 
   // Valores extras (modal "Other amount")
   const OTHER_AMOUNTS = [
     { amount: 10,  label: "1 hour of oxygen support" },
-    { amount: 30,  label: "Anti-sickness medication" },
+    { amount: 15,  label: "1 day of anti-nausea meds" },
+    { amount: 20,  label: "Sterile dressings + PICC line care" },
     { amount: 35,  label: "1 physio session after chemo" },
     { amount: 80,  label: "Helps cover the MIBG scan" },
-    { amount: 100, label: "Full pre-treatment scan" },
     { amount: 250, label: "One immunotherapy dose" },
     { amount: 500, label: "Two immunotherapy doses" },
     { amount: 750, label: "A full week of treatment in Germany" }
@@ -140,7 +140,6 @@
     if (amount >= 750) return 'A full week of treatment in Germany';
     if (amount >= 500) return 'Two immunotherapy doses';
     if (amount >= 250) return 'One immunotherapy dose';
-    if (amount >= 100) return 'Full pre-treatment scan';
     if (amount >= 80)  return 'Helps cover the MIBG scan';
     if (amount >= 35)  return 'One physio session';
     return `£${amount} towards Ellie's treatment`;
