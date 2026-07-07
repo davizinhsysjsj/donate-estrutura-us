@@ -157,12 +157,9 @@
   const lastDonor = $derived(donorsList[donorIdx % donorsList.length]);
 
   // Hero carousel (rotativo 4s, pausa em interação) — pos é object-position por slide
-  // TODO: substituir os slides 2-4 (placeholders da Lina) por assets reais da Ellie
+  // TODO: adicionar mais cenas reais da Ellie (mum-hand, before-park, etc.) na próxima leva
   const HERO_SLIDES = [
-    { src: '/ellie/ellie-coma-hero.webp', pos: 'center center' },
-    { src: '/ellie/ellie-drawing.webp',   pos: 'center center' },
-    { src: '/ellie/ellie-mum-hand.webp',  pos: 'center 35%' },
-    { src: '/ellie/hero.webp',            pos: 'center 35%' }
+    { src: '/ellie/ellie-coma-hero.webp', pos: 'center center' }
   ];
   let heroIdx = $state(0);
   let heroTimer: ReturnType<typeof setInterval> | null = null;
@@ -504,34 +501,36 @@
         />
       {/each}
 
-      <button
-        type="button"
-        class="hero-arrow hero-arrow-prev"
-        aria-label="Previous photo"
-        onclick={heroPrev}
-      >
-        <ChevronLeft size={22} strokeWidth={2.5} />
-      </button>
-      <button
-        type="button"
-        class="hero-arrow hero-arrow-next"
-        aria-label="Next photo"
-        onclick={heroNext}
-      >
-        <ChevronRight size={22} strokeWidth={2.5} />
-      </button>
+      {#if HERO_SLIDES.length > 1}
+        <button
+          type="button"
+          class="hero-arrow hero-arrow-prev"
+          aria-label="Previous photo"
+          onclick={heroPrev}
+        >
+          <ChevronLeft size={22} strokeWidth={2.5} />
+        </button>
+        <button
+          type="button"
+          class="hero-arrow hero-arrow-next"
+          aria-label="Next photo"
+          onclick={heroNext}
+        >
+          <ChevronRight size={22} strokeWidth={2.5} />
+        </button>
 
-      <div class="hero-dots">
-        {#each HERO_SLIDES as _, i}
-          <button
-            type="button"
-            class="hero-dot"
-            class:active={heroIdx === i}
-            aria-label={`Photo ${i + 1}`}
-            onclick={() => heroGoTo(i)}
-          ></button>
-        {/each}
-      </div>
+        <div class="hero-dots">
+          {#each HERO_SLIDES as _, i}
+            <button
+              type="button"
+              class="hero-dot"
+              class:active={heroIdx === i}
+              aria-label={`Photo ${i + 1}`}
+              onclick={() => heroGoTo(i)}
+            ></button>
+          {/each}
+        </div>
+      {/if}
     </div>
 
     <!-- Bloco principal -->
@@ -548,6 +547,14 @@
           onDonate={openDonation}
           onShare={() => (shareOpen = true)}
           onDonorsClick={scrollToDonors}
+          currency="£"
+          locale="en-GB"
+          raisedLabel="raised"
+          ofLabel="of"
+          donatedVerb="donated"
+          donateLabel="Donate"
+          shareLabel="Share"
+          donorsAria="See all donors"
         />
       </div>
 
@@ -848,6 +855,14 @@
   onDonate={openDonation}
   onShare={() => (shareOpen = true)}
   onDonorsClick={scrollToDonors}
+  currency="£"
+  locale="en-GB"
+  raisedLabel="raised"
+  ofLabel="of"
+  donatedVerb="donated"
+  donateLabel="Donate"
+  shareLabel="Share"
+  donorsAria="See all donors"
 />
 
 <!-- Donation Sheet -->

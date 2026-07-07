@@ -12,6 +12,14 @@
     onShare: () => void;
     onDonorsClick?: () => void;
     compact?: boolean;
+    currency?: string;
+    locale?: string;
+    raisedLabel?: string;
+    ofLabel?: string;
+    donatedVerb?: string;
+    donateLabel?: string;
+    shareLabel?: string;
+    donorsAria?: string;
   };
 
   let {
@@ -23,12 +31,20 @@
     onDonate,
     onShare,
     onDonorsClick,
-    compact = false
+    compact = false,
+    currency = '€',
+    locale = 'nl-BE',
+    raisedLabel = 'opgehaald',
+    ofLabel = 'van',
+    donatedVerb = 'doneerde',
+    donateLabel = 'Doneren',
+    shareLabel = 'Delen',
+    donorsAria = 'Alle donateurs bekijken'
   }: Props = $props();
 
   const percent = $derived(Math.min(100, Math.round((raised / goal) * 100)));
-  const fmtRaised = $derived(raised.toLocaleString('nl-BE'));
-  const fmtGoal = $derived(goal.toLocaleString('nl-BE'));
+  const fmtRaised = $derived(raised.toLocaleString(locale));
+  const fmtGoal = $derived(goal.toLocaleString(locale));
 </script>
 
 <div class="progress-card" class:progress-card-compact={compact}>
@@ -40,17 +56,17 @@
     />
     <div class="progress-card-text">
       <div class="progress-card-amount-line">
-        <span class="progress-card-raised">€{fmtRaised} opgehaald</span>
-        <span class="progress-card-goal"> van €{fmtGoal}</span>
+        <span class="progress-card-raised">{currency}{fmtRaised} {raisedLabel}</span>
+        <span class="progress-card-goal"> {ofLabel} {currency}{fmtGoal}</span>
       </div>
       <button
         type="button"
         class="progress-card-donor"
         onclick={onDonorsClick}
-        aria-label="Alle donateurs bekijken"
+        aria-label={donorsAria}
       >
         <span class="progress-card-donor-text">
-          {lastDonorName} doneerde €{lastDonorAmount}{lastDonorAgo ? ` · ${lastDonorAgo}` : ''}
+          {lastDonorName} {donatedVerb} {currency}{lastDonorAmount}{lastDonorAgo ? ` · ${lastDonorAgo}` : ''}
         </span>
         <ChevronRight size={compact ? 12 : 14} strokeWidth={2.5} />
       </button>
@@ -58,8 +74,8 @@
   </div>
 
   <div class="progress-card-actions">
-    <button type="button" class="pill pill-donate" onclick={onDonate}>Doneren</button>
-    <button type="button" class="pill pill-share" onclick={onShare}>Delen</button>
+    <button type="button" class="pill pill-donate" onclick={onDonate}>{donateLabel}</button>
+    <button type="button" class="pill pill-share" onclick={onShare}>{shareLabel}</button>
   </div>
 </div>
 

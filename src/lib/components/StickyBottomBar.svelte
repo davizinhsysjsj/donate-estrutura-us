@@ -12,6 +12,14 @@
     onShare: () => void;
     onDonorsClick?: () => void;
     triggerSelector?: string;
+    currency?: string;
+    locale?: string;
+    raisedLabel?: string;
+    ofLabel?: string;
+    donatedVerb?: string;
+    donateLabel?: string;
+    shareLabel?: string;
+    donorsAria?: string;
   };
 
   let {
@@ -23,7 +31,15 @@
     onDonate,
     onShare,
     onDonorsClick,
-    triggerSelector = '#progress-anchor'
+    triggerSelector = '#progress-anchor',
+    currency,
+    locale,
+    raisedLabel,
+    ofLabel,
+    donatedVerb,
+    donateLabel,
+    shareLabel,
+    donorsAria
   }: Props = $props();
 
   let visible = $state(false);
@@ -55,6 +71,14 @@
       onShare={onShare}
       onDonorsClick={onDonorsClick}
       compact={true}
+      {currency}
+      {locale}
+      {raisedLabel}
+      {ofLabel}
+      {donatedVerb}
+      {donateLabel}
+      {shareLabel}
+      {donorsAria}
     />
   </div>
 </div>
