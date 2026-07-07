@@ -1288,9 +1288,8 @@
   let fbCampaigns = $state<any[]>([]);
   let campaignsLoading = $state(false);
 
-  // Densidade da tabela de campanhas — usuario escolhe
-  type CampView = 'essential' | 'funnel' | 'full';
-  let campView = $state<CampView>('funnel');
+  // Tabela de campanhas SEMPRE mostra todas as colunas (scroll horizontal cuida do overflow)
+  const campView = 'full' as const;
   let campActionOpenId = $state<string | null>(null);
   let campActionBusyId = $state<string | null>(null);
   let campEditBudgetId = $state<string | null>(null);
@@ -3323,19 +3322,6 @@
                 />
                 <span>Só com venda</span>
               </label>
-            </div>
-
-            <div class="camp-field">
-              <label for="camp-fld-view" class="camp-field-label">Colunas</label>
-              <select
-                id="camp-fld-view"
-                class="camp-field-select"
-                bind:value={campView}
-              >
-                <option value="essential">Essencial</option>
-                <option value="funnel">Funil</option>
-                <option value="full">Tudo</option>
-              </select>
             </div>
 
             {#if campStatusFilter !== 'all' || campAccountFilter !== 'all' || campSearchQuery || campOnlyWithSales}
@@ -6161,8 +6147,18 @@
   .camp-tr:last-child td { border-bottom: none; }
   .camp-tr:hover td { background: rgba(255,255,255,0.018); }
   .td-status { width: 48px; }
-  .td-name { max-width: 280px; min-width: 220px; }
-  .td-num { text-align: right; font-variant-numeric: tabular-nums; }
+  .td-name { max-width: 320px; min-width: 260px; }
+  /* Todas colunas métrica ficam com min-width generoso e no-wrap,
+     scroll horizontal da tabela acomoda quando ultrapassa a viewport */
+  .camp-utmfy th.th-num,
+  .camp-utmfy td.td-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    min-width: 130px;
+    white-space: nowrap;
+  }
+  .camp-utmfy th.th-num.th-toggle,
+  .camp-utmfy td.td-num.td-toggle { min-width: 70px; }
   .camp-status-dot {
     display: inline-block; width: 10px; height: 10px; border-radius: 50%;
     background: #2a3340;
