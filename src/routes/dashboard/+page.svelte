@@ -1299,10 +1299,9 @@
 
   // ── Filtros + ordenacao da tabela de campanhas ──
   type CampStatusFilter = 'all' | 'active' | 'paused';
-  type CampRoasFilter = 'all' | 'winners' | 'losers'; // winners >=2, losers <1
   type CampSortKey = 'spend' | 'roas' | 'purchases' | 'revenue' | 'ctr' | 'cpc' | 'name' | 'impressions';
   let campStatusFilter = $state<CampStatusFilter>('all');
-  let campRoasFilter   = $state<CampRoasFilter>('all');
+  let campAccountFilter = $state<string>('all');
   let campSearchQuery  = $state('');
   let campOnlyWithSales = $state(false);
   let campSortKey  = $state<CampSortKey>('spend');
@@ -1315,7 +1314,7 @@
       if (raw) {
         const p = JSON.parse(raw);
         if (p.campStatusFilter) campStatusFilter = p.campStatusFilter;
-        if (p.campRoasFilter)   campRoasFilter   = p.campRoasFilter;
+        if (p.campAccountFilter) campAccountFilter = p.campAccountFilter;
         if (typeof p.campOnlyWithSales === 'boolean') campOnlyWithSales = p.campOnlyWithSales;
         if (p.campSortKey)      campSortKey      = p.campSortKey;
         if (typeof p.campSortDesc === 'boolean') campSortDesc = p.campSortDesc;
@@ -1325,7 +1324,7 @@
   function persistCampFilters() {
     try {
       localStorage.setItem('vitrack_camp_filters', JSON.stringify({
-        campStatusFilter, campRoasFilter, campOnlyWithSales, campSortKey, campSortDesc
+        campStatusFilter, campAccountFilter, campOnlyWithSales, campSortKey, campSortDesc
       }));
     } catch {}
   }
@@ -1336,7 +1335,7 @@
   }
   function clearCampFilters() {
     campStatusFilter = 'all';
-    campRoasFilter = 'all';
+    campAccountFilter = 'all';
     campSearchQuery = '';
     campOnlyWithSales = false;
     persistCampFilters();
@@ -1359,8 +1358,7 @@
       if (campStatusFilter === 'active' && c.status !== 'ACTIVE') return false;
       if (campStatusFilter === 'paused' && c.status !== 'PAUSED') return false;
       if (campOnlyWithSales && !(c.purchases > 0)) return false;
-      if (campRoasFilter === 'winners' && !(roasOf(c) >= 2)) return false;
-      if (campRoasFilter === 'losers'  && !(c.spend > 0 && roasOf(c) < 1)) return false;
+      if (campAccountFilter !== 'all' && c._accountId !== campAccountFilter) return false;
       if (q && !((c.name || '').toLowerCase().includes(q))) return false;
       return true;
     });
@@ -3301,16 +3299,17 @@
             </div>
 
             <div class="camp-field">
-              <label for="camp-fld-roas" class="camp-field-label">ROAS</label>
+              <label for="camp-fld-account" class="camp-field-label">Conta de Anúncio</label>
               <select
-                id="camp-fld-roas"
+                id="camp-fld-account"
                 class="camp-field-select"
-                bind:value={campRoasFilter}
+                bind:value={campAccountFilter}
                 onchange={persistCampFilters}
               >
-                <option value="all">Qualquer</option>
-                <option value="winners">≥ 2x (winners)</option>
-                <option value="losers">&lt; 1x (losers)</option>
+                <option value="all">Todas</option>
+                {#each fbActiveAccounts as acc}
+                  <option value={acc.id}>{acc.name}</option>
+                {/each}
               </select>
             </div>
 
@@ -3339,7 +3338,7 @@
               </select>
             </div>
 
-            {#if campStatusFilter !== 'all' || campRoasFilter !== 'all' || campSearchQuery || campOnlyWithSales}
+            {#if campStatusFilter !== 'all' || campAccountFilter !== 'all' || campSearchQuery || campOnlyWithSales}
               <button class="camp-fields-clear-all" onclick={clearCampFilters} title="Limpar filtros">Limpar filtros</button>
             {/if}
           </div>
@@ -6136,7 +6135,11 @@
     border: 1px solid #1a1f28; background: #0b0f15; margin-bottom: 20px;
   }
   .camp-utmfy {
-    width: 100%; border-collapse: collapse; font-size: 0.875rem;
+    width: 100%;
+    /* separate (nao collapse) é obrigatorio pra position: sticky funcionar em <td> */
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.875rem;
   }
   .camp-utmfy thead tr { border-bottom: 1px solid #1a1f28; }
   .camp-utmfy th {
