@@ -3343,7 +3343,7 @@
           {@const campTotalIC     = campRows.reduce((s, c) => s + (c.initiateCheckout || 0), 0)}
           {@const campTotalATC    = campRows.reduce((s, c) => s + (c.addToCart || 0), 0)}
           <div class="camp-utmfy-wrap">
-            <table class="camp-utmfy camp-utmfy-{campView}" use:resizableTable={{ storageKey: 'colw-camp-utmfy' }}>
+            <table class="camp-utmfy camp-utmfy-{campView}">
               <thead>
                 <tr>
                   <th class="th-toggle">Status</th>
@@ -6121,7 +6121,12 @@
     border: 1px solid #1a1f28; background: #0b0f15; margin-bottom: 20px;
   }
   .camp-utmfy {
-    width: 100%;
+    /* Auto layout: respeita min-width de cada célula e força overflow-x
+       (scroll horizontal) quando a soma passa da viewport.
+       fixed layout FURA sticky + comprime colunas — não usar. */
+    table-layout: auto;
+    width: max-content;
+    min-width: 100%;
     /* separate (nao collapse) é obrigatorio pra position: sticky funcionar em <td> */
     border-collapse: separate;
     border-spacing: 0;
