@@ -44,8 +44,8 @@ export const POST: RequestHandler = async ({ request }) => {
     const amount = Number(body.amount ?? 25);
     const firstName = body.firstName as string | undefined;
     const currency = (body.currency as string | undefined) ?? 'EUR';
-    const locale = (body.locale === 'pt' ? 'pt' : body.locale === 'nl' ? 'nl' : undefined) as
-      | 'pt' | 'nl' | undefined;
+    const locale = (body.locale === 'pt' ? 'pt' : body.locale === 'en' ? 'en' : body.locale === 'nl' ? 'nl' : undefined) as
+      | 'pt' | 'nl' | 'en' | undefined;
     const r = await sendNow({
       toEmail: to,
       templateName: 'thank-you',
@@ -58,8 +58,8 @@ export const POST: RequestHandler = async ({ request }) => {
     const amount = Number(body.amount ?? 25);
     const firstName = body.firstName as string | undefined;
     const currency = (body.currency as string | undefined) ?? 'EUR';
-    const locale = (body.locale === 'pt' ? 'pt' : body.locale === 'nl' ? 'nl' : undefined) as
-      | 'pt' | 'nl' | undefined;
+    const locale = (body.locale === 'pt' ? 'pt' : body.locale === 'en' ? 'en' : body.locale === 'nl' ? 'nl' : undefined) as
+      | 'pt' | 'nl' | 'en' | undefined;
     const r = await sendNow({
       toEmail: to,
       templateName: 'upsell',
@@ -72,8 +72,8 @@ export const POST: RequestHandler = async ({ request }) => {
     const amount = Number(body.amount ?? 50);
     const firstName = body.firstName as string | undefined;
     const currency = (body.currency as string | undefined) ?? 'EUR';
-    const locale = (body.locale === 'pt' ? 'pt' : body.locale === 'nl' ? 'nl' : undefined) as
-      | 'pt' | 'nl' | undefined;
+    const locale = (body.locale === 'pt' ? 'pt' : body.locale === 'en' ? 'en' : body.locale === 'nl' ? 'nl' : undefined) as
+      | 'pt' | 'nl' | 'en' | undefined;
     const recoverUrl = (body.recoverUrl as string | undefined) ??
       'https://belgiancarestore.com/recover/sample';
     const itemTitle = (body.itemTitle as string | undefined) ?? 'Hero — €50 voor Shadow';
@@ -89,8 +89,8 @@ export const POST: RequestHandler = async ({ request }) => {
     const amount = Number(body.amount ?? 25);
     const firstName = body.firstName as string | undefined;
     const currency = (body.currency as string | undefined) ?? 'EUR';
-    const locale = (body.locale === 'pt' ? 'pt' : body.locale === 'nl' ? 'nl' : undefined) as
-      | 'pt' | 'nl' | undefined;
+    const locale = (body.locale === 'pt' ? 'pt' : body.locale === 'en' ? 'en' : body.locale === 'nl' ? 'nl' : undefined) as
+      | 'pt' | 'nl' | 'en' | undefined;
     const r = await sendNow({
       toEmail: to,
       templateName: 'upsell-v2',
@@ -101,8 +101,8 @@ export const POST: RequestHandler = async ({ request }) => {
 
   if (action === 'send-recovery') {
     const firstName = body.firstName as string | undefined;
-    const locale = (body.locale === 'pt' ? 'pt' : body.locale === 'nl' ? 'nl' : undefined) as
-      | 'pt' | 'nl' | undefined;
+    const locale = (body.locale === 'pt' ? 'pt' : body.locale === 'en' ? 'en' : body.locale === 'nl' ? 'nl' : undefined) as
+      | 'pt' | 'nl' | 'en' | undefined;
     const r = await sendNow({
       toEmail: to,
       templateName: 'recovery',
@@ -114,8 +114,8 @@ export const POST: RequestHandler = async ({ request }) => {
   if (action === 'send-abandoned-popup') {
     const amount = Number(body.amount ?? 50);
     const firstName = body.firstName as string | undefined;
-    const locale = (body.locale === 'pt' ? 'pt' : body.locale === 'nl' ? 'nl' : undefined) as
-      | 'pt' | 'nl' | undefined;
+    const locale = (body.locale === 'pt' ? 'pt' : body.locale === 'en' ? 'en' : body.locale === 'nl' ? 'nl' : undefined) as
+      | 'pt' | 'nl' | 'en' | undefined;
     const r = await sendNow({
       toEmail: to,
       templateName: 'abandoned-popup',

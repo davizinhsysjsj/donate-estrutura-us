@@ -20,7 +20,7 @@ const SUPPORT_EMAIL = 'contact@belgiancarestore.com';
 const BRAND_COLOR = '#16A34A'; // verde camisa (usado no botao CTA)
 const BRAND_DARK = '#15803D';
 
-export type Locale = 'nl' | 'pt';
+export type Locale = 'nl' | 'pt' | 'en';
 
 export interface ThankYouVars {
   firstName?: string;
@@ -76,10 +76,11 @@ function escape(s: string | undefined | null): string {
 }
 
 function formatAmount(v: number, currency: string, locale: Locale): string {
-  const intlLocale = locale === 'pt' ? 'pt-BR' : 'nl-BE';
+  const intlLocale = locale === 'pt' ? 'pt-BR' : locale === 'en' ? 'en-GB' : 'nl-BE';
+  const cur = currency || (locale === 'en' ? 'GBP' : 'EUR');
   return new Intl.NumberFormat(intlLocale, {
     style: 'currency',
-    currency: currency || 'EUR',
+    currency: cur,
     minimumFractionDigits: 0,
     maximumFractionDigits: 2
   }).format(v);
@@ -262,15 +263,117 @@ const STR = {
     abandonedCoFootnote: 'Bancontact, pronto em 30 segundos. Pagamento seguro via Shopify.',
     abandonedCoSignoff: 'Ela conta com você. A gente também.',
     abandonedCoHeroAlt: 'Lina com o ursinho na oncologia pediátrica'
+  },
+  en: {
+    htmlLang: 'en-GB',
+    fallbackName: 'friend',
+    tagline: 'Help Ellie — 9, high-risk neuroblastoma',
+    footerBrand: "Ellie's Fund · British Children's Care Foundation",
+    footerSupport: (mail: string) => `Any questions? Just reply to this email or write to <a href="mailto:${mail}" style="color:${BRAND_DARK};text-decoration:none;">${mail}</a>.`,
+    // Thank you — 1h após doação
+    thankSubject: 'Ellie received your help 🤍',
+    thankPreview: "She started her first chemo cycle today. Your name is on her chart.",
+    thankH1: (name: string) => `Thank you, ${name}. Ellie started her treatment today — thanks to you.`,
+    thankP1: (amount: string) =>
+      `Your donation of <strong style="color:${BRAND_DARK};">${amount}</strong> went straight to Ellie's first chemo cycle at Royal Manchester Children's Hospital: pain relief, anti-sickness meds, and the bed on the paediatric oncology ward where she's sleeping tonight. Her mum Sarah cried when we told her.`,
+    thankP2: "The surgery to remove her tumour is scheduled for 18 August. Between now and then she has to get through 3 rounds of chemo to shrink it. Your contribution literally paid for her first round. We'll send you an update as soon as she's on the operating table.",
+    thankCta: "Follow Ellie's progress",
+    thankSignoff: 'With warmest thanks,',
+    teamName: "Ellie's Family & Support Team",
+    heroAlt: 'Ellie in the paediatric oncology ward',
+    // Upsell simples (48h) — Ellie · infecção pós-chemo
+    upsellSubject: "Ellie's got a fever. The chemo broke her defences 🤍",
+    upsellPreview: 'Neutropenic infection since last night. Without IVIG, the surgery gets cancelled.',
+    upsellH1: (name: string) => `${name}, Ellie is in isolation. She needs your help again.`,
+    upsellP1: (amount: string) =>
+      `Your donation of <strong style="color:${BRAND_DARK};">${amount}</strong> five days ago paid for her first chemo. It worked — the tumour shrank by 8%. But the chemo also destroyed her immune defences: last night 39.8°C fever, positive blood culture. Early neutropenic sepsis.`,
+    upsellP2: "Her paediatric oncologist has prescribed IV immunoglobulin — £4,200 per treatment, not covered by the NHS. Without it the chemo stops and the surgery on 18 August gets cancelled. Every week of delay doubles the risk of the tumour spreading to her lungs.",
+    upsellP3: "If you can help again — even £5 — we get closer to saving her. Sarah and Mark have nothing left to sell.",
+    upsellCta: "Yes, I'll help Ellie again",
+    upsellSignoff: 'From the bottom of our hearts, thank you.',
+    upsellHeroAlt: 'Ellie sleeping in the isolation ward with a drip',
+    // Upsell V2 (48h, aggressive) — Ellie · sepse
+    upsellV2Subject: "Ellie has 72 hours. Without IVIG: surgery cancelled.",
+    upsellV2Preview: 'Your donation bought her first chemo. Tonight you decide if she gets the second — or if her lungs get the tumour.',
+    upsellV2H1: (name: string) => `${name}, without your 2nd donation Ellie's surgery gets cancelled.`,
+    upsellV2P1: (amount: string) =>
+      `48 hours ago you gave <strong style="color:${BRAND_DARK};">${amount}</strong> for Ellie's first chemo. It worked: the tumour shrank by 8%. But there's a setback. At 3:14am this morning she spiked at 40.1°C. Blood culture: positive for an aggressive bacterial infection. She's now in the isolation room on broad-spectrum antibiotics.`,
+    upsellV2P2: "Her paediatric oncologist has prescribed <strong>IV immunoglobulin</strong> — £4,200 per week, for 3 weeks. The NHS covers £900 per week. That leaves <strong>£9,900</strong>. Without this treatment the chemo stops and the surgery on 18 August is cancelled. After that the tumour spreads to her lungs. That's not a threat — it's on her radiology report.",
+    upsellV2MissionsTitle: 'What will you save her from tonight?',
+    upsellV2Mission25Title: '£25 — 1 day of pain relief + isolation care',
+    upsellV2Mission25Desc: 'IV paracetamol + HEPA mask + isolation room for 24h. She sleeps tonight without pain. One day closer to her second chemo.',
+    upsellV2Mission50Title: '£50 — 1 day of broad-spectrum antibiotics',
+    upsellV2Mission50Desc: 'Broad-spectrum IV antibiotics — the treatment that attacks the infection before it reaches her lungs. 24h of the fever coming down.',
+    upsellV2Mission100Badge: 'DECISIVE',
+    upsellV2Mission100Title: '£100 — Half a dose of IVIG',
+    upsellV2Mission100Desc: 'With £100 you cover half of one daily IVIG dose. Combined with other donors = surgery kept on 18 August. Your name on her medical file.',
+    upsellV2Mission300Title: '£300 — A full day of IV immunoglobulin',
+    upsellV2Mission300Desc: 'You pay for a full daily IVIG dose. Her immune system recovers in 24h. Monday chemo happens. Surgery stays booked. Ellie lives because of you. Literally.',
+    upsellV2Footnote: 'Every button takes you straight to checkout. Card or Apple Pay, 30 seconds, done. No forms. All donations go to the treatment account in Ellie\'s name.',
+    upsellV2Signoff: 'She is counting on you. Literally.',
+    upsellV2HeroAlt: 'Ellie sleeping in paediatric oncology isolation',
+    // Recovery (7d)
+    recoverySubject: "Ellie beat the sepsis. The surgery is happening.",
+    recoveryPreview: 'Thanks to donors like you. But one last hurdle remains.',
+    recoveryH1: (name: string) => `${name}, Ellie survived — thanks to you.`,
+    recoveryP1: (count: string) =>
+      `They drew her blood again this morning. The bacterial infection is negative. The fever has broken. She ate a whole bowl of soup on her own today. That's thanks to <strong style="color:${BRAND_DARK};">${count} donors</strong> like you who paid for the immunoglobulin together over the last 7 days.`,
+    recoveryP2: "But there's one final hurdle: the surgery on 18 August is still short by £5,300. Anaesthetist, surgical team, rehab. Her dad Mark is now doing 60h a week on the delivery routes. Sarah sold her mum's silver bracelet — the one from her First Communion. They've literally got nothing left.",
+    recoveryP3: "If you can help one more time — even £5 — you'll get Ellie to the operating table on 18 August. Without this surgery, the tumour spreads anyway. Your previous donation wasn't the end — it was only the start.",
+    recoveryCta: 'Get Ellie to the operating table',
+    recoveryFootnote: 'No subscription, no strings. Every donation is one-off and goes straight to the treatment account in Ellie\'s name.',
+    recoverySignoff: 'With deepest gratitude for still being here.',
+    recoveryHeroAlt: 'Ellie sitting up in bed with her teddy after the infection',
+    // Abandoned popup
+    abandonedSubject: 'You were nearly there for Ellie 🤍',
+    abandonedPreview: 'You already picked the amount. One click and Ellie gets the immunoglobulin.',
+    abandonedH1: (name: string) => `${name}, you were nearly there.`,
+    abandonedP1: (amount: string) =>
+      `You chose to donate <strong style="color:${BRAND_DARK};">${amount}</strong> for Ellie's immunoglobulin, but the payment didn't complete. No stress — it's all saved. One click and it's done.`,
+    abandonedP2: "Her fever is still bouncing between 39.4°C and 40.2°C. Every hour without IVIG makes the infection harder to treat. Your donation makes that difference — today, not tomorrow.",
+    abandonedCta: 'Complete my donation to Ellie',
+    abandonedFootnote: 'Card or Apple Pay, done. No extra forms.',
+    abandonedSignoff: "She's counting on you.",
+    abandonedHeroAlt: "Ellie in isolation waiting for the immunoglobulin",
+    // Abandoned checkout
+    abandonedCoSubject: "Ellie's immunoglobulin is still in your basket 🤍",
+    abandonedCoPreview: 'You were ready to save her. The clock is ticking. One click and the infection stops.',
+    abandonedCoUrgencyTag: "⚠️ Ellie's fever keeps climbing",
+    abandonedCoH1: (name: string) => `${name}, Ellie is still waiting for you.`,
+    abandonedCoP1: (amount: string) =>
+      `You were ready to donate <strong style="color:${BRAND_DARK};">${amount}</strong> for Ellie's immunoglobulin. But the payment didn't go through. No worries — everything you chose is still saved.`,
+    abandonedCoP2: 'While you were still thinking, <strong>other donors kept helping</strong>. But we\'re still short on this week\'s £4,200 dose — and her fever is still above 39°C. You were nearly the person who made the difference.',
+    abandonedCoItemLabel: 'In your basket:',
+    abandonedCoP3: "One click on the button below and your donation is done. No forms, no new details — everything is ready.",
+    abandonedCoCta: 'Complete my donation to Ellie now →',
+    abandonedCoUrgencyNote: '⏰ This link is valid for 24 hours. After that you\'ll need to start over.',
+    abandonedCoFootnote: 'Card or Apple Pay, done in 30 seconds. Secure payment via Shopify.',
+    abandonedCoSignoff: "She's counting on you. So are we.",
+    abandonedCoHeroAlt: "Ellie with her teddy in paediatric oncology"
   }
 } as const;
 
 function resolveLocale(l?: Locale): Locale {
-  return l === 'pt' ? 'pt' : 'nl';
+  if (l === 'pt') return 'pt';
+  if (l === 'en') return 'en';
+  return 'nl';
 }
 
-function header(_locale: Locale): string {
-  // Header branco com logo Dog Paws centralizada (substitui texto antigo)
+function header(locale: Locale): string {
+  // Pra locale 'en' (Ellie): sem logo, só o nome da fundação em texto
+  if (locale === 'en') {
+    return `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-bottom:1px solid #f1f5f9;">
+        <tr>
+          <td align="center" style="padding:28px 16px 24px;font-family:Arial,Helvetica,sans-serif;">
+            <div style="font-size:20px;font-weight:700;letter-spacing:-0.01em;color:#0f172a;line-height:1.2;">Ellie's Fund 🤍</div>
+            <div style="margin-top:4px;font-size:12px;color:#64748b;letter-spacing:0.02em;text-transform:uppercase;">British Children's Care Foundation</div>
+          </td>
+        </tr>
+      </table>
+    `;
+  }
+  // Locales nl/pt: header branco com logo Dog Paws centralizada
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-bottom:1px solid #f1f5f9;">
       <tr>
@@ -364,13 +467,16 @@ export function thankYouHtml(vars: ThankYouVars): string {
   const name = vars.firstName ? escape(vars.firstName) : t.fallbackName;
   const amount = formatAmount(vars.amount, vars.currency, locale);
 
-  const body = `
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  const heroRow = locale === 'en' ? '' : `
       <tr>
         <td>
           <img src="${HERO_IMAGE}" alt="${t.heroAlt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
         </td>
-      </tr>
+      </tr>`;
+
+  const body = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      ${heroRow}
       <tr>
         <td class="px-mob" style="padding:32px 40px 8px;">
           <h1 class="h1-mob" style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;color:#0f172a;font-size:24px;font-weight:700;line-height:1.3;">
@@ -416,13 +522,16 @@ export function upsellHtml(vars: UpsellVars): string {
   const name = vars.firstName ? escape(vars.firstName) : t.fallbackName;
   const previous = formatAmount(vars.previousAmount, vars.currency, locale);
 
-  const body = `
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  const heroRow = locale === 'en' ? '' : `
       <tr>
         <td>
           <img src="${UPSELL_HERO_IMAGE}" alt="${t.upsellHeroAlt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
         </td>
-      </tr>
+      </tr>`;
+
+  const body = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      ${heroRow}
       <tr>
         <td class="px-mob" style="padding:32px 40px 8px;">
           <h1 class="h1-mob" style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;color:#0f172a;font-size:24px;font-weight:700;line-height:1.3;">
@@ -550,13 +659,16 @@ export function upsellV2Html(vars: UpsellV2Vars): string {
     `;
   };
 
-  const body = `
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  const heroRow = locale === 'en' ? '' : `
       <tr>
         <td>
           <img src="${UPSELL_HERO_IMAGE}" alt="${t.upsellV2HeroAlt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
         </td>
-      </tr>
+      </tr>`;
+
+  const body = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      ${heroRow}
       <tr>
         <td class="px-mob" style="padding:32px 40px 8px;">
           <h1 class="h1-mob" style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;color:#0f172a;font-size:24px;font-weight:700;line-height:1.3;">
@@ -649,7 +761,7 @@ export function recoveryHtml(vars: RecoveryVars): string {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr>
         <td>
-          <img src="${UPSELL_HERO_IMAGE}" alt="${t.recoveryHeroAlt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
+          ${locale === 'en' ? '' : `<img src="${UPSELL_HERO_IMAGE}" alt="${t.recoveryHeroAlt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">`}
         </td>
       </tr>
       <tr>
@@ -736,7 +848,7 @@ export function abandonedHtml(vars: AbandonedPopupVars): string {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr>
         <td>
-          <img src="${UPSELL_HERO_IMAGE}" alt="${t.abandonedHeroAlt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
+          ${locale === 'en' ? '' : `<img src="${UPSELL_HERO_IMAGE}" alt="${t.abandonedHeroAlt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">`}
         </td>
       </tr>
       <tr>
@@ -837,7 +949,7 @@ export function abandonedCheckoutHtml(vars: AbandonedCheckoutVars): string {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr>
         <td>
-          <img src="${ABANDONED_CHECKOUT_HERO_IMAGE}" alt="${t.abandonedCoHeroAlt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
+          ${locale === 'en' ? '' : `<img src="${ABANDONED_CHECKOUT_HERO_IMAGE}" alt="${t.abandonedCoHeroAlt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">`}
         </td>
       </tr>
       <tr>
