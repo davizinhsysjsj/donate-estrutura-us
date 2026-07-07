@@ -309,7 +309,7 @@ export function scheduleEmailFlow(input: {
     toEmail: input.toEmail,
     templateName: 'thank-you',
     templateData: { firstName: input.firstName, amount: input.amount, currency: input.currency },
-    delayMs: 60 * 60 * 1000 // 1 h
+    delayMs: 5 * 60 * 1000 // 5 min
   });
   scheduleEmail({
     toEmail: input.toEmail,
