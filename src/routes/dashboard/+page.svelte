@@ -3324,26 +3324,26 @@
                 <tr>
                   <th class="th-toggle">Status</th>
                   <th class="th-name th-sortable" onclick={() => setCampSort('name')}>Campanha{sortIcon('name')}</th>
-                  <th class="th-num">Orçamento</th>
+                  <th class="th-num">Orç.</th>
                   <th class="th-num th-sortable" onclick={() => setCampSort('spend')}>Gastos{sortIcon('spend')}</th>
-                  <th class="th-num th-sortable" onclick={() => setCampSort('impressions')}>Impressões{sortIcon('impressions')}</th>
+                  <th class="th-num th-sortable" onclick={() => setCampSort('impressions')}>Impr.{sortIcon('impressions')}</th>
                   {#if campView === 'full'}
                     <th class="th-num">Alcance</th>
                     <th class="th-num">Freq.</th>
                   {/if}
                   <th class="th-num th-sortable" onclick={() => setCampSort('ctr')}>CTR{sortIcon('ctr')}</th>
-                  <th class="th-num">Cliques no link</th>
+                  <th class="th-num">Cliques</th>
                   <th class="th-num th-sortable" onclick={() => setCampSort('cpc')}>CPC{sortIcon('cpc')}</th>
                   {#if campView !== 'essential'}
-                    <th class="th-num">Visualizações da página</th>
-                    <th class="th-num">Finalizações de compra</th>
+                    <th class="th-num">Vis. de pág.</th>
+                    <th class="th-num">IC</th>
                   {/if}
                   {#if campView === 'full'}
-                    <th class="th-num">Add to cart</th>
+                    <th class="th-num">ATC</th>
                   {/if}
                   <th class="th-num th-sortable" onclick={() => setCampSort('roas')}>ROAS{sortIcon('roas')}</th>
-                  <th class="th-num th-sortable" onclick={() => setCampSort('purchases')}>Resultados{sortIcon('purchases')}</th>
-                  <th class="th-num">Custo por resultado</th>
+                  <th class="th-num th-sortable" onclick={() => setCampSort('purchases')}>Result.{sortIcon('purchases')}</th>
+                  <th class="th-num">CPA</th>
                   {#if campView === 'full'}
                     <th class="th-num">CPM</th>
                   {/if}
