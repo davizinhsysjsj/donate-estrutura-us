@@ -6280,6 +6280,38 @@
   /* Toggle ON/OFF estilo UTMfy */
   .th-toggle { width: 70px; text-align: center; }
   .td-toggle { width: 70px; text-align: center; }
+
+  /* ── Colunas Status + Campanha ficam fixas (sticky) no scroll horizontal ──
+     Só no desktop. Mobile vira card view (@media 768px) e o sticky é desligado. */
+  @media (min-width: 769px) {
+    .camp-utmfy thead th.th-toggle,
+    .camp-utmfy tbody td.td-toggle,
+    .camp-utmfy tfoot td.td-toggle {
+      position: sticky;
+      left: 0;
+      z-index: 3;
+      background: #0b0f15;
+    }
+    .camp-utmfy thead th.th-name,
+    .camp-utmfy tbody td.td-name,
+    .camp-utmfy tfoot td.td-name {
+      position: sticky;
+      left: 70px;
+      z-index: 3;
+      background: #0b0f15;
+      box-shadow: 2px 0 6px rgba(0, 0, 0, 0.35);
+    }
+    /* thead precisa ficar acima do tbody */
+    .camp-utmfy thead th.th-toggle,
+    .camp-utmfy thead th.th-name {
+      z-index: 5;
+    }
+    /* Hover altera bg das linhas — sticky precisa reaplicar o mesmo overlay */
+    .camp-utmfy .camp-tr:hover td.td-toggle,
+    .camp-utmfy .camp-tr:hover td.td-name {
+      background: #12161d;
+    }
+  }
   .camp-switch {
     background: none; border: none; cursor: pointer; padding: 4px;
     display: inline-block;
