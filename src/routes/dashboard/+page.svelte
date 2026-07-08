@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { GridStack, type GridStackNode } from 'gridstack';
-  import 'gridstack/dist/gridstack.min.css';
+  // GridStack é importado dinamicamente no client (evita window undefined no SSR)
+  type GridStackNode = { id?: string | number; x?: number; y?: number; w?: number; h?: number };
 
   let { data } = $props();
 
@@ -1088,41 +1088,49 @@
   const activeUsdToBrl = $derived(liveRate?.usdToBrl ?? taxConfig.usdToBrl ?? 5.70);
   const activeEurToBrl = $derived(liveRate?.eurToBrl ?? (taxConfig.eurToUsd * activeUsdToBrl));
 
-  // ── GridStack init (roda quando gridEl aparece na Visão Geral) ──
+  // ── GridStack init (lazy import client-side, evita SSR crash) ──
+  let gridStackReady = $state(false);
   $effect(() => {
+    if (typeof window === 'undefined') return;
     if (activeTab !== 'overview') {
-      // Destruir instância quando trocar de aba pra não sujar DOM de outras tabs
       if (gridInstance) { try { gridInstance.destroy(false); } catch {} gridInstance = null; }
       return;
     }
     if (!gridEl || gridInstance) return;
-    // Setup GridStack: 12 colunas, snap grid, resize por qualquer canto/lateral
-    gridInstance = GridStack.init({
-      column: 12,
-      cellHeight: 74,
-      margin: 8,
-      float: false,
-      animate: true,
-      disableOneColumnMode: false,
-      resizable: { handles: 'e, se, s, sw, w' },
-      draggable: { handle: '.grid-stack-item-content', scroll: true },
-      minRow: 2
-    }, gridEl);
-    // Salva o layout no localStorage a cada mudança
-    gridInstance.on('change', () => {
-      const items = gridInstance.save(false) as GridStackNode[];
-      const layout: Record<string, GridWidget> = {};
-      for (const it of items) {
-        if (!it.id) continue;
-        layout[String(it.id)] = {
-          id: String(it.id),
-          x: it.x, y: it.y,
-          w: it.w ?? 3, h: it.h ?? 2
-        };
-      }
-      savedGridLayout = layout;
-      try { localStorage.setItem('vitrack_grid_layout', JSON.stringify(layout)); } catch {}
-    });
+    // Import dinâmico — client-only
+    (async () => {
+      const [{ GridStack }] = await Promise.all([
+        import('gridstack'),
+        import('gridstack/dist/gridstack.min.css')
+      ]);
+      if (!gridEl || gridInstance) return;
+      gridInstance = GridStack.init({
+        column: 12,
+        cellHeight: 74,
+        margin: 8,
+        float: false,
+        animate: true,
+        disableOneColumnMode: false,
+        resizable: { handles: 'e, se, s, sw, w' },
+        draggable: { handle: '.grid-stack-item-content', scroll: true },
+        minRow: 2
+      }, gridEl);
+      gridInstance.on('change', () => {
+        const items = gridInstance.save(false) as GridStackNode[];
+        const layout: Record<string, GridWidget> = {};
+        for (const it of items) {
+          if (!it.id) continue;
+          layout[String(it.id)] = {
+            id: String(it.id),
+            x: it.x, y: it.y,
+            w: it.w ?? 3, h: it.h ?? 2
+          };
+        }
+        savedGridLayout = layout;
+        try { localStorage.setItem('vitrack_grid_layout', JSON.stringify(layout)); } catch {}
+      });
+      gridStackReady = true;
+    })().catch((e) => console.warn('[dashboard] GridStack init failed', e));
   });
 
   onDestroy(() => {
