@@ -19,7 +19,7 @@ function getClientIP(request: Request, getAddr: () => string): string {
   }
 }
 
-export const load: PageServerLoad = async ({ request, getClientAddress, setHeaders }) => {
+export const load: PageServerLoad = async ({ request, getClientAddress }) => {
   const ip = getClientIP(request, getClientAddress);
   let cc: string | undefined;
 
@@ -33,11 +33,9 @@ export const load: PageServerLoad = async ({ request, getClientAddress, setHeade
 
   const flag = flagFor(cc);
 
-  // Doadores reais das últimas 24h — só do funil Ellie, formatação EN
+  // Doadores reais das últimas 24h — só do funil Ellie, formatação EN.
+  // Cache-control não é setado aqui — o +layout.server.ts global já cacheia 60s.
   const realDonors = getRecentRealDonors({ funnel: 'ellie', locale: 'en' });
-
-  // Cache 60s (feed muda quando um novo Purchase entra pelo webhook)
-  setHeaders({ 'cache-control': 'public, max-age=60' });
 
   return {
     visitorCountry: flag.code,
