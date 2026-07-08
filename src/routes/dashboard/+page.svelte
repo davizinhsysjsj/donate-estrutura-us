@@ -291,6 +291,38 @@
   // fmtBrl converte valor em BRL pra moeda selecionada (BRL/USD/EUR).
   // Reativo via displayCurrency — toda chamada dentro de derived/template
   // recalcula quando user troca a moeda.
+  /**
+   * Constrói o path SVG do funil de conversão (curva bezier suave).
+   * Recebe halfHeights (metade da altura de cada etapa) e stepW (largura de cada etapa).
+   * viewBox esperado: 1000×220 (centro Y = 110).
+   */
+  function buildConvFunnelPath(halfHeights: number[], stepW: number): string {
+    const cy = 110;
+    const parts: string[] = [];
+    // Topo — esquerda para direita
+    parts.push(`M0,${cy - halfHeights[0]}`);
+    for (let i = 0; i < halfHeights.length - 1; i++) {
+      const x0 = i * stepW;
+      const x1 = (i + 1) * stepW;
+      const y0 = cy - halfHeights[i];
+      const y1 = cy - halfHeights[i + 1];
+      parts.push(`C${x0 + stepW / 2},${y0} ${x1 - stepW / 2},${y1} ${x1},${y1}`);
+    }
+    // Direita para baixo
+    const lastX = 1000;
+    parts.push(`L${lastX},${cy + halfHeights[halfHeights.length - 1]}`);
+    // Base — direita para esquerda
+    for (let i = halfHeights.length - 1; i > 0; i--) {
+      const x0 = i * stepW;
+      const x1 = (i - 1) * stepW;
+      const y0 = cy + halfHeights[i];
+      const y1 = cy + halfHeights[i - 1];
+      parts.push(`C${x0 - stepW / 2},${y0} ${x1 + stepW / 2},${y1} ${x1},${y1}`);
+    }
+    parts.push('Z');
+    return parts.join(' ');
+  }
+
   function fmtBrl(brl: number): string {
     if (displayCurrency === 'USD') return fmtUsdRaw(brl / activeUsdToBrl);
     if (displayCurrency === 'EUR') return fmtEurRaw(brl / activeEurToBrl);
@@ -2353,6 +2385,9 @@
             { label: 'Vendas Inic.', value: vinic, pct: (vinic / base) * 100 },
             { label: 'Vendas Apr.', value: vapr,   pct: (vapr / base) * 100 }
           ]}
+          {@const halfHeights = steps.map(s => Math.max(6, (s.pct / 100) * 105))}
+          {@const stepW = 1000 / (steps.length - 1)}
+          {@const convPath = buildConvFunnelPath(halfHeights, stepW)}
           <section class="card conv-funnel-section">
             <div class="card-head">
               <h2>Funil de Conversão (Meta Ads)</h2>
@@ -2375,30 +2410,7 @@
                       <stop offset="100%" stop-color="#22C55E" stop-opacity="0.75" />
                     </linearGradient>
                   </defs>
-                  {@const halfHeights = steps.map(s => Math.max(6, (s.pct / 100) * 105))}
-                  {@const stepW = 1000 / (steps.length - 1)}
-                  {@const cx = 220}
-                  <!-- topo -->
-                  <path d={
-                    'M0,' + (110 - halfHeights[0]) + ' ' +
-                    steps.slice(1).map((_, i) => {
-                      const x0 = i * stepW;
-                      const x1 = (i + 1) * stepW;
-                      const y0 = 110 - halfHeights[i];
-                      const y1 = 110 - halfHeights[i + 1];
-                      return `C${x0 + stepW / 2},${y0} ${x1 - stepW / 2},${y1} ${x1},${y1}`;
-                    }).join(' ') +
-                    ' L1000,' + (110 + halfHeights[halfHeights.length - 1]) + ' ' +
-                    steps.slice().reverse().slice(1).map((_, i) => {
-                      const idx = steps.length - 1 - i;
-                      const x0 = idx * stepW;
-                      const x1 = (idx - 1) * stepW;
-                      const y0 = 110 + halfHeights[idx];
-                      const y1 = 110 + halfHeights[idx - 1];
-                      return `C${x0 - stepW / 2},${y0} ${x1 + stepW / 2},${y1} ${x1},${y1}`;
-                    }).join(' ') +
-                    ' Z'
-                  } fill="url(#convGrad)" />
+                  <path d={convPath} fill="url(#convGrad)" />
                 </svg>
                 <!-- Divisórias verticais + labels % -->
                 <div class="conv-lanes">
