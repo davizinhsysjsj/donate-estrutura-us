@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { lookupGeo } from '$lib/server/geo';
+import { getRecentRealDonors } from '$lib/server/donors-feed';
 
 // Bandeira mostrada no header da LP muda conforme país do visitante.
 // GB → 🇬🇧 · IE → 🇮🇪 · resto cai no GB (funil UK-first)
@@ -18,7 +19,7 @@ function getClientIP(request: Request, getAddr: () => string): string {
   }
 }
 
-export const load: PageServerLoad = async ({ request, getClientAddress }) => {
+export const load: PageServerLoad = async ({ request, getClientAddress, setHeaders }) => {
   const ip = getClientIP(request, getClientAddress);
   let cc: string | undefined;
 
@@ -31,5 +32,17 @@ export const load: PageServerLoad = async ({ request, getClientAddress }) => {
   }
 
   const flag = flagFor(cc);
-  return { visitorCountry: flag.code, visitorFlag: flag.emoji };
+
+  // Doadores reais das últimas 24h — só do funil Ellie, formatação EN
+  const realDonors = getRecentRealDonors({ funnel: 'ellie', locale: 'en' });
+
+  // Cache 60s (feed muda quando um novo Purchase entra pelo webhook)
+  setHeaders({ 'cache-control': 'public, max-age=60' });
+
+  return {
+    visitorCountry: flag.code,
+    visitorFlag: flag.emoji,
+    realDonors,
+    realDonorsCount: realDonors.length
+  };
 };

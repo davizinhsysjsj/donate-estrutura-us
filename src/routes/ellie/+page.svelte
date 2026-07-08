@@ -83,10 +83,23 @@
     }
   ];
 
-  const donorsList = $derived(ELLIE_DONORS);
+  // Doadores reais (das últimas 24h, filtrados por funil Ellie) sobrem no topo,
+  // fakes completam até dar 20 itens. Assim que uma compra real chega, ela vira
+  // o "último doador" que aparece no ProgressCard e sticky bar.
+  const donorsList = $derived.by(() => {
+    const real = (data.realDonors ?? []) as Array<typeof ELLIE_DONORS[number] & { real?: boolean; ts?: number }>;
+    const needed = Math.max(0, 20 - real.length);
+    return [...real, ...ELLIE_DONORS.slice(0, needed)];
+  });
   // Stats da campanha da Ellie — independente do funil animal
-  const raisedGbp = $derived(2894);
-  const donationsCount = $derived(76);
+  // Baseline fake + soma real das últimas 24h (feed via +page.server.ts)
+  const RAISED_BASELINE = 2894;
+  const DONATIONS_BASELINE = 76;
+  const raisedGbp = $derived.by(() => {
+    const realSum = ((data.realDonors ?? []) as Array<{ amount: number }>).reduce((s, d) => s + (d.amount || 0), 0);
+    return RAISED_BASELINE + realSum;
+  });
+  const donationsCount = $derived(DONATIONS_BASELINE + (data.realDonorsCount ?? 0));
   // Operação urgente: 42 dias (countdown a partir de 2026-07-07)
   const ELLIE_SURGERY_DATE = new Date('2026-08-18T00:00:00Z');
   const ellieDaysLeft = Math.max(0, Math.ceil((ELLIE_SURGERY_DATE.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));

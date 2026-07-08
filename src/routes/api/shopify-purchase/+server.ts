@@ -324,7 +324,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			firstName: shipping.first_name || customer.first_name,
 			lastName: shipping.last_name || customer.last_name,
 			amount: value,
-			currency
+			currency,
+			funnel: funnelAttr === 'ellie' ? 'ellie' : funnelAttr === 'lina' ? 'lina' : undefined
 		});
 	} catch (e) {
 		console.error('[shopify-purchase] addRealDonor failed', e);

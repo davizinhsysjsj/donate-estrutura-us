@@ -25,6 +25,7 @@ interface StoredDonor {
 	lastInitial?: string; // sem ponto, soh letra (ex: "D")
 	amount: number;
 	currency: string;
+	funnel?: 'ellie' | 'lina'; // qual funil originou a doação — filtra na LP correta
 }
 
 export interface FeedDonor {
@@ -36,6 +37,7 @@ export interface FeedDonor {
 	anonymous: boolean;
 	ts: number;
 	real: true;
+	funnel?: 'ellie' | 'lina';
 }
 
 const COLORS = [
@@ -80,13 +82,16 @@ export function addRealDonor(input: {
 	lastName?: string | null;
 	amount: number;
 	currency?: string;
+	funnel?: 'ellie' | 'lina';
 }) {
 	if (!input.amount || input.amount <= 0) return;
 
 	const rawFirst = (input.firstName || '').trim();
 	const rawLast = (input.lastName || '').trim();
 
-	const firstName = rawFirst || 'Anoniem';
+	// Nome default: "Anonymous" pra Ellie (EN), "Anoniem" pra Lina (NL)
+	const anonName = input.funnel === 'ellie' ? 'Anonymous' : 'Anoniem';
+	const firstName = rawFirst || anonName;
 	const lastInitial = rawLast ? rawLast.charAt(0).toUpperCase() : undefined;
 
 	const arr = load();
@@ -95,7 +100,8 @@ export function addRealDonor(input: {
 		firstName,
 		lastInitial,
 		amount: Math.round(input.amount),
-		currency: (input.currency || 'EUR').toUpperCase()
+		currency: (input.currency || 'EUR').toUpperCase(),
+		funnel: input.funnel
 	});
 
 	// trim: so as MAX_STORED mais recentes (arquivo nao cresce indefinidamente)
@@ -103,15 +109,29 @@ export function addRealDonor(input: {
 	save(trimmed);
 }
 
-function formatAgo(diffMs: number, locale: 'nl' | 'pt' = 'nl'): string {
+function formatAgo(diffMs: number, locale: 'nl' | 'pt' | 'en' = 'nl'): string {
 	const sec = Math.floor(diffMs / 1000);
-	if (sec < 60) return locale === 'nl' ? 'zojuist' : 'agora';
+	if (sec < 60) {
+		if (locale === 'en') return 'just now';
+		if (locale === 'pt') return 'agora';
+		return 'zojuist';
+	}
 	const min = Math.floor(sec / 60);
-	if (min < 60) return locale === 'nl' ? `${min} min geleden` : `${min} min`;
+	if (min < 60) {
+		if (locale === 'en') return `${min} min ago`;
+		if (locale === 'pt') return `${min} min`;
+		return `${min} min geleden`;
+	}
 	const hr = Math.floor(min / 60);
-	if (hr < 24) return locale === 'nl' ? `${hr} u geleden` : `${hr}h`;
+	if (hr < 24) {
+		if (locale === 'en') return `${hr} h ago`;
+		if (locale === 'pt') return `${hr}h`;
+		return `${hr} u geleden`;
+	}
 	const day = Math.floor(hr / 24);
-	return locale === 'nl' ? `${day} d geleden` : `${day}d`;
+	if (locale === 'en') return `${day} d ago`;
+	if (locale === 'pt') return `${day}d`;
+	return `${day} d geleden`;
 }
 
 /**
@@ -127,19 +147,35 @@ export function getDonorsCountLastDays(days: number): number {
 
 /**
  * Retorna doadores reais das ultimas 24h, ja formatados pra UI.
+ * @param opts.funnel - filtra apenas doadores desse funil (opcional; sem filtro traz todos)
+ * @param opts.locale - idioma do "ago" (default 'nl'). Ellie usa 'en'.
  */
-export function getRecentRealDonors(): FeedDonor[] {
+export function getRecentRealDonors(opts?: {
+	funnel?: 'ellie' | 'lina';
+	locale?: 'nl' | 'pt' | 'en';
+}): FeedDonor[] {
 	const arr = load();
 	const cutoff = Date.now() - MAX_AGE_MS;
 	const now = Date.now();
+	const targetFunnel = opts?.funnel;
+	const targetLocale = opts?.locale || 'nl';
+	const anonLabel = targetLocale === 'en' ? 'Anonymous' : 'Anoniem';
 
 	return arr
 		.filter((d) => d.ts >= cutoff)
+		.filter((d) => {
+			if (!targetFunnel) return true;
+			// Doações com funnel gravado devem bater. Doações antigas sem funnel
+			// (backward compat) ficam só na Lina — não vazam pra Ellie.
+			if (targetFunnel === 'ellie') return d.funnel === 'ellie';
+			// Lina: aceita 'lina' ou legacy sem funnel
+			return d.funnel === 'lina' || !d.funnel;
+		})
 		.sort((a, b) => b.ts - a.ts)
 		.map((d, i) => {
-			const isAnon = d.firstName === 'Anoniem';
+			const isAnon = d.firstName === 'Anoniem' || d.firstName === 'Anonymous';
 			const name = isAnon
-				? 'Anoniem'
+				? anonLabel
 				: d.lastInitial
 					? `${d.firstName} ${d.lastInitial}.`
 					: d.firstName;
@@ -149,12 +185,13 @@ export function getRecentRealDonors(): FeedDonor[] {
 			return {
 				name,
 				amount: d.amount,
-				ago: formatAgo(now - d.ts),
+				ago: formatAgo(now - d.ts, targetLocale),
 				initials,
 				color: COLORS[i % COLORS.length],
 				anonymous: isAnon,
 				ts: d.ts,
-				real: true as const
+				real: true as const,
+				funnel: d.funnel
 			};
 		});
 }
