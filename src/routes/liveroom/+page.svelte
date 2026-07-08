@@ -303,11 +303,44 @@
     trackAnalytics('liveroom_sound_toggle', { on: soundOn });
     if (!ambientAudio) return;
     if (soundOn) {
-      ambientAudio.volume = 0.3;
+      ambientAudio.volume = 0.35;
       ambientAudio.play().catch(() => {});
     } else {
       ambientAudio.pause();
     }
+  }
+
+  // ── VSL overlay inicial ──────────────────────────────────────────────
+  // Ao carregar, mostra tela cheia com botão "Watch Ellie live". Click dispara:
+  //  1. Autoplay do video com som (muted=false)
+  //  2. Ativa bipe do monitor
+  //  3. Some o overlay
+  let vslOverlayVisible = $state(true);
+  let heroVideoEl: HTMLVideoElement | null = $state(null);
+
+  function startWatching() {
+    vslOverlayVisible = false;
+    trackAnalytics('liveroom_vsl_click', {});
+    // Video: unmute + play
+    try {
+      if (heroVideoEl) {
+        heroVideoEl.muted = false;
+        heroVideoEl.volume = 0.9;
+        heroVideoEl.play().catch(() => {
+          // Se o browser não deixar auto-play com som, mantém mudo mas tocando
+          if (heroVideoEl) heroVideoEl.muted = true;
+          heroVideoEl?.play().catch(() => {});
+        });
+      }
+    } catch {}
+    // Bipe do monitor
+    try {
+      if (ambientAudio) {
+        soundOn = true;
+        ambientAudio.volume = 0.28;
+        ambientAudio.play().catch(() => {});
+      }
+    } catch {}
   }
 
   // ── Share ─────────────────────────────────────────────────────────
@@ -454,11 +487,26 @@
   <section class="lr-video-wrap">
     <video
       class="lr-video"
+      bind:this={heroVideoEl}
       autoplay muted loop playsinline
       poster="/ellie/ellie-coma-hero.webp"
     >
       <source src="/ellie/videos/ellie-live-loop.mp4" type="video/mp4" />
     </video>
+
+    {#if vslOverlayVisible}
+      <button class="vsl-overlay" onclick={startWatching} aria-label="Watch Ellie live">
+        <div class="vsl-inner">
+          <div class="vsl-play-btn" aria-hidden="true">
+            <VolumeX size={38} strokeWidth={2.5} />
+            <span class="vsl-play-ring"></span>
+            <span class="vsl-play-ring vsl-play-ring-2"></span>
+          </div>
+          <div class="vsl-title">Watch Ellie <span class="vsl-title-red">LIVE</span></div>
+          <div class="vsl-sub">Tap to unmute · Sarah is in the room</div>
+        </div>
+      </button>
+    {/if}
 
     <div class="lr-video-overlay">
       <div class="lr-live-badge">
@@ -601,9 +649,9 @@
 {/if}
 
 <style>
-  :global(html), :global(body) { background: #000; }
+  :global(html), :global(body) { background: #ffffff; }
   :global(body) {
-    color: #e5e7eb;
+    color: #0f172a;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     margin: 0;
   }
@@ -643,8 +691,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    background: #0a0a0a;
-    border-bottom: 1px solid #1a1a1a;
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
     position: sticky;
     top: 34px;
     z-index: 40;
@@ -656,10 +704,10 @@
     font-weight: 700;
     font-size: 0.875rem;
     letter-spacing: 0.05em;
-    color: #fff;
+    color: #0f172a;
   }
   .lr-brand-title {
-    color: #9ca3af;
+    color: #6b7280;
     font-weight: 500;
     margin-left: 8px;
     font-size: 0.8125rem;
@@ -678,16 +726,16 @@
   .lr-header-right { display: flex; gap: 6px; }
   .lr-icon-btn {
     background: transparent;
-    border: 1px solid #262626;
-    color: #d4d4d4;
+    border: 1px solid #e5e7eb;
+    color: #475569;
     width: 34px; height: 34px;
     border-radius: 8px;
     display: inline-flex;
     align-items: center; justify-content: center;
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background 0.15s, border-color 0.15s;
   }
-  .lr-icon-btn:hover { background: #171717; }
+  .lr-icon-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
 
   /* MAIN GRID */
   .lr-main {
@@ -701,7 +749,7 @@
     .lr-main {
       grid-template-columns: 1.35fr 1fr;
       gap: 1px;
-      background: #1a1a1a;
+      background: #e5e7eb;
     }
   }
 
@@ -724,7 +772,7 @@
   .lr-video {
     width: 100%; height: 100%;
     object-fit: cover;
-    object-position: center 45%;
+    object-position: center center;
     display: block;
   }
   .lr-video-overlay {
@@ -788,7 +836,7 @@
   .lr-chat {
     display: flex;
     flex-direction: column;
-    background: #0a0a0a;
+    background: #ffffff;
     min-height: 500px;
   }
   @media (min-width: 900px) {
@@ -840,8 +888,8 @@
     padding: 16px 12px;
     overflow-y: auto;
     background:
-      linear-gradient(rgba(6, 8, 12, 0.9), rgba(6, 8, 12, 0.9)),
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'><circle cx='20' cy='20' r='0.6' fill='%23155e5288'/></svg>");
+      linear-gradient(rgba(239, 234, 226, 0.85), rgba(239, 234, 226, 0.85)),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'><circle cx='20' cy='20' r='0.6' fill='%23a8a29e77'/></svg>");
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -852,12 +900,13 @@
   }
   .wa-system {
     align-self: center;
-    background: rgba(255,255,255,0.08);
-    color: #d4d4d4;
+    background: #fef3c7;
+    color: #78350f;
     font-size: 0.75rem;
     padding: 5px 10px;
     border-radius: 12px;
     margin: 6px 0;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.05);
   }
   .wa-msg { display: flex; }
   .wa-msg-sarah { justify-content: flex-start; }
@@ -868,24 +917,24 @@
     border-radius: 8px;
     font-size: 0.9375rem;
     line-height: 1.35;
-    color: #f3f4f6;
+    color: #0f172a;
     position: relative;
-    box-shadow: 0 1px 1px rgba(0,0,0,0.15);
+    box-shadow: 0 1px 1px rgba(0,0,0,0.12);
     word-wrap: break-word;
   }
   .wa-msg-sarah .wa-bubble {
-    background: #1F2C34;
+    background: #ffffff;
     border-top-left-radius: 2px;
   }
   .wa-msg-you .wa-bubble {
-    background: #056162;
-    color: #fff;
+    background: #d9fdd3;
+    color: #0f172a;
     border-top-right-radius: 2px;
   }
   .wa-ts {
     display: block;
     font-size: 0.6875rem;
-    color: rgba(255,255,255,0.55);
+    color: rgba(15,23,42,0.45);
     text-align: right;
     margin-top: 2px;
     letter-spacing: 0.01em;
@@ -893,15 +942,15 @@
   .wa-voice {
     display: inline-block;
     padding: 4px 8px;
-    background: rgba(255,255,255,0.06);
+    background: #f3f4f6;
     border-radius: 6px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.8125rem;
-    color: #dcf8c6;
+    color: #0f6e5a;
   }
   .wa-typing {
     align-self: flex-start;
-    color: #9ca3af;
+    color: #6b7280;
     font-size: 0.8125rem;
     font-style: italic;
     padding: 4px 12px;
@@ -911,19 +960,20 @@
     display: flex;
     gap: 8px;
     padding: 10px 12px;
-    background: #0a0a0a;
-    border-top: 1px solid #1a1a1a;
+    background: #f0f2f5;
+    border-top: 1px solid #e5e7eb;
   }
   .wa-input input {
     flex: 1;
-    background: #1F2C34;
+    background: #ffffff;
     border: none;
-    color: #f3f4f6;
+    color: #0f172a;
     padding: 10px 14px;
     border-radius: 24px;
     font-family: inherit;
     font-size: 0.9375rem;
     outline: none;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.05);
   }
   .wa-input input::placeholder { color: #9ca3af; }
   .wa-input button {
@@ -942,21 +992,21 @@
   .wa-input button:disabled { opacity: 0.4; cursor: not-allowed; }
   .wa-disclaimer {
     margin: 0;
-    padding: 6px 14px 12px;
-    background: #0a0a0a;
-    color: #6b7280;
+    padding: 8px 14px 14px;
+    background: #f0f2f5;
+    color: #64748b;
     font-size: 0.6875rem;
     text-align: center;
   }
 
   /* VIEWER CHAT (Twitch-style) */
   .lr-viewer-chat {
-    background: #0a0a0a;
-    border-top: 1px solid #1a1a1a;
-    padding: 12px 14px 14px;
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+    padding: 14px 16px 16px;
   }
   .lr-vc-header {
-    color: #9ca3af;
+    color: #6b7280;
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -983,7 +1033,7 @@
   .lr-vc-row {
     font-size: 0.8125rem;
     line-height: 1.4;
-    color: #d4d4d4;
+    color: #374151;
     animation: vcSlideIn 0.35s ease-out;
   }
   @keyframes vcSlideIn {
@@ -992,37 +1042,37 @@
   }
   .lr-vc-name {
     font-weight: 700;
-    color: #a5b4fc;
+    color: #4f46e5;
     margin-right: 6px;
   }
-  .lr-vc-donate .lr-vc-name { color: #6EE7B7; }
-  .lr-vc-donate .lr-vc-txt { color: #86efac; font-weight: 600; }
-  .lr-vc-share .lr-vc-name { color: #fbbf24; }
-  .lr-vc-share .lr-vc-txt { color: #fde68a; }
+  .lr-vc-donate .lr-vc-name { color: #15803d; }
+  .lr-vc-donate .lr-vc-txt { color: #166534; font-weight: 600; }
+  .lr-vc-share .lr-vc-name { color: #b45309; }
+  .lr-vc-share .lr-vc-txt { color: #92400e; }
 
   /* RAISED BAR */
   .lr-raised {
-    background: #0a0a0a;
-    padding: 20px 20px 16px;
+    background: #ffffff;
+    padding: 22px 20px 18px;
     text-align: center;
-    border-top: 1px solid #1a1a1a;
+    border-top: 1px solid #e5e7eb;
   }
   .lr-raised-nums {
     font-size: 1.5rem;
     font-weight: 800;
-    color: #fff;
+    color: #0f172a;
     letter-spacing: -0.01em;
     margin-bottom: 12px;
   }
-  .lr-raised-current { color: #22C55E; }
-  .lr-raised-sep { color: #6b7280; margin: 0 6px; }
-  .lr-raised-goal { color: #9ca3af; font-weight: 500; font-size: 1.125rem; }
+  .lr-raised-current { color: #16A34A; }
+  .lr-raised-sep { color: #cbd5e1; margin: 0 6px; }
+  .lr-raised-goal { color: #64748b; font-weight: 500; font-size: 1.125rem; }
   .lr-raised-track {
     width: 100%;
     max-width: 520px;
     margin: 0 auto;
     height: 10px;
-    background: #1a1a1a;
+    background: #f1f5f9;
     border-radius: 6px;
     overflow: hidden;
   }
@@ -1046,10 +1096,11 @@
     padding: 24px 16px 100px;
     max-width: 720px;
     margin: 0 auto;
+    background: #ffffff;
   }
   .lr-tiers-title {
     font-size: 1rem;
-    color: #f3f4f6;
+    color: #0f172a;
     font-weight: 600;
     text-align: center;
     margin: 0 0 18px;
@@ -1065,9 +1116,9 @@
   }
   .lr-tier {
     position: relative;
-    background: #0a0a0a;
-    border: 1.5px solid #262626;
-    color: #f3f4f6;
+    background: #ffffff;
+    border: 1.5px solid #e5e7eb;
+    color: #0f172a;
     padding: 16px 12px 14px;
     border-radius: 12px;
     cursor: pointer;
@@ -1076,15 +1127,16 @@
     align-items: center;
     gap: 4px;
     text-align: center;
-    transition: border-color 0.15s, transform 0.1s, background 0.15s;
+    transition: border-color 0.15s, transform 0.1s, background 0.15s, box-shadow 0.15s;
     font-family: inherit;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   }
-  .lr-tier:hover:not(:disabled) { border-color: #DC2626; background: #171717; }
+  .lr-tier:hover:not(:disabled) { border-color: #DC2626; background: #fef2f2; box-shadow: 0 4px 12px rgba(220,38,38,0.12); }
   .lr-tier:active:not(:disabled) { transform: scale(0.98); }
   .lr-tier:disabled { opacity: 0.5; cursor: progress; }
   .lr-tier-popular {
     border-color: #DC2626;
-    background: linear-gradient(180deg, #171717, #0a0a0a);
+    background: linear-gradient(180deg, #fef2f2, #ffffff);
   }
   .lr-tier-badge {
     position: absolute;
@@ -1104,13 +1156,13 @@
   .lr-tier-amount {
     font-size: 1.375rem;
     font-weight: 800;
-    color: #fff;
+    color: #0f172a;
     line-height: 1;
     margin-top: 4px;
   }
   .lr-tier-label {
     font-size: 0.6875rem;
-    color: #9ca3af;
+    color: #64748b;
     line-height: 1.3;
     min-height: 28px;
   }
@@ -1122,7 +1174,7 @@
   }
   .lr-tier-loading {
     font-size: 0.75rem;
-    color: #fbbf24;
+    color: #b45309;
     font-weight: 600;
     margin-top: 4px;
   }
@@ -1132,7 +1184,7 @@
     position: fixed;
     bottom: 0; left: 0; right: 0;
     padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
-    background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,0.98) 30%);
+    background: linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,0.98) 30%);
     z-index: 60;
   }
   .lr-sticky-btn {
@@ -1197,4 +1249,89 @@
     from { opacity: 0; transform: translate(-50%, 10px); }
     to { opacity: 1; transform: translate(-50%, 0); }
   }
+
+  /* VSL OVERLAY (tela cheia inicial pra clicar e assistir) */
+  .vsl-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.85) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    z-index: 20;
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    color: #fff;
+    padding: 24px;
+    text-align: center;
+    font-family: inherit;
+    animation: vslFadeIn 0.4s ease-out;
+  }
+  @keyframes vslFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .vsl-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+    max-width: 400px;
+  }
+  .vsl-play-btn {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: rgba(220, 38, 38, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 12px 40px rgba(220, 38, 38, 0.45);
+  }
+  .vsl-play-ring {
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 2px solid rgba(220, 38, 38, 0.7);
+    animation: vslRingPulse 2s ease-out infinite;
+  }
+  .vsl-play-ring-2 { animation-delay: 1s; }
+  @keyframes vslRingPulse {
+    0% { transform: scale(1); opacity: 0.9; }
+    100% { transform: scale(1.5); opacity: 0; }
+  }
+  .vsl-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    color: #fff;
+  }
+  .vsl-title-red {
+    color: #FCA5A5;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .vsl-title-red::before {
+    content: '';
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #DC2626;
+    animation: livePulse 1.6s ease-in-out infinite;
+  }
+  .vsl-sub {
+    font-size: 0.9375rem;
+    color: rgba(255,255,255,0.85);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+  .vsl-overlay:hover .vsl-play-btn { transform: scale(1.05); transition: transform 0.15s; }
+  .vsl-overlay:active .vsl-play-btn { transform: scale(0.96); }
 </style>
