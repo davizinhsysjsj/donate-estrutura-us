@@ -126,6 +126,7 @@ export const POST: RequestHandler = async ({ request }) => {
 					notifyIcStarted({
 						sid,
 						amount: typeof value === 'number' ? value : Number(value) || undefined,
+						currency,
 						country: geo?.country,
 						countryCode: geo?.countryCode,
 						city: geo?.city,

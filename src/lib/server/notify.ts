@@ -22,7 +22,8 @@ function gcDedup() {
 
 export interface IcNotifyPayload {
   sid?: string;          // dedup key (opcional)
-  amount?: number;       // €30, €100, etc
+  amount?: number;       // valor numérico, símbolo vem de currency
+  currency?: string;     // 'EUR' (default), 'GBP', 'USD'
   tierName?: string;     // Bronze, Guardian, etc
   country?: string;
   countryCode?: string;
@@ -32,6 +33,14 @@ export interface IcNotifyPayload {
   utmSource?: string;
   utmCampaign?: string;
   eventId?: string;
+}
+
+function currencySymbol(cur?: string): string {
+  const c = (cur || 'EUR').toUpperCase();
+  if (c === 'GBP') return '£';
+  if (c === 'USD') return '$';
+  if (c === 'BRL') return 'R$';
+  return '€';
 }
 
 const TIER_BY_AMOUNT: Record<number, string> = {
@@ -60,8 +69,9 @@ export function notifyIcStarted(p: IcNotifyPayload): void {
     gcDedup();
   }
 
-  // Titulo: "Checkout iniciado no valor de €30"
-  const amountTxt = p.amount ? `€${p.amount}` : '—';
+  // Titulo: "Checkout iniciado no valor de £30" (símbolo depende do currency)
+  const sym = currencySymbol(p.currency);
+  const amountTxt = p.amount ? `${sym}${p.amount}` : '—';
   const title = `Checkout iniciado no valor de ${amountTxt}`;
 
   // Localizacao
