@@ -2338,6 +2338,87 @@
           {/each}
         </section>
 
+        <!-- Funil de Conversão (Meta Ads) -->
+        {#if fbAds}
+          {@const clicks = fbAds.clicks || 0}
+          {@const lpv = fbAds.landingPageViews || 0}
+          {@const ics = fbAds.initiateCheckout || 0}
+          {@const vinic = fbAds.purchases || 0}
+          {@const vapr = snap.kpis.purchased || 0}
+          {@const base = Math.max(clicks, 1)}
+          {@const steps = [
+            { label: 'Cliques',     value: clicks, pct: 100 },
+            { label: 'Vis. Página', value: lpv,    pct: (lpv / base) * 100 },
+            { label: 'ICs',         value: ics,    pct: (ics / base) * 100 },
+            { label: 'Vendas Inic.', value: vinic, pct: (vinic / base) * 100 },
+            { label: 'Vendas Apr.', value: vapr,   pct: (vapr / base) * 100 }
+          ]}
+          <section class="card conv-funnel-section">
+            <div class="card-head">
+              <h2>Funil de Conversão (Meta Ads)</h2>
+              <span class="muted small" title="Cliques do Meta Ads afunilando até vendas aprovadas no servidor interno">ⓘ</span>
+            </div>
+            <div class="conv-funnel">
+              <!-- headers -->
+              <div class="conv-headers">
+                {#each steps as s}
+                  <div class="conv-header">{s.label}</div>
+                {/each}
+              </div>
+              <!-- shape SVG -->
+              <div class="conv-shape-wrap">
+                <svg class="conv-shape" viewBox="0 0 1000 220" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="convGrad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%"   stop-color="#02A95C" stop-opacity="0.95" />
+                      <stop offset="50%"  stop-color="#16A34A" stop-opacity="0.85" />
+                      <stop offset="100%" stop-color="#22C55E" stop-opacity="0.75" />
+                    </linearGradient>
+                  </defs>
+                  {@const halfHeights = steps.map(s => Math.max(6, (s.pct / 100) * 105))}
+                  {@const stepW = 1000 / (steps.length - 1)}
+                  {@const cx = 220}
+                  <!-- topo -->
+                  <path d={
+                    'M0,' + (110 - halfHeights[0]) + ' ' +
+                    steps.slice(1).map((_, i) => {
+                      const x0 = i * stepW;
+                      const x1 = (i + 1) * stepW;
+                      const y0 = 110 - halfHeights[i];
+                      const y1 = 110 - halfHeights[i + 1];
+                      return `C${x0 + stepW / 2},${y0} ${x1 - stepW / 2},${y1} ${x1},${y1}`;
+                    }).join(' ') +
+                    ' L1000,' + (110 + halfHeights[halfHeights.length - 1]) + ' ' +
+                    steps.slice().reverse().slice(1).map((_, i) => {
+                      const idx = steps.length - 1 - i;
+                      const x0 = idx * stepW;
+                      const x1 = (idx - 1) * stepW;
+                      const y0 = 110 + halfHeights[idx];
+                      const y1 = 110 + halfHeights[idx - 1];
+                      return `C${x0 - stepW / 2},${y0} ${x1 + stepW / 2},${y1} ${x1},${y1}`;
+                    }).join(' ') +
+                    ' Z'
+                  } fill="url(#convGrad)" />
+                </svg>
+                <!-- Divisórias verticais + labels % -->
+                <div class="conv-lanes">
+                  {#each steps as s, i}
+                    <div class="conv-lane">
+                      <div class="conv-pct">{s.pct.toFixed(1).replace(/\.0$/, '')}%</div>
+                    </div>
+                  {/each}
+                </div>
+              </div>
+              <!-- valores absolutos -->
+              <div class="conv-values">
+                {#each steps as s}
+                  <div class="conv-value">{fmtNum(s.value)}</div>
+                {/each}
+              </div>
+            </div>
+          </section>
+        {/if}
+
         <!-- Time series -->
         <section class="card card-wide">
           <div class="card-head">
@@ -4121,10 +4202,65 @@
     font-size: 0.875rem; font-weight: 500;
   }
 
+  /* ── Funil de Conversão (Meta Ads) ── */
+  .conv-funnel-section { margin-bottom: 16px; }
+  .conv-funnel { position: relative; padding-top: 4px; }
+  .conv-headers {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    text-align: center;
+    color: #cbd5e1;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    padding: 4px 0 8px;
+    letter-spacing: -0.005em;
+  }
+  .conv-shape-wrap {
+    position: relative;
+    height: 220px;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .conv-shape {
+    width: 100%; height: 100%; display: block;
+    filter: drop-shadow(0 6px 20px rgba(2, 169, 92, 0.25));
+  }
+  .conv-lanes {
+    position: absolute; inset: 0;
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    pointer-events: none;
+  }
+  .conv-lane {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 1.25rem;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.55);
+    letter-spacing: -0.01em;
+  }
+  .conv-lane + .conv-lane::before {
+    content: '';
+    position: absolute; left: 0; top: 6%; bottom: 6%;
+    width: 1px; background: rgba(255,255,255,0.09);
+  }
+  .conv-pct { line-height: 1; }
+  .conv-values {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    text-align: center;
+    color: #f1f5f9;
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 10px 0 2px;
+  }
+
   /* ── KPIs ── */
   .kpi-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 10px; margin-bottom: 16px; align-items: start;
+    gap: 10px; margin-bottom: 16px; align-items: stretch;
+    /* dense: cards menores preenchem gaps que largers deixariam vazio */
+    grid-auto-flow: dense;
   }
   .kpi {
     background: #11161d; border: 1px solid #1a1f28; padding: 14px 16px 12px;
