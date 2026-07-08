@@ -1795,21 +1795,17 @@
     </div>
     <nav class="nav">
       {#each [
-        { id: 'overview', label: 'Visão geral', icon: '⌂' },
-        { id: 'live', label: 'Live', icon: '⚡︎' },
-        { id: 'funnel', label: 'Funil', icon: '▽' },
-        { id: 'campanhas', label: 'Campanhas', icon: 'f' },
-        { id: 'contas', label: 'Contas', icon: '⊞' },
-        { id: 'taxas', label: 'Taxas', icon: '%' },
-        { id: 'vsl', label: 'VSL', icon: '▶' },
-        { id: 'sessions', label: 'Sessões', icon: '☰' },
-        { id: 'revenue', label: 'Receita', icon: '$' },
-        { id: 'tech', label: 'Performance', icon: '⏱︎' },
-        { id: 'status', label: 'Status', icon: '◉' },
-        { id: 'cleaner', label: 'Burlador Meta', icon: '⌽' }
+        { id: 'overview', label: 'Visão geral' },
+        { id: 'live', label: 'Live' },
+        { id: 'funnel', label: 'Funil' },
+        { id: 'campanhas', label: 'Campanhas' },
+        { id: 'contas', label: 'Contas' },
+        { id: 'taxas', label: 'Taxas' },
+        { id: 'revenue', label: 'Receita' },
+        { id: 'status', label: 'Domínios' },
+        { id: 'cleaner', label: 'Burlador Meta' }
       ] as item}
         <button class="nav-item" data-tab={item.id} class:active={activeTab === item.id} onclick={() => { activeTab = item.id as Tab; mobileMenuOpen = false; }}>
-          <span class="nav-icon">{item.icon}</span>
           <span class="nav-label" class:hidden-collapsed={!sidebarOpen}>{item.label}</span>
         </button>
       {/each}
@@ -2530,9 +2526,7 @@
           <h2>Funil de conversão</h2>
           {#each [
             { label: 'Sessões', value: snap.funnel.totalSessions, base: snap.funnel.totalSessions },
-            { label: 'Chegaram em /donate', value: snap.funnel.reachedDonate, base: snap.funnel.totalSessions },
             { label: 'Selecionaram valor', value: snap.funnel.selectedAmount, base: snap.funnel.totalSessions },
-            { label: 'Clicaram Bancontact', value: snap.funnel.clickedBancontact, base: snap.funnel.totalSessions },
             { label: 'Compraram', value: snap.funnel.purchased, base: snap.funnel.totalSessions }
           ] as step, i}
             <div class="funnel-row">
@@ -2544,24 +2538,6 @@
               <div class="funnel-pct">{step.base ? ((step.value / step.base) * 100).toFixed(1) : '0'}%</div>
             </div>
           {/each}
-        </section>
-
-        <section class="card">
-          <h2>Tempo entre etapas (mediana)</h2>
-          <div class="timing-grid">
-            <div class="timing-item">
-              <div class="timing-label">LP → /donate</div>
-              <div class="timing-value">{fmtMs(snap.funnelTiming.medianLpToDonateMs)}</div>
-            </div>
-            <div class="timing-item">
-              <div class="timing-label">/donate → seleção</div>
-              <div class="timing-value">{fmtMs(snap.funnelTiming.medianDonateToAmountMs)}</div>
-            </div>
-            <div class="timing-item">
-              <div class="timing-label">Seleção → Bancontact</div>
-              <div class="timing-value">{fmtMs(snap.funnelTiming.medianAmountToBccMs)}</div>
-            </div>
-          </div>
         </section>
 
         <section class="card">
@@ -2594,27 +2570,6 @@
           {/if}
         </section>
 
-        <section class="card">
-          <h2>A/B: LP vs /vsl <span class="muted small">· landing page</span></h2>
-          <div class="ab-grid">
-            <div class="ab-col">
-              <div class="ab-title">/ (LP)</div>
-              <div class="ab-stat"><span>Sessões</span><strong>{snap.abTest.lp.sessions}</strong></div>
-              <div class="ab-stat"><span>Checkout</span><strong>{snap.abTest.lp.convCheckout}</strong></div>
-              <div class="ab-stat"><span>Compras</span><strong>{snap.abTest.lp.convPurchase}</strong></div>
-              <div class="ab-stat"><span>Receita</span><strong>{fmtEur(snap.abTest.lp.revenue)}</strong></div>
-              <div class="ab-stat"><span>Tempo médio</span><strong>{fmtDuration(snap.abTest.lp.avgDurationSec)}</strong></div>
-            </div>
-            <div class="ab-col">
-              <div class="ab-title">/vsl</div>
-              <div class="ab-stat"><span>Sessões</span><strong>{snap.abTest.vsl.sessions}</strong></div>
-              <div class="ab-stat"><span>Checkout</span><strong>{snap.abTest.vsl.convCheckout}</strong></div>
-              <div class="ab-stat"><span>Compras</span><strong>{snap.abTest.vsl.convPurchase}</strong></div>
-              <div class="ab-stat"><span>Receita</span><strong>{fmtEur(snap.abTest.vsl.revenue)}</strong></div>
-              <div class="ab-stat"><span>Tempo médio</span><strong>{fmtDuration(snap.abTest.vsl.avgDurationSec)}</strong></div>
-            </div>
-          </div>
-        </section>
       {/if}
 
       {#if activeTab === 'vsl'}
@@ -4039,30 +3994,24 @@
   .brand-name { font-weight: 700; letter-spacing: -0.01em; }
   .brand-logo-side { height: 75px; width: auto; display: block; }
   .brand-favicon-side { width: 60px; height: 60px; display: block; margin: 0 auto; }
-  .nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; }
+  .nav { flex: 1; padding: 14px 10px; display: flex; flex-direction: column; gap: 4px; }
   .nav-item {
-    background: transparent; border: none; color: #8b94a4;
-    padding: 10px 12px; border-radius: 8px; cursor: pointer;
-    font-family: inherit; font-size: 0.875rem; font-weight: 500;
-    display: flex; align-items: center; gap: 12px; text-align: left;
-    transition: all 0.12s;
+    background: transparent; border: none; color: #9ca3af;
+    padding: 13px 16px; border-radius: 10px; cursor: pointer;
+    font-family: inherit; font-size: 1.0625rem; font-weight: 500;
+    display: flex; align-items: center; text-align: left;
+    letter-spacing: -0.005em;
+    transition: background 0.15s, color 0.15s, transform 0.08s;
   }
-  .nav-item:hover { background: #11161d; color: #e6e9ef; }
+  .nav-item:hover { background: #11161d; color: #f1f5f9; }
+  .nav-item:active { transform: scale(0.98); }
   .nav-item.active {
-    background: linear-gradient(90deg, rgba(2,169,92,0.15), transparent);
-    color: #02a95c;
-    box-shadow: inset 2px 0 0 #02a95c;
+    background: linear-gradient(90deg, rgba(2,169,92,0.18), rgba(2,169,92,0.02) 90%);
+    color: #22C55E;
+    box-shadow: inset 3px 0 0 #22C55E;
+    font-weight: 600;
   }
-  .nav-icon {
-    font-size: 1rem; width: 18px; text-align: center;
-    font-variant-emoji: text; /* forca modo texto = monocromatico */
-  }
-  /* Icone "f" de facebook em campanhas — bold italic/serif (vira tipo logo) */
-  .nav-item[data-tab="campanhas"] .nav-icon {
-    font-family: Georgia, 'Times New Roman', serif;
-    font-weight: 700; font-style: italic;
-    font-size: 1.1rem;
-  }
+  .nav-label { line-height: 1.2; }
   .sidebar-foot { padding: 12px; border-top: 1px solid #1a1f28; }
   .collapse-btn {
     background: transparent; border: 1px solid #1f2630; color: #8b94a4;
