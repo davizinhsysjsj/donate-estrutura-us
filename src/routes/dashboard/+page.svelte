@@ -4123,16 +4123,20 @@
 
   /* ── KPIs ── */
   .kpi-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 10px; margin-bottom: 16px; align-items: stretch;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px; margin-bottom: 16px; align-items: start;
   }
   .kpi {
-    background: #11161d; border: 1px solid #1a1f28; padding: 12px 14px 11px;
-    border-radius: 10px; position: relative; overflow: hidden;
+    background: #11161d; border: 1px solid #1a1f28; padding: 14px 16px 12px;
+    border-radius: 10px; position: relative;
+    overflow: visible; /* deixa o número respirar; não corta valores */
     transition: transform 0.15s, border-color 0.15s;
-    display: flex; flex-direction: column; gap: 2px;
+    display: flex; flex-direction: column; gap: 2px; min-width: 0;
   }
   .kpi:hover { border-color: #2a3340; transform: translateY(-1px); }
+  /* Esconde TODA descrição textual embaixo do valor. Só sobrevive
+     a delta (% vs período anterior) que é indicador principal, não texto. */
+  .kpi .kpi-sub:not(.kpi-delta) { display: none; }
   /* Tamanhos escolhidos em "Personalizar" */
   .kpi.kpi-medium { grid-column: span 2; }
   .kpi.kpi-large { grid-column: span 3; }
@@ -4156,8 +4160,9 @@
   }
   .kpi-value {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 1.75rem; font-weight: 600; margin-top: 4px; letter-spacing: -0.03em;
+    font-size: 1.625rem; font-weight: 600; margin-top: 4px; letter-spacing: -0.03em;
     line-height: 1.1;
+    white-space: nowrap;
   }
   .kpi-live .kpi-value { color: #02a95c; }
 
