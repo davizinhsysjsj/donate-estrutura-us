@@ -2404,13 +2404,28 @@
               <div class="conv-shape-wrap">
                 <svg class="conv-shape" viewBox="0 0 1000 220" preserveAspectRatio="none">
                   <defs>
-                    <linearGradient id="convGrad" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%"   stop-color="#02A95C" stop-opacity="0.95" />
-                      <stop offset="50%"  stop-color="#16A34A" stop-opacity="0.85" />
-                      <stop offset="100%" stop-color="#22C55E" stop-opacity="0.75" />
+                    <!-- Horizontal: verde escuro que ganha vida no fim (mas sempre discreto) -->
+                    <linearGradient id="convGradH" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%"   stop-color="#052E1F" />
+                      <stop offset="45%"  stop-color="#0E4B2C" />
+                      <stop offset="100%" stop-color="#158F52" />
+                    </linearGradient>
+                    <!-- Vertical: overlay preto sutil pra dar profundidade + sombra no topo -->
+                    <linearGradient id="convGradV" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%"   stop-color="#000000" stop-opacity="0.55" />
+                      <stop offset="35%"  stop-color="#000000" stop-opacity="0" />
+                      <stop offset="65%"  stop-color="#000000" stop-opacity="0" />
+                      <stop offset="100%" stop-color="#000000" stop-opacity="0.35" />
+                    </linearGradient>
+                    <!-- Highlight top-line — reforço sutil -->
+                    <linearGradient id="convHighlight" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%"  stop-color="#22C55E" stop-opacity="0.35" />
+                      <stop offset="18%" stop-color="#22C55E" stop-opacity="0" />
                     </linearGradient>
                   </defs>
-                  <path d={convPath} fill="url(#convGrad)" />
+                  <path d={convPath} fill="url(#convGradH)" />
+                  <path d={convPath} fill="url(#convGradV)" />
+                  <path d={convPath} fill="url(#convHighlight)" />
                 </svg>
                 <!-- Divisórias verticais + labels % -->
                 <div class="conv-lanes">
@@ -4235,7 +4250,7 @@
   }
   .conv-shape {
     width: 100%; height: 100%; display: block;
-    filter: drop-shadow(0 6px 20px rgba(2, 169, 92, 0.25));
+    filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.55));
   }
   .conv-lanes {
     position: absolute; inset: 0;
@@ -4270,20 +4285,21 @@
   /* ── KPIs ── */
   .kpi-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 10px; margin-bottom: 16px; align-items: stretch;
-    /* dense: cards menores preenchem gaps que largers deixariam vazio */
+    gap: 10px; margin-bottom: 16px;
+    align-items: start; /* cada card só tem a altura do próprio conteúdo */
     grid-auto-flow: dense;
   }
   .kpi {
-    background: #11161d; border: 1px solid #1a1f28; padding: 14px 16px 12px;
+    background: #11161d; border: 1px solid #1a1f28;
+    padding: 12px 16px 14px;
     border-radius: 10px; position: relative;
-    overflow: visible; /* deixa o número respirar; não corta valores */
+    overflow: visible;
     transition: transform 0.15s, border-color 0.15s;
-    display: flex; flex-direction: column; gap: 2px; min-width: 0;
+    display: flex; flex-direction: column; min-width: 0;
+    line-height: 1;
   }
   .kpi:hover { border-color: #2a3340; transform: translateY(-1px); }
-  /* Esconde TODA descrição textual embaixo do valor. Só sobrevive
-     a delta (% vs período anterior) que é indicador principal, não texto. */
+  /* Esconde TODA descrição textual embaixo do valor. */
   .kpi .kpi-sub:not(.kpi-delta) { display: none; }
   /* Tamanhos escolhidos em "Personalizar" */
   .kpi.kpi-medium { grid-column: span 2; }
@@ -4302,16 +4318,20 @@
   }
   @keyframes shimmer { 0% { transform:translateX(-100%);} 100% { transform:translateX(100%);} }
   .kpi-label {
-    color: #8b94a4; font-size: 0.6875rem; text-transform: uppercase;
+    color: #94a3b8; font-size: 0.6875rem; text-transform: uppercase;
     letter-spacing: 0.08em; font-weight: 600;
     display: flex; align-items: center; gap: 8px;
+    line-height: 1.1;
   }
   .kpi-value {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 1.625rem; font-weight: 600; margin-top: 4px; letter-spacing: -0.03em;
+    font-size: 1.625rem; font-weight: 600; letter-spacing: -0.03em;
     line-height: 1.1;
     white-space: nowrap;
+    margin-top: 6px;
   }
+  /* Delta (% vs período anterior) — pequeno, discreto, embaixo do valor */
+  .kpi .kpi-delta { margin-top: 6px; font-size: 0.75rem; line-height: 1.1; }
   .kpi-live .kpi-value { color: #02a95c; }
 
   /* Card Online Agora (PC) — compacto pra bater altura dos outros cards */
