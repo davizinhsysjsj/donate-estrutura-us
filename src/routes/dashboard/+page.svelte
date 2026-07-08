@@ -2252,6 +2252,19 @@
               class:kpi-spend={cardId === 'spend'}
               class:kpi-profit-pos={cardId === 'profit' && profitBrl > 0}
               class:kpi-profit-neg={cardId === 'profit' && profitBrl < 0}
+              class:kpi-tone-positive={(
+                cardId === 'faturamento' || cardId === 'revenue' ||
+                (cardId === 'profit' && lucroUtmBrl >= 0) ||
+                cardId === 'roas' || cardId === 'roi' || cardId === 'margem'
+              )}
+              class:kpi-tone-negative={(
+                cardId === 'spend' || cardId === 'taxas_card' ||
+                (cardId === 'profit' && lucroUtmBrl < 0)
+              )}
+              class:kpi-tone-neutral={(
+                cardId === 'online' || cardId === 'sessions' || cardId === 'pageviews' ||
+                cardId === 'conversion' || cardId === 'duration'
+              )}
               class:kpi-dragging={dragSrc === cardId}
               class:kpi-medium={getCardSize(cardId) === 'medium'}
               class:kpi-large={getCardSize(cardId) === 'large'}
@@ -4282,25 +4295,45 @@
     padding: 10px 0 2px;
   }
 
-  /* ── KPIs ── */
+  /* ── KPIs (padrão UTMfy) ── */
   .kpi-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 10px; margin-bottom: 16px;
-    align-items: start; /* cada card só tem a altura do próprio conteúdo */
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin-bottom: 16px;
+    align-items: start;
     grid-auto-flow: dense;
   }
   .kpi {
-    background: #11161d; border: 1px solid #1a1f28;
-    padding: 12px 16px 14px;
-    border-radius: 10px; position: relative;
+    background: #182337; border: 1px solid #1e2a44;
+    padding: 14px 18px 16px;
+    border-radius: 12px; position: relative;
     overflow: visible;
     transition: transform 0.15s, border-color 0.15s;
     display: flex; flex-direction: column; min-width: 0;
     line-height: 1;
   }
-  .kpi:hover { border-color: #2a3340; transform: translateY(-1px); }
+  .kpi:hover { border-color: #2a3d63; transform: translateY(-1px); }
   /* Esconde TODA descrição textual embaixo do valor. */
   .kpi .kpi-sub:not(.kpi-delta) { display: none; }
+  /* Info icon no canto superior direito, cor herdada do card */
+  .kpi::after {
+    content: '';
+    position: absolute; top: 14px; right: 16px;
+    width: 15px; height: 15px;
+    background-color: currentColor; color: #64748b;
+    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='12' y1='16' x2='12' y2='12'/><line x1='12' y1='8' x2='12.01' y2='8'/></svg>") center/contain no-repeat;
+            mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='12' y1='16' x2='12' y2='12'/><line x1='12' y1='8' x2='12.01' y2='8'/></svg>") center/contain no-repeat;
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  /* Tons de cor UTMfy — label + valor herdam a mesma cor da classe do card */
+  .kpi-tone-positive { color: #22C55E; }
+  .kpi-tone-negative { color: #F97316; }
+  .kpi-tone-neutral  { color: #E2E8F0; }
+  .kpi-tone-positive .kpi-label,
+  .kpi-tone-positive .kpi-value { color: #22C55E; }
+  .kpi-tone-negative .kpi-label,
+  .kpi-tone-negative .kpi-value { color: #F97316; }
+  .kpi-tone-neutral .kpi-value  { color: #F1F5F9; }
   /* Tamanhos escolhidos em "Personalizar" */
   .kpi.kpi-medium { grid-column: span 2; }
   .kpi.kpi-large { grid-column: span 3; }
@@ -4318,20 +4351,25 @@
   }
   @keyframes shimmer { 0% { transform:translateX(-100%);} 100% { transform:translateX(100%);} }
   .kpi-label {
-    color: #94a3b8; font-size: 0.6875rem; text-transform: uppercase;
-    letter-spacing: 0.08em; font-weight: 600;
-    display: flex; align-items: center; gap: 8px;
-    line-height: 1.1;
+    color: #22C55E;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    line-height: 1.2;
+    padding-right: 22px; /* dá espaço pro info icon do canto */
   }
   .kpi-value {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 1.625rem; font-weight: 600; letter-spacing: -0.03em;
-    line-height: 1.1;
+    font-family: inherit;
+    font-size: 1.875rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
     white-space: nowrap;
-    margin-top: 6px;
+    margin-top: 8px;
+    color: #22C55E;
   }
-  /* Delta (% vs período anterior) — pequeno, discreto, embaixo do valor */
-  .kpi .kpi-delta { margin-top: 6px; font-size: 0.75rem; line-height: 1.1; }
+  /* Delta % vs período anterior — pequeno, discreto, cor separada da tone */
+  .kpi .kpi-delta { margin-top: 8px; font-size: 0.75rem; line-height: 1.1; }
   .kpi-live .kpi-value { color: #02a95c; }
 
   /* Card Online Agora (PC) — compacto pra bater altura dos outros cards */
@@ -5410,15 +5448,9 @@
   }
   .card-toggle-item input { display: none; }
 
-  /* ── Ads KPI extras ── */
-  .kpi-spend { border-color: rgba(255,170,0,0.3); }
-  .kpi-spend .kpi-value { color: #ffaa00; }
-  .kpi-profit-pos { border-color: rgba(2,169,92,0.3); }
-  .kpi-profit-pos .kpi-value { color: #02a95c; }
-  .kpi-profit-neg { border-color: rgba(255,91,91,0.3); }
-  .kpi-profit-neg .kpi-value { color: #ff5b5b; }
-  .kpi-green { color: #02a95c; }
-  .kpi-red   { color: #ff5b5b; }
+  /* ── Ads KPI extras — cores agora vêm das kpi-tone-* classes ── */
+  .kpi-green { color: #22C55E; }
+  .kpi-red   { color: #F97316; }
 
   /* ── Period pills ── */
   .period-pills {
