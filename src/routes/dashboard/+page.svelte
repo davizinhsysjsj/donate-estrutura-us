@@ -1106,8 +1106,8 @@
       if (!gridEl || gridInstance) return;
       gridInstance = GridStack.init({
         column: 12,
-        cellHeight: 74,
-        margin: 8,
+        cellHeight: 44,        // altura por row; 2 rows já dá ~90px que combina com KPI compacto
+        margin: 6,             // espaço entre cards (visual "delimitado")
         float: false,
         animate: true,
         disableOneColumnMode: false,
@@ -2315,9 +2315,11 @@
               class="grid-stack-item"
               gs-id={cardId}
               gs-w={savedGridLayout[cardId]?.w ?? 3}
-              gs-h={savedGridLayout[cardId]?.h ?? 2}
+              gs-h={savedGridLayout[cardId]?.h ?? (cardId === 'online' ? 3 : 2)}
               gs-x={savedGridLayout[cardId]?.x ?? undefined}
               gs-y={savedGridLayout[cardId]?.y ?? undefined}
+              gs-min-w="2"
+              gs-min-h="2"
             >
             <div
               class="grid-stack-item-content kpi"
@@ -4367,15 +4369,17 @@
   }
 
   /* ── GridStack + KPIs ── */
-  /* Reset do CSS default do GridStack pra combinar com tema escuro */
   :global(.kpi-grid.grid-stack) {
     background: transparent;
     margin-bottom: 16px;
-    min-height: 160px;
+    min-height: 80px;
   }
+  /* Container onde o KPI real vive.
+     Precisa MANTER o padding do .kpi (não zeramos com inset). */
   :global(.kpi-grid .grid-stack-item-content) {
-    inset: 0 !important;
-    padding: 0 !important;
+    /* GridStack por default seta inset:2px — mantém pra dar respiro entre cards.
+       NÃO zerar padding aqui, senão o texto cola nas bordas. */
+    overflow: visible;
   }
   :global(.kpi-grid .grid-stack-item > .ui-resizable-handle),
   :global(.kpi-grid .grid-stack-item > .ui-resizable-e),
@@ -4383,12 +4387,20 @@
   :global(.kpi-grid .grid-stack-item > .ui-resizable-s),
   :global(.kpi-grid .grid-stack-item > .ui-resizable-sw),
   :global(.kpi-grid .grid-stack-item > .ui-resizable-w) {
-    opacity: 0.65;
+    opacity: 0.4;
     color: #6b7787;
+    transition: opacity 0.15s;
+  }
+  :global(.kpi-grid .grid-stack-item:hover > .ui-resizable-handle),
+  :global(.kpi-grid .grid-stack-item:hover > .ui-resizable-e),
+  :global(.kpi-grid .grid-stack-item:hover > .ui-resizable-se),
+  :global(.kpi-grid .grid-stack-item:hover > .ui-resizable-s),
+  :global(.kpi-grid .grid-stack-item:hover > .ui-resizable-sw),
+  :global(.kpi-grid .grid-stack-item:hover > .ui-resizable-w) {
+    opacity: 0.85;
   }
   :global(.kpi-grid .grid-stack-item.ui-draggable-dragging) {
-    opacity: 0.85;
-    z-index: 100;
+    opacity: 0.85; z-index: 100;
   }
   :global(.kpi-grid .grid-stack-item.ui-resizable-resizing) {
     opacity: 0.9;
@@ -4397,6 +4409,7 @@
     background: rgba(2, 169, 92, 0.08);
     border: 1px dashed rgba(2, 169, 92, 0.35);
     border-radius: 10px;
+    inset: 4px !important;
   }
   /* Fallback pra layout antigo quando gridstack não estiver ativo */
   .kpi-grid:not(.grid-stack) {
@@ -4406,13 +4419,15 @@
     grid-auto-flow: dense;
   }
   .kpi {
-    background: #11161d; border: 1px solid #1a1f28;
-    padding: 12px 14px 14px;
+    background: #182337; border: 1px solid #22304d;
+    padding: 14px 18px 16px;
     border-radius: 10px; position: relative;
     overflow: visible;
     transition: transform 0.15s, border-color 0.15s;
     display: flex; flex-direction: column; min-width: 0;
     line-height: 1;
+    height: 100%; /* preenche o grid-stack-item-content */
+    box-sizing: border-box;
   }
   .kpi:hover { border-color: #2a3340; transform: translateY(-1px); }
   .kpi .kpi-sub:not(.kpi-delta) { display: none; }
