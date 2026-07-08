@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { GridStack, type GridStackNode } from 'gridstack';
+  import 'gridstack/dist/gridstack.min.css';
 
   let { data } = $props();
 
@@ -1005,6 +1007,15 @@
   let taxConfig = $state<TaxConfig>({ ...DEFAULT_TAX });
   let taxSaved = $state(false);
 
+  // ── GridStack (drag+resize snap grid) ──
+  let gridEl = $state<HTMLDivElement | null>(null);
+  let gridInstance: any = null;
+  // Layout dos widgets: id → { x, y, w, h } em unidades de 12 colunas
+  interface GridWidget { id: string; x?: number; y?: number; w: number; h: number; }
+  // Defaults sensatos: cada card ocupa 3 colunas × 2 linhas
+  const DEFAULT_WIDGET: Omit<GridWidget, 'id'> = { w: 3, h: 2 };
+  let savedGridLayout = $state<Record<string, GridWidget>>({});
+
   // Visible cards na overview
   type CardId = 'online' | 'sessions' | 'pageviews' | 'faturamento' | 'revenue' | 'conversion' | 'duration' | 'spend' | 'profit' | 'roas' | 'roi' | 'margem' | 'taxas_card';
   const ALL_CARD_DEFS: { id: CardId; label: string }[] = [
@@ -1077,6 +1088,47 @@
   const activeUsdToBrl = $derived(liveRate?.usdToBrl ?? taxConfig.usdToBrl ?? 5.70);
   const activeEurToBrl = $derived(liveRate?.eurToBrl ?? (taxConfig.eurToUsd * activeUsdToBrl));
 
+  // ── GridStack init (roda quando gridEl aparece na Visão Geral) ──
+  $effect(() => {
+    if (activeTab !== 'overview') {
+      // Destruir instância quando trocar de aba pra não sujar DOM de outras tabs
+      if (gridInstance) { try { gridInstance.destroy(false); } catch {} gridInstance = null; }
+      return;
+    }
+    if (!gridEl || gridInstance) return;
+    // Setup GridStack: 12 colunas, snap grid, resize por qualquer canto/lateral
+    gridInstance = GridStack.init({
+      column: 12,
+      cellHeight: 74,
+      margin: 8,
+      float: false,
+      animate: true,
+      disableOneColumnMode: false,
+      resizable: { handles: 'e, se, s, sw, w' },
+      draggable: { handle: '.grid-stack-item-content', scroll: true },
+      minRow: 2
+    }, gridEl);
+    // Salva o layout no localStorage a cada mudança
+    gridInstance.on('change', () => {
+      const items = gridInstance.save(false) as GridStackNode[];
+      const layout: Record<string, GridWidget> = {};
+      for (const it of items) {
+        if (!it.id) continue;
+        layout[String(it.id)] = {
+          id: String(it.id),
+          x: it.x, y: it.y,
+          w: it.w ?? 3, h: it.h ?? 2
+        };
+      }
+      savedGridLayout = layout;
+      try { localStorage.setItem('vitrack_grid_layout', JSON.stringify(layout)); } catch {}
+    });
+  });
+
+  onDestroy(() => {
+    if (gridInstance) { try { gridInstance.destroy(false); } catch {} gridInstance = null; }
+  });
+
   onMount(() => {
     if (!data.authed) return;
     // Carrega moeda preferida
@@ -1107,6 +1159,11 @@
         const valid = DEFAULT_ORDER.filter(id => !parsed.includes(id));
         cardOrder = [...parsed.filter(id => DEFAULT_ORDER.includes(id)), ...valid];
       }
+    } catch {}
+    // Carrega layout do GridStack (dimensões e posições dos cards)
+    try {
+      const gl = localStorage.getItem('vitrack_grid_layout');
+      if (gl) savedGridLayout = JSON.parse(gl);
     } catch {}
     // Busca câmbio ao vivo
     fetchLiveRate();
@@ -2243,11 +2300,19 @@
           </div>
         {/if}
 
-        <!-- KPIs (drag para reordenar; mobile: long-press ativa edit mode) -->
-        <section class="kpi-grid" class:flash={flashing} class:edit-mode={editMode}>
+        <!-- KPIs — GridStack: drag por qualquer parte do card, resize pelo canto SE -->
+        <section class="grid-stack kpi-grid" class:flash={flashing} class:edit-mode={editMode} bind:this={gridEl}>
           {#each cardOrder.filter(id => visibleCards.has(id)) as cardId (cardId)}
             <div
-              class="kpi"
+              class="grid-stack-item"
+              gs-id={cardId}
+              gs-w={savedGridLayout[cardId]?.w ?? 3}
+              gs-h={savedGridLayout[cardId]?.h ?? 2}
+              gs-x={savedGridLayout[cardId]?.x ?? undefined}
+              gs-y={savedGridLayout[cardId]?.y ?? undefined}
+            >
+            <div
+              class="grid-stack-item-content kpi"
               class:kpi-live={cardId === 'online'}
               class:kpi-spend={cardId === 'spend'}
               class:kpi-profit-pos={cardId === 'profit' && profitBrl > 0}
@@ -2266,9 +2331,6 @@
                 cardId === 'conversion' || cardId === 'duration'
               )}
               class:kpi-dragging={dragSrc === cardId}
-              class:kpi-medium={getCardSize(cardId) === 'medium'}
-              class:kpi-large={getCardSize(cardId) === 'large'}
-              class:kpi-xl={getCardSize(cardId) === 'xl'}
               data-card-id={cardId}
               draggable="true"
               ondragstart={() => dragStart(cardId)}
@@ -2379,6 +2441,7 @@
                 <div class="kpi-value">{snap ? fmtBrl(taxasBrl) : '—'}</div>
                 <div class="kpi-sub">Shopify sobre receita bruta</div>
               {/if}
+            </div>
             </div>
           {/each}
         </section>
@@ -4295,45 +4358,75 @@
     padding: 10px 0 2px;
   }
 
-  /* ── KPIs (padrão UTMfy) ── */
-  .kpi-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px; margin-bottom: 16px;
+  /* ── GridStack + KPIs ── */
+  /* Reset do CSS default do GridStack pra combinar com tema escuro */
+  :global(.kpi-grid.grid-stack) {
+    background: transparent;
+    margin-bottom: 16px;
+    min-height: 160px;
+  }
+  :global(.kpi-grid .grid-stack-item-content) {
+    inset: 0 !important;
+    padding: 0 !important;
+  }
+  :global(.kpi-grid .grid-stack-item > .ui-resizable-handle),
+  :global(.kpi-grid .grid-stack-item > .ui-resizable-e),
+  :global(.kpi-grid .grid-stack-item > .ui-resizable-se),
+  :global(.kpi-grid .grid-stack-item > .ui-resizable-s),
+  :global(.kpi-grid .grid-stack-item > .ui-resizable-sw),
+  :global(.kpi-grid .grid-stack-item > .ui-resizable-w) {
+    opacity: 0.65;
+    color: #6b7787;
+  }
+  :global(.kpi-grid .grid-stack-item.ui-draggable-dragging) {
+    opacity: 0.85;
+    z-index: 100;
+  }
+  :global(.kpi-grid .grid-stack-item.ui-resizable-resizing) {
+    opacity: 0.9;
+  }
+  :global(.kpi-grid .grid-stack-placeholder > .placeholder-content) {
+    background: rgba(2, 169, 92, 0.08);
+    border: 1px dashed rgba(2, 169, 92, 0.35);
+    border-radius: 10px;
+  }
+  /* Fallback pra layout antigo quando gridstack não estiver ativo */
+  .kpi-grid:not(.grid-stack) {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px; margin-bottom: 16px;
     align-items: start;
     grid-auto-flow: dense;
   }
   .kpi {
-    background: #182337; border: 1px solid #1e2a44;
-    padding: 14px 18px 16px;
-    border-radius: 12px; position: relative;
+    background: #11161d; border: 1px solid #1a1f28;
+    padding: 12px 14px 14px;
+    border-radius: 10px; position: relative;
     overflow: visible;
     transition: transform 0.15s, border-color 0.15s;
     display: flex; flex-direction: column; min-width: 0;
     line-height: 1;
   }
-  .kpi:hover { border-color: #2a3d63; transform: translateY(-1px); }
-  /* Esconde TODA descrição textual embaixo do valor. */
+  .kpi:hover { border-color: #2a3340; transform: translateY(-1px); }
   .kpi .kpi-sub:not(.kpi-delta) { display: none; }
-  /* Info icon no canto superior direito, cor herdada do card */
+  /* Info icon discreto no canto superior direito */
   .kpi::after {
     content: '';
-    position: absolute; top: 14px; right: 16px;
-    width: 15px; height: 15px;
-    background-color: currentColor; color: #64748b;
+    position: absolute; top: 12px; right: 14px;
+    width: 13px; height: 13px;
+    background-color: #6b7787;
     -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='12' y1='16' x2='12' y2='12'/><line x1='12' y1='8' x2='12.01' y2='8'/></svg>") center/contain no-repeat;
             mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='12' y1='16' x2='12' y2='12'/><line x1='12' y1='8' x2='12.01' y2='8'/></svg>") center/contain no-repeat;
-    opacity: 0.55;
+    opacity: 0.5;
     pointer-events: none;
   }
-  /* Tons de cor UTMfy — label + valor herdam a mesma cor da classe do card */
-  .kpi-tone-positive { color: #22C55E; }
-  .kpi-tone-negative { color: #F97316; }
-  .kpi-tone-neutral  { color: #E2E8F0; }
+  /* Cores das nossas classes de tom — voltam ao verde/laranja/branco originais */
+  .kpi-tone-positive .kpi-value { color: #02a95c; }
+  .kpi-tone-negative .kpi-value { color: #ffaa00; }
+  .kpi-tone-neutral  .kpi-value { color: #f1f5f9; }
+  /* Label sempre cinza como era antes — só o valor colore */
   .kpi-tone-positive .kpi-label,
-  .kpi-tone-positive .kpi-value { color: #22C55E; }
   .kpi-tone-negative .kpi-label,
-  .kpi-tone-negative .kpi-value { color: #F97316; }
-  .kpi-tone-neutral .kpi-value  { color: #F1F5F9; }
+  .kpi-tone-neutral  .kpi-label { color: #8b94a4; }
   /* Tamanhos escolhidos em "Personalizar" */
   .kpi.kpi-medium { grid-column: span 2; }
   .kpi.kpi-large { grid-column: span 3; }
@@ -4351,25 +4444,25 @@
   }
   @keyframes shimmer { 0% { transform:translateX(-100%);} 100% { transform:translateX(100%);} }
   .kpi-label {
-    color: #22C55E;
-    font-size: 0.9375rem;
+    color: #8b94a4;
+    font-size: 0.6875rem;
     font-weight: 600;
-    letter-spacing: -0.005em;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
     line-height: 1.2;
-    padding-right: 22px; /* dá espaço pro info icon do canto */
+    padding-right: 22px;
   }
   .kpi-value {
     font-family: inherit;
-    font-size: 1.875rem;
+    font-size: 1.75rem;
     font-weight: 800;
     letter-spacing: -0.02em;
     line-height: 1.15;
     white-space: nowrap;
-    margin-top: 8px;
-    color: #22C55E;
+    margin-top: 6px;
+    color: #f1f5f9;
   }
-  /* Delta % vs período anterior — pequeno, discreto, cor separada da tone */
-  .kpi .kpi-delta { margin-top: 8px; font-size: 0.75rem; line-height: 1.1; }
+  .kpi .kpi-delta { margin-top: 6px; font-size: 0.75rem; line-height: 1.1; }
   .kpi-live .kpi-value { color: #02a95c; }
 
   /* Card Online Agora (PC) — compacto pra bater altura dos outros cards */
