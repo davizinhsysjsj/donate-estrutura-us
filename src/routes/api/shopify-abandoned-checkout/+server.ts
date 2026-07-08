@@ -107,6 +107,13 @@ export const POST: RequestHandler = async ({ request }) => {
 		? `${firstItem.title}${firstItem.variant_title ? ` — ${firstItem.variant_title}` : ''}`
 		: undefined;
 
+	// Locale do email: se veio do funil Ellie (attribute funnel=ellie), usa 'en'
+	const noteAttrs = checkout.note_attributes as
+		| Array<{ name: string; value: string }>
+		| undefined;
+	const funnelAttr = (noteAttrs || []).find((a) => a.name === 'funnel')?.value;
+	const emailLocale = funnelAttr === 'ellie' ? 'en' as const : undefined;
+
 	try {
 		const r = scheduleAbandonedCheckout({
 			toEmail: email,
@@ -114,7 +121,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			amount,
 			currency,
 			recoverUrl,
-			itemTitle
+			itemTitle,
+			locale: emailLocale
 		});
 		console.log('[shopify-abandoned-checkout]', {
 			checkoutId,

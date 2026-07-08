@@ -184,6 +184,7 @@ export function buildShopifyCartUrl(opts: {
   utm?: UtmData | null;
   sid?: string | null; // analytics session id (atrelado pro webhook achar a sessao)
   eid?: string | null;    // external_id 1st-party (cookie bp_eid)
+  funnel?: 'ellie' | 'lina' | string | null; // funil de origem — usado pra escolher locale do email
 }): string {
   const params = new URLSearchParams();
 
@@ -212,6 +213,7 @@ export function buildShopifyCartUrl(opts: {
   if (utmTerm)     params.set('attributes[utm_term]',     utmTerm);
   if (opts.sid)    params.set('attributes[bp_sid]',       opts.sid);
   if (opts.eid)    params.set('attributes[bp_eid]',       opts.eid);
+  if (opts.funnel) params.set('attributes[funnel]',       opts.funnel);
 
   return `https://${opts.shopDomain}/cart/${opts.variantId}:1?${params.toString()}`;
 }

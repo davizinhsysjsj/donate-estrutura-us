@@ -96,6 +96,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	const bpEid = readNoteAttr(noteAttrs, 'bp_eid');
 	const eventIdAttr = readNoteAttr(noteAttrs, 'event_id');
 	const bpSid = readNoteAttr(noteAttrs, 'bp_sid');
+	const funnelAttr = readNoteAttr(noteAttrs, 'funnel'); // 'ellie' | 'lina' | null → decide locale do email
 
 	// UTMs do webhook (podem vir nulos quando in-app browser bloqueia localStorage
 	// e o cart link e construido sem attributes[utm_*]).
@@ -344,7 +345,9 @@ export const POST: RequestHandler = async ({ request }) => {
 	if (email) {
 		try {
 			const firstName = shipping.first_name || customer.first_name || undefined;
-			const flowResult = scheduleEmailFlow({ toEmail: email, firstName, amount: value, currency });
+			// Locale: 'ellie' → 'en' (UK), fallback deduzido por currency dentro de scheduleEmailFlow
+			const emailLocale = funnelAttr === 'ellie' ? 'en' as const : undefined;
+			const flowResult = scheduleEmailFlow({ toEmail: email, firstName, amount: value, currency, locale: emailLocale });
 			if (!flowResult.scheduled) {
 				console.log('[shopify-purchase] email flow skipped (already sent)', { orderId, email, reason: flowResult.reason });
 				// Re-compra: cancela qualquer recovery pendente (ja voltou)

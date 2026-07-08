@@ -22,6 +22,17 @@ import {
   abandonedCheckoutSubject, abandonedCheckoutHtml,
   type ThankYouVars, type UpsellVars, type UpsellV2Vars, type RecoveryVars, type AbandonedPopupVars, type AbandonedCheckoutVars, type Locale
 } from './email-templates';
+
+/**
+ * Detecta o locale correto pelo currency da order.
+ * - GBP → 'en' (Ellie, funil UK)
+ * - EUR/qualquer outro → 'nl' (Lina, funil BE/NL)
+ */
+function localeFromCurrency(currency?: string): Locale {
+  const c = (currency || '').toUpperCase();
+  if (c === 'GBP') return 'en';
+  return 'nl';
+}
 import { getDonorsCountLastDays } from './donors-feed';
 import { getStalePopups, markRecoverySent, getEmailForSid } from './abandoned-popups';
 
@@ -292,6 +303,7 @@ export function scheduleEmailFlow(input: {
   firstName?: string;
   amount: number;
   currency: string;
+  locale?: Locale;
 }): { scheduled: boolean; reason?: string } {
   startWorker();
   const normalized = input.toEmail.toLowerCase().trim();
@@ -305,10 +317,13 @@ export function scheduleEmailFlow(input: {
   flowLog.add(normalized);
   saveFlowLog();
 
+  // Resolve locale: usa o passado explicitamente OU deduz da currency (GBP → en, EUR → nl)
+  const locale = input.locale ?? localeFromCurrency(input.currency);
+
   scheduleEmail({
     toEmail: input.toEmail,
     templateName: 'thank-you',
-    templateData: { firstName: input.firstName, amount: input.amount, currency: input.currency },
+    templateData: { firstName: input.firstName, amount: input.amount, currency: input.currency, locale },
     delayMs: 5 * 60 * 1000 // 5 min
   });
   scheduleEmail({
@@ -318,7 +333,8 @@ export function scheduleEmailFlow(input: {
       firstName: input.firstName,
       previousAmount: input.amount,
       currency: input.currency,
-      recipientEmail: input.toEmail
+      recipientEmail: input.toEmail,
+      locale
     },
     delayMs: 48 * 60 * 60 * 1000 // 48 h
   });
@@ -327,7 +343,7 @@ export function scheduleEmailFlow(input: {
   scheduleEmail({
     toEmail: input.toEmail,
     templateName: 'recovery',
-    templateData: { firstName: input.firstName },
+    templateData: { firstName: input.firstName, locale },
     delayMs: 7 * 24 * 60 * 60 * 1000 // 7 d
   });
 
@@ -368,6 +384,7 @@ export function scheduleAbandonedCheckout(input: {
   recoverUrl: string;
   itemTitle?: string;
   delayMs?: number; // default 10min
+  locale?: Locale;
 }): { scheduled: boolean; reason?: string; id?: string } {
   startWorker();
   const normalized = input.toEmail.toLowerCase().trim();
@@ -385,6 +402,8 @@ export function scheduleAbandonedCheckout(input: {
     return { scheduled: false, reason: 'already_pending', id: existing.id };
   }
 
+  const locale = input.locale ?? localeFromCurrency(input.currency);
+
   const id = scheduleEmail({
     toEmail: input.toEmail,
     templateName: 'abandoned-checkout',
@@ -393,7 +412,8 @@ export function scheduleAbandonedCheckout(input: {
       amount: input.amount,
       currency: input.currency,
       recoverUrl: input.recoverUrl,
-      itemTitle: input.itemTitle
+      itemTitle: input.itemTitle,
+      locale
     },
     delayMs: input.delayMs ?? 10 * 60 * 1000 // 10 min
   });

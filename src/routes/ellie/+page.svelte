@@ -358,7 +358,8 @@
           eventId,
           utm,
           sid: getSid(),
-          eid: getEid()
+          eid: getEid(),
+          funnel: 'ellie'
         });
       }
     }, 250);
@@ -406,7 +407,8 @@
           eventId,
           utm,
           sid: getSid(),
-          eid: getEid()
+          eid: getEid(),
+          funnel: 'ellie'
         });
       }
     }, 800);
