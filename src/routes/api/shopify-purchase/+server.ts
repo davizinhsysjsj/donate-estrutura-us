@@ -7,6 +7,7 @@ import { scheduleEmailFlow, initEmailScheduler, cancelPendingRecoveryForEmail, c
 import { setSidEmail, removePopupBySid } from '$lib/server/abandoned-popups';
 import { addRealDonor } from '$lib/server/donors-feed';
 import { recordPurchase } from '$lib/server/campaign-stats';
+import { toEurSync } from '$lib/server/fx';
 
 initAnalyticsStore();
 initEmailScheduler();
@@ -141,15 +142,10 @@ export const POST: RequestHandler = async ({ request }) => {
 	try {
 		const orderValue = parseFloat(order.total_price || '0');
 		const rawCurrency = (order.currency || 'EUR').toUpperCase();
-		// Vitrack agrega tudo como EUR internamente. Normalizamos aqui usando
-		// taxas configuráveis por env (default 1.17 GBP→EUR, 0.92 USD→EUR).
-		// Se currency já for EUR, factor = 1.
-		const GBP_TO_EUR = parseFloat(process.env.PURCHASE_GBP_TO_EUR || '1.17');
-		const USD_TO_EUR = parseFloat(process.env.PURCHASE_USD_TO_EUR || '0.92');
-		const factor = rawCurrency === 'GBP' ? GBP_TO_EUR
-			: rawCurrency === 'USD' ? USD_TO_EUR
-			: 1;
-		const amountEur = orderValue * factor;
+		// Vitrack agrega tudo como EUR internamente. Conversão automática
+		// usando taxas FX vivas (exchangerate.host, cache 6h), fallback hardcoded.
+		// Zero env vars — se currency=EUR o factor=1, senão pega taxa dinâmica.
+		const amountEur = toEurSync(orderValue, rawCurrency);
 		const ua = order.client_details?.user_agent || '';
 		const sid = bpSid || `shopify_${orderId}`;
 		ingestAnalytics({
@@ -165,10 +161,9 @@ export const POST: RequestHandler = async ({ request }) => {
 			utm_content:  resolvedUtmContent,
 			utm_term:     resolvedUtmTerm,
 			data: {
-				amount: amountEur,           // Vitrack lê isso (normalizado em EUR)
+				amount: amountEur,           // Vitrack lê isso (já em EUR)
 				amount_raw: orderValue,      // valor original mantido pra auditoria
-				currency: rawCurrency,       // moeda original da order
-				fx_factor: factor,           // taxa aplicada (auditoria)
+				currency: rawCurrency,       // moeda original da order (analytics vai gravar)
 				order_id: order.id,
 				synthetic_sid: !bpSid
 			}

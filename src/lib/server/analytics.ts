@@ -87,7 +87,9 @@ export interface Session {
   selectedAmountAt?: number;
   clickedBancontact: boolean;
   clickedBancontactAt?: number;
-  purchaseAmount?: number;
+  purchaseAmount?: number;         // sempre em EUR (normalizado pelo webhook)
+  purchaseAmountRaw?: number;      // valor na moeda original (auditoria)
+  purchaseCurrency?: string;       // moeda original (EUR/GBP/USD)
   purchaseAt?: number;
   // engajamento
   vitals: VitalsData;
@@ -459,6 +461,12 @@ export function ingest(evt: IngestInput) {
       const amt = Number(d.amount);
       if (Number.isFinite(amt) && amt > 0) {
         s.purchaseAmount = amt;
+        // Se webhook mandou amount_raw + currency, guarda pra auditoria/backfill
+        const amtRaw = Number(d.amount_raw);
+        if (Number.isFinite(amtRaw) && amtRaw > 0) s.purchaseAmountRaw = amtRaw;
+        if (typeof d.currency === 'string' && d.currency.length > 0) {
+          s.purchaseCurrency = String(d.currency).toUpperCase();
+        }
         s.purchaseAt = evt.ts;
         s.isBot = false;
         s.botReasons = [];
@@ -963,6 +971,25 @@ export function getSessionDetail(sid: string) {
  */
 export function getSessionBySid(sid: string) {
   return sessions.get(sid) || null;
+}
+
+/**
+ * Todas as sessions em memória. Usado por endpoints admin (backfill, debug).
+ * Retorna array shallow-clone pra caller poder iterar sem mutar mapa.
+ */
+export function getAllSessions(): Session[] {
+  return Array.from(sessions.values());
+}
+
+/**
+ * Patch pontual de campos numa session (ex: backfill de câmbio).
+ * Persiste no snapshot se estiver ativado.
+ */
+export function patchSession(sid: string, patch: Partial<Session>): boolean {
+  const s = sessions.get(sid);
+  if (!s) return false;
+  Object.assign(s, patch);
+  return true;
 }
 
 /**
