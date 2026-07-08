@@ -997,7 +997,7 @@
   let dragSrc = $state<CardId | null>(null);
   let customizeOpen = $state(false);
   // Tamanho dos cards: 'small' (1 col) ou 'large' (2 cols / linha inteira no mobile)
-  type CardSize = 'small' | 'large';
+  type CardSize = 'small' | 'medium' | 'large' | 'xl';
   let cardSizes = $state<Record<string, CardSize>>({});
   function getCardSize(id: CardId): CardSize {
     return cardSizes[id] || 'small';
@@ -1194,16 +1194,20 @@
     if (!resizeCardId) return;
     e.preventDefault();
     const dx = e.clientX - resizeStartX;
-    // dx > threshold pra direita = vira large; dx < -threshold = vira small
-    if (resizeStartSize === 'small' && dx > RESIZE_THRESHOLD) {
-      setCardSize(resizeCardId, 'large');
+    // Drag pra direita = próximo tamanho; drag pra esquerda = tamanho anterior
+    const SIZES: CardSize[] = ['small', 'medium', 'large', 'xl'];
+    const currentIdx = SIZES.indexOf(resizeStartSize);
+    if (dx > RESIZE_THRESHOLD && currentIdx < SIZES.length - 1) {
+      const next = SIZES[currentIdx + 1];
+      setCardSize(resizeCardId, next);
       if (navigator.vibrate) navigator.vibrate(10);
-      resizeStartSize = 'large';
+      resizeStartSize = next;
       resizeStartX = e.clientX;
-    } else if (resizeStartSize === 'large' && dx < -RESIZE_THRESHOLD) {
-      setCardSize(resizeCardId, 'small');
+    } else if (dx < -RESIZE_THRESHOLD && currentIdx > 0) {
+      const prev = SIZES[currentIdx - 1];
+      setCardSize(resizeCardId, prev);
       if (navigator.vibrate) navigator.vibrate(10);
-      resizeStartSize = 'small';
+      resizeStartSize = prev;
       resizeStartX = e.clientX;
     }
   }
@@ -1211,11 +1215,13 @@
   function handleResizeUp(e: PointerEvent) {
     const target = e.currentTarget as HTMLElement;
     try { target.releasePointerCapture(e.pointerId); } catch {}
-    // Click simples sem drag: alterna o tamanho
+    // Click simples sem drag: cicla pro próximo tamanho (small → medium → large → xl → small)
     if (resizeCardId) {
       const dx = Math.abs(e.clientX - resizeStartX);
       if (dx < 5 && resizeStartSize === getCardSize(resizeCardId)) {
-        const next: CardSize = resizeStartSize === 'small' ? 'large' : 'small';
+        const SIZES: CardSize[] = ['small', 'medium', 'large', 'xl'];
+        const currentIdx = SIZES.indexOf(resizeStartSize);
+        const next = SIZES[(currentIdx + 1) % SIZES.length];
         setCardSize(resizeCardId, next);
       }
     }
@@ -2215,7 +2221,9 @@
               class:kpi-profit-pos={cardId === 'profit' && profitBrl > 0}
               class:kpi-profit-neg={cardId === 'profit' && profitBrl < 0}
               class:kpi-dragging={dragSrc === cardId}
+              class:kpi-medium={getCardSize(cardId) === 'medium'}
               class:kpi-large={getCardSize(cardId) === 'large'}
+              class:kpi-xl={getCardSize(cardId) === 'xl'}
               data-card-id={cardId}
               draggable="true"
               ondragstart={() => dragStart(cardId)}
@@ -2241,12 +2249,17 @@
                   type="button"
                   class="kpi-resize-handle"
                   aria-label="Redimensionar card"
-                  title={getCardSize(cardId) === 'large' ? 'Diminuir' : 'Aumentar'}
+                  title={
+                    getCardSize(cardId) === 'small' ? 'Aumentar (P → M)' :
+                    getCardSize(cardId) === 'medium' ? 'Aumentar (M → G)' :
+                    getCardSize(cardId) === 'large' ? 'Aumentar (G → XL)' :
+                    'Voltar para P'
+                  }
                   onpointerdown={(e) => handleResizeDown(e, cardId)}
                   onpointermove={handleResizeMove}
                   onpointerup={handleResizeUp}
                   onpointercancel={handleResizeUp}
-                >{getCardSize(cardId) === 'large' ? '↤' : '↦'}</button>
+                >{getCardSize(cardId) === 'xl' ? '↺' : '↦'}</button>
               {/if}
               {#if cardId === 'online'}
                 <div class="kpi-label">Online agora</div>
@@ -2281,7 +2294,6 @@
               {:else if cardId === 'revenue'}
                 <div class="kpi-label">Receita</div>
                 <div class="kpi-value">{fmtBrl(revenueBrl)}</div>
-                <div class="kpi-sub kpi-secondary">{fmtEur(snap.kpis.revenue)} · {fmtUsd(snap.kpis.revenue * (taxConfig.eurToUsd || 1.08))}</div>
                 <div class="kpi-sub kpi-delta {deltaClass(snap.compare.revenue.delta)}">
                   {fmtDelta(snap.compare.revenue.delta)} · {snap.kpis.purchased} pedidos
                 </div>
@@ -2298,11 +2310,9 @@
               {:else if cardId === 'spend'}
                 <div class="kpi-label">Gasto Meta</div>
                 <div class="kpi-value">{fbAds ? fmtBrl(adSpendBrl) : '—'}</div>
-                <div class="kpi-sub kpi-secondary">{fbAds ? fmtEur(adSpendEur) + ' · ' + fmtUsd(fbAds.spend) : 'carregando…'}</div>
               {:else if cardId === 'profit'}
                 <div class="kpi-label">Lucro</div>
                 <div class="kpi-value">{snap ? fmtBrl(lucroUtmBrl) : '—'}</div>
-                <div class="kpi-sub kpi-secondary">{snap ? fmtEur(lucroUtmBrl / eurToBrl) : ''}</div>
               {:else if cardId === 'roas'}
                 <div class="kpi-label">ROAS</div>
                 <div class="kpi-value kpi-green">{roasUtm > 0 ? roasUtm.toFixed(2) : '—'}</div>
@@ -2310,7 +2320,6 @@
               {:else if cardId === 'faturamento'}
                 <div class="kpi-label">Faturamento Líquido</div>
                 <div class="kpi-value">{snap ? fmtBrl(faturamentoLiqBrl) : '—'}</div>
-                <div class="kpi-sub kpi-secondary">{snap ? fmtEur(snap.kpis.revenue * (1 - taxConfig.shopifyPct / 100)) : ''}</div>
                 <div class="kpi-sub">receita − {taxConfig.shopifyPct}% Shopify</div>
               {:else if cardId === 'roi'}
                 <div class="kpi-label">ROI</div>
@@ -2323,7 +2332,6 @@
               {:else if cardId === 'taxas_card'}
                 <div class="kpi-label">Taxas ({taxConfig.shopifyPct}%)</div>
                 <div class="kpi-value">{snap ? fmtBrl(taxasBrl) : '—'}</div>
-                <div class="kpi-sub kpi-secondary">{snap ? fmtEur(snap.kpis.revenue * taxConfig.shopifyPct / 100) : ''}</div>
                 <div class="kpi-sub">Shopify sobre receita bruta</div>
               {/if}
             </div>
@@ -4115,16 +4123,26 @@
 
   /* ── KPIs ── */
   .kpi-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-    gap: 16px; margin-bottom: 16px; align-items: stretch;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px; margin-bottom: 16px; align-items: stretch;
   }
   .kpi {
-    background: #11161d; border: 1px solid #1a1f28; padding: 18px 20px;
-    border-radius: 12px; position: relative; overflow: hidden;
+    background: #11161d; border: 1px solid #1a1f28; padding: 12px 14px 11px;
+    border-radius: 10px; position: relative; overflow: hidden;
     transition: transform 0.15s, border-color 0.15s;
-    display: flex; flex-direction: column;
+    display: flex; flex-direction: column; gap: 2px;
   }
   .kpi:hover { border-color: #2a3340; transform: translateY(-1px); }
+  /* Tamanhos escolhidos em "Personalizar" */
+  .kpi.kpi-medium { grid-column: span 2; }
+  .kpi.kpi-large { grid-column: span 3; }
+  .kpi.kpi-xl { grid-column: span 4; }
+  .kpi.kpi-medium .kpi-value { font-size: 2.25rem; }
+  .kpi.kpi-large .kpi-value { font-size: 2.75rem; }
+  .kpi.kpi-xl .kpi-value { font-size: 3.5rem; }
+  .kpi.kpi-medium { padding: 16px 18px 14px; }
+  .kpi.kpi-large { padding: 20px 22px 18px; }
+  .kpi.kpi-xl { padding: 24px 26px 22px; }
   .kpi-live::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
     background: linear-gradient(90deg, transparent, #02a95c, transparent);
@@ -4138,7 +4156,8 @@
   }
   .kpi-value {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 2rem; font-weight: 600; margin-top: 8px; letter-spacing: -0.03em;
+    font-size: 1.75rem; font-weight: 600; margin-top: 4px; letter-spacing: -0.03em;
+    line-height: 1.1;
   }
   .kpi-live .kpi-value { color: #02a95c; }
 
