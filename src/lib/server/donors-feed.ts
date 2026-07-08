@@ -165,11 +165,18 @@ export function getRecentRealDonors(opts?: {
 		.filter((d) => d.ts >= cutoff)
 		.filter((d) => {
 			if (!targetFunnel) return true;
-			// Doações com funnel gravado devem bater. Doações antigas sem funnel
-			// (backward compat) ficam só na Lina — não vazam pra Ellie.
-			if (targetFunnel === 'ellie') return d.funnel === 'ellie';
-			// Lina: aceita 'lina' ou legacy sem funnel
-			return d.funnel === 'lina' || !d.funnel;
+			if (targetFunnel === 'ellie') {
+				// Bate direto quando gravado como 'ellie'
+				if (d.funnel === 'ellie') return true;
+				// Fallback pra compras legado (pré-fix do funnel attribute):
+				// currency GBP indica funil UK / Ellie
+				if (!d.funnel && d.currency === 'GBP') return true;
+				return false;
+			}
+			// Lina: aceita 'lina' ou legacy sem funnel em currency não-GBP
+			if (d.funnel === 'lina') return true;
+			if (!d.funnel && d.currency !== 'GBP') return true;
+			return false;
 		})
 		.sort((a, b) => b.ts - a.ts)
 		.map((d, i) => {
