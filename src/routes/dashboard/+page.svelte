@@ -2349,7 +2349,7 @@
               class="grid-stack-item"
               gs-id={cardId}
               gs-w={savedGridLayout[cardId]?.w ?? 3}
-              gs-h={savedGridLayout[cardId]?.h ?? 4}
+              gs-h={Math.max(5, savedGridLayout[cardId]?.h ?? 5)}
               gs-x={savedGridLayout[cardId]?.x ?? undefined}
               gs-y={savedGridLayout[cardId]?.y ?? undefined}
               gs-min-w="2"
@@ -4472,12 +4472,12 @@
   .kpi {
     background: #11161d;
     border: 1px solid #1a1f28;
-    padding: 28px 28px;
+    padding: 22px 26px;
     border-radius: 12px; position: relative;
     overflow: hidden;
     transition: border-color 0.15s, box-shadow 0.15s;
     display: flex; flex-direction: column;
-    justify-content: flex-start; /* label ancorada no topo com padding real */
+    justify-content: center; /* label + valor centralizados verticalmente */
     min-width: 0;
     line-height: 1;
     /* NÃO usar height:100% aqui — quebra o bottom inset do GridStack */
@@ -4495,7 +4495,7 @@
   /* Info icon discreto no canto superior direito */
   .kpi::after {
     content: '';
-    position: absolute; top: 26px; right: 26px;
+    position: absolute; top: 22px; right: 22px;
     width: 14px; height: 14px;
     background-color: #6b7787;
     -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='12' y1='16' x2='12' y2='12'/><line x1='12' y1='8' x2='12.01' y2='8'/></svg>") center/contain no-repeat;
