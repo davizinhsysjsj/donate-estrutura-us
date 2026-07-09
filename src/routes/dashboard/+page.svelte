@@ -2499,14 +2499,12 @@
           {@const clicks = fbAds.clicks || 0}
           {@const lpv = fbAds.landingPageViews || 0}
           {@const ics = fbAds.initiateCheckout || 0}
-          {@const vinic = fbAds.purchases || 0}
           {@const vapr = snap.kpis.purchased || 0}
           {@const base = Math.max(clicks, 1)}
           {@const steps = [
             { label: 'Cliques',     value: clicks, pct: 100 },
             { label: 'Vis. Página', value: lpv,    pct: (lpv / base) * 100 },
             { label: 'ICs',         value: ics,    pct: (ics / base) * 100 },
-            { label: 'Vendas Inic.', value: vinic, pct: (vinic / base) * 100 },
             { label: 'Vendas Apr.', value: vapr,   pct: (vapr / base) * 100 }
           ]}
           {@const halfHeights = steps.map(s => Math.max(6, (s.pct / 100) * 105))}
@@ -4358,7 +4356,7 @@
   .conv-funnel { position: relative; padding-top: 4px; }
   .conv-headers {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     text-align: center;
     color: #cbd5e1;
     font-size: 0.9375rem;
@@ -4398,7 +4396,7 @@
   .conv-pct { line-height: 1; }
   .conv-values {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     text-align: center;
     color: #f1f5f9;
     font-size: 1rem;
