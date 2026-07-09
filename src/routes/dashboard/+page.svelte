@@ -4377,9 +4377,13 @@
     background: transparent;
     margin-bottom: 20px;
     min-height: 80px;
+    /* Força as variáveis do GridStack: margem uniforme 12px em todos os lados.
+       Sem isso, a option `margin: 12` no init nem sempre aplica no vertical. */
+    --gs-item-margin-top: 12px !important;
+    --gs-item-margin-right: 12px !important;
+    --gs-item-margin-bottom: 12px !important;
+    --gs-item-margin-left: 12px !important;
   }
-  /* grid-stack-item-content: overflow hidden pra não aparecer scrollbar
-     interna quando conteúdo fica maior que altura em edge cases */
   :global(.kpi-grid .grid-stack-item-content) {
     overflow: hidden !important;
   }
