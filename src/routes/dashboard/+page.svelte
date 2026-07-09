@@ -1089,6 +1089,7 @@
   const activeEurToBrl = $derived(liveRate?.eurToBrl ?? (taxConfig.eurToUsd * activeUsdToBrl));
 
   // ── GridStack init (lazy import client-side, evita SSR crash) ──
+  // GridStack só ativa em desktop (>768px). Mobile mantém CSS grid original.
   let gridStackReady = $state(false);
   $effect(() => {
     if (typeof window === 'undefined') return;
@@ -1097,6 +1098,8 @@
       return;
     }
     if (!gridEl || gridInstance) return;
+    // Mobile: não inicializa GridStack, deixa CSS grid do fallback
+    if (window.innerWidth < 900) return;
     // Import dinâmico — client-only
     (async () => {
       const [{ GridStack }] = await Promise.all([
@@ -1104,10 +1107,11 @@
         import('gridstack/dist/gridstack.min.css')
       ]);
       if (!gridEl || gridInstance) return;
+      if (window.innerWidth < 900) return;
       gridInstance = GridStack.init({
         column: 12,
-        cellHeight: 30,        // altura por row baixa — cards controlam via gs-h (2..6)
-        margin: 8,             // gap uniforme entre cards (vertical + horizontal)
+        cellHeight: 26,
+        margin: 12,
         float: false,
         animate: true,
         disableOneColumnMode: false,
@@ -2315,7 +2319,7 @@
               class="grid-stack-item"
               gs-id={cardId}
               gs-w={savedGridLayout[cardId]?.w ?? 3}
-              gs-h={savedGridLayout[cardId]?.h ?? (cardId === 'online' ? 4 : 3)}
+              gs-h={savedGridLayout[cardId]?.h ?? (cardId === 'online' ? 5 : 4)}
               gs-x={savedGridLayout[cardId]?.x ?? undefined}
               gs-y={savedGridLayout[cardId]?.y ?? undefined}
               gs-min-w="2"
@@ -4374,9 +4378,10 @@
     margin-bottom: 20px;
     min-height: 80px;
   }
-  /* grid-stack-item-content: apenas position, sem zerar padding/inset */
+  /* grid-stack-item-content: overflow hidden pra não aparecer scrollbar
+     interna quando conteúdo fica maior que altura em edge cases */
   :global(.kpi-grid .grid-stack-item-content) {
-    overflow: visible;
+    overflow: hidden !important;
   }
   /* Handles de resize — visíveis discreto sempre, mais fortes no hover */
   :global(.kpi-grid .grid-stack-item > .ui-resizable-handle) {
