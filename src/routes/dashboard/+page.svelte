@@ -4447,7 +4447,7 @@
   .kpi {
     background: #11161d;
     border: 1px solid #1a1f28;
-    padding: 16px 18px;
+    padding: 18px 20px;
     border-radius: 12px; position: relative;
     overflow: hidden;
     transition: border-color 0.15s, box-shadow 0.15s;
@@ -4470,7 +4470,7 @@
   /* Info icon discreto no canto superior direito */
   .kpi::after {
     content: '';
-    position: absolute; top: 14px; right: 14px;
+    position: absolute; top: 16px; right: 16px;
     width: 14px; height: 14px;
     background-color: #6b7787;
     -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='12' y1='16' x2='12' y2='12'/><line x1='12' y1='8' x2='12.01' y2='8'/></svg>") center/contain no-repeat;
@@ -4511,7 +4511,7 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
     line-height: 1.2;
-    padding-right: 24px;
+    padding-right: 26px;
   }
   .kpi-value {
     font-family: inherit;
