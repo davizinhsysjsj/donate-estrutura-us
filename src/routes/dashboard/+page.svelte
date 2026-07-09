@@ -1111,7 +1111,15 @@
       gridInstance = GridStack.init({
         column: 12,
         cellHeight: 26,
-        margin: 12,
+        cellHeightUnit: 'px',
+        // GridStack v12 seta as CSS vars a partir de marginTop/Bottom/Left/Right
+        // separados. Passar só `margin: 12` NÃO desmembra corretamente e o vertical
+        // fica sem gap. Passar as 4 explicitamente resolve.
+        marginTop: 12,
+        marginBottom: 12,
+        marginLeft: 12,
+        marginRight: 12,
+        marginUnit: 'px',
         float: false,
         animate: true,
         disableOneColumnMode: false,
@@ -4377,15 +4385,20 @@
     background: transparent;
     margin-bottom: 20px;
     min-height: 80px;
-    /* Força as variáveis do GridStack: margem uniforme 12px em todos os lados.
-       Sem isso, a option `margin: 12` no init nem sempre aplica no vertical. */
-    --gs-item-margin-top: 12px !important;
-    --gs-item-margin-right: 12px !important;
-    --gs-item-margin-bottom: 12px !important;
-    --gs-item-margin-left: 12px !important;
+    /* Fallback caso o JS não seta as vars (edge case) — CSS puro garante inset */
+    --gs-item-margin-top: 12px;
+    --gs-item-margin-right: 12px;
+    --gs-item-margin-bottom: 12px;
+    --gs-item-margin-left: 12px;
   }
   :global(.kpi-grid .grid-stack-item-content) {
     overflow: hidden !important;
+    /* Garante que o content interno respeita o inset das 4 vars mesmo se
+       algum override externo tentar mudar top/bottom */
+    top: var(--gs-item-margin-top) !important;
+    right: var(--gs-item-margin-right) !important;
+    bottom: var(--gs-item-margin-bottom) !important;
+    left: var(--gs-item-margin-left) !important;
   }
   /* Handles de resize — visíveis discreto sempre, mais fortes no hover */
   :global(.kpi-grid .grid-stack-item > .ui-resizable-handle) {
