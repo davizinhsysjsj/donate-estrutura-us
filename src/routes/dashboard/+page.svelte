@@ -4435,10 +4435,14 @@
     overflow: hidden;
     transition: border-color 0.15s, box-shadow 0.15s;
     display: flex; flex-direction: column;
-    justify-content: center; /* centraliza label+valor no eixo Y */
+    justify-content: center;
     min-width: 0;
     line-height: 1;
-    height: 100%;
+    /* IMPORTANTE: NÃO usar height:100% aqui.
+       .kpi ao mesmo tempo é .grid-stack-item-content (position:absolute
+       com top:12/bottom:12 do GridStack). height:100% quebra o bottom
+       inset e faz o card grudar no próximo verticalmente. Deixamos o
+       inset absolute do GridStack calcular a altura sozinho. */
     box-sizing: border-box;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
     cursor: grab;
