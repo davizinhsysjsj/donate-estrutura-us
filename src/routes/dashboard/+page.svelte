@@ -4472,18 +4472,18 @@
   .kpi {
     background: #11161d;
     border: 1px solid #1a1f28;
-    padding: 22px 24px;
+    padding: 28px 28px;
     border-radius: 12px; position: relative;
     overflow: hidden;
     transition: border-color 0.15s, box-shadow 0.15s;
     display: flex; flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start; /* label ancorada no topo com padding real */
     min-width: 0;
     line-height: 1;
     /* NÃO usar height:100% aqui — quebra o bottom inset do GridStack */
     box-sizing: border-box;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-    cursor: default; /* padrão, vira grab só no edit-mode */
+    cursor: default;
   }
   :global(.kpi-grid.edit-mode) .kpi { cursor: grab; }
   :global(.kpi-grid.edit-mode) .kpi:active { cursor: grabbing; }
@@ -4495,7 +4495,7 @@
   /* Info icon discreto no canto superior direito */
   .kpi::after {
     content: '';
-    position: absolute; top: 20px; right: 20px;
+    position: absolute; top: 26px; right: 26px;
     width: 14px; height: 14px;
     background-color: #6b7787;
     -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='12' y1='16' x2='12' y2='12'/><line x1='12' y1='8' x2='12.01' y2='8'/></svg>") center/contain no-repeat;
