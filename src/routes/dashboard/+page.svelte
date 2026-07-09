@@ -1110,11 +1110,8 @@
       if (window.innerWidth < 900) return;
       gridInstance = GridStack.init({
         column: 12,
-        cellHeight: 26,
+        cellHeight: 22,
         cellHeightUnit: 'px',
-        // GridStack v12 seta as CSS vars a partir de marginTop/Bottom/Left/Right
-        // separados. Passar só `margin: 12` NÃO desmembra corretamente e o vertical
-        // fica sem gap. Passar as 4 explicitamente resolve.
         marginTop: 12,
         marginBottom: 12,
         marginLeft: 12,
@@ -1125,8 +1122,11 @@
         disableOneColumnMode: false,
         resizable: { handles: 'e, se, s, sw, w' },
         draggable: { handle: '.grid-stack-item-content', scroll: true },
-        minRow: 2
+        minRow: 1,
+        staticGrid: true
       }, gridEl);
+      // Compacta layout: cards flutuam pro topo/esquerda, tira gaps vazios
+      try { gridInstance.compact(); } catch {}
       gridInstance.on('change', () => {
         const items = gridInstance.save(false) as GridStackNode[];
         const layout: Record<string, GridWidget> = {};
@@ -1147,6 +1147,14 @@
 
   onDestroy(() => {
     if (gridInstance) { try { gridInstance.destroy(false); } catch {} gridInstance = null; }
+  });
+
+  // Toggle static do GridStack conforme editMode.
+  // editMode=false → cards fixos (sem handles, sem drag), como layout estático
+  // editMode=true  → cards editáveis (drag + resize com handles visíveis)
+  $effect(() => {
+    if (!gridInstance) return;
+    try { gridInstance.setStatic(!editMode); } catch {}
   });
 
   onMount(() => {
@@ -2109,8 +2117,8 @@
               ✓ Concluir
             </button>
           {:else}
-            <button class="btn-customize btn-customize-desktop topbar-customize" onclick={() => (customizeOpen = !customizeOpen)}>
-              {customizeOpen ? '✕ Fechar' : '⊙ Personalizar'}
+            <button class="btn-customize btn-customize-desktop topbar-customize" onclick={() => { editMode = true; customizeOpen = true; }}>
+              ⊙ Personalizar
             </button>
           {/if}
         {/if}
@@ -2364,15 +2372,17 @@
               onpointermove={cancelLongPress}
               onpointerleave={cancelLongPress}
             >
-              <button
-                type="button"
-                class="kpi-drag-handle"
-                aria-label="Arrastar card"
-                onpointerdown={(e) => handlePointerDown(e, cardId)}
-                onpointermove={handlePointerMove}
-                onpointerup={handlePointerUp}
-                onpointercancel={handlePointerUp}
-              >⠿</button>
+              {#if editMode}
+                <button
+                  type="button"
+                  class="kpi-drag-handle"
+                  aria-label="Arrastar card"
+                  onpointerdown={(e) => handlePointerDown(e, cardId)}
+                  onpointermove={handlePointerMove}
+                  onpointerup={handlePointerUp}
+                  onpointercancel={handlePointerUp}
+                >⠿</button>
+              {/if}
               {#if editMode}
                 <button
                   type="button"
@@ -4402,13 +4412,18 @@
     bottom: var(--gs-item-margin-bottom) !important;
     left: var(--gs-item-margin-left) !important;
   }
-  /* Handles de resize — visíveis discreto sempre, mais fortes no hover */
+  /* Handles de resize — SÓ aparecem no editMode (opacity 0 quando static) */
   :global(.kpi-grid .grid-stack-item > .ui-resizable-handle) {
-    opacity: 0; color: #6b7787;
+    opacity: 0 !important;
+    color: #6b7787;
     transition: opacity 0.15s;
+    pointer-events: none;
   }
-  :global(.kpi-grid .grid-stack-item:hover > .ui-resizable-handle) {
-    opacity: 0.65;
+  :global(.kpi-grid.edit-mode .grid-stack-item > .ui-resizable-handle) {
+    pointer-events: auto;
+  }
+  :global(.kpi-grid.edit-mode .grid-stack-item:hover > .ui-resizable-handle) {
+    opacity: 0.7 !important;
   }
   :global(.kpi-grid .grid-stack-item.ui-draggable-dragging) {
     opacity: 0.9; z-index: 100;
@@ -4443,8 +4458,10 @@
     /* NÃO usar height:100% aqui — quebra o bottom inset do GridStack */
     box-sizing: border-box;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-    cursor: grab;
+    cursor: default; /* padrão, vira grab só no edit-mode */
   }
+  :global(.kpi-grid.edit-mode) .kpi { cursor: grab; }
+  :global(.kpi-grid.edit-mode) .kpi:active { cursor: grabbing; }
   .kpi:hover {
     border-color: #2a3340;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(2, 169, 92, 0.15);
