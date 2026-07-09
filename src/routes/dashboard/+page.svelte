@@ -2417,21 +2417,7 @@
                   <span class="kpi-online-dot"></span>
                   Online agora
                 </div>
-                <div class="kpi-online-row">
-                  <div class="kpi-online-num">{snap.kpis.online}</div>
-                  <div class="kpi-online-split">
-                    <span class="kpi-online-pill" title="Visitantes em / (LP)">
-                      <span class="kpi-online-pill-dot" style="background:#02a95c"></span>
-                      <span class="kpi-online-pill-label">LP</span>
-                      <strong>{snap.kpis.onlineLp ?? 0}</strong>
-                    </span>
-                    <span class="kpi-online-pill" title="Visitantes em /donate">
-                      <span class="kpi-online-pill-dot" style="background:#ffd54f"></span>
-                      <span class="kpi-online-pill-label">/donate</span>
-                      <strong>{snap.kpis.onlineDonate ?? 0}</strong>
-                    </span>
-                  </div>
-                </div>
+                <div class="kpi-value kpi-online-num">{snap.kpis.online}</div>
               {:else if cardId === 'sessions'}
                 <div class="kpi-label">Sessões</div>
                 <div class="kpi-value">{fmtNum(snap.kpis.totalSessions)}</div>
