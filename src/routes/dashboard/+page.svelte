@@ -2327,7 +2327,7 @@
               class="grid-stack-item"
               gs-id={cardId}
               gs-w={savedGridLayout[cardId]?.w ?? 3}
-              gs-h={savedGridLayout[cardId]?.h ?? (cardId === 'online' ? 5 : 4)}
+              gs-h={savedGridLayout[cardId]?.h ?? 4}
               gs-x={savedGridLayout[cardId]?.x ?? undefined}
               gs-y={savedGridLayout[cardId]?.y ?? undefined}
               gs-min-w="2"
@@ -2391,22 +2391,24 @@
                 >{getCardSize(cardId) === 'xl' ? '↺' : '↦'}</button>
               {/if}
               {#if cardId === 'online'}
-                <div class="kpi-label">Online agora</div>
-                <div class="kpi-online-hero">
-                  <div class="kpi-online-number">{snap.kpis.online}</div>
-                  <div class="kpi-online-caption">visitantes ativos · últimos 2 min</div>
+                <div class="kpi-label kpi-online-label">
+                  <span class="kpi-online-dot"></span>
+                  Online agora
                 </div>
-                <div class="kpi-breakdown kpi-breakdown-online">
-                  <span class="kpi-chip" title="Visitantes em / (LP)">
-                    <span class="kpi-chip-dot" style="background:#02a95c"></span>
-                    <span class="kpi-chip-label">LP</span>
-                    <strong>{snap.kpis.onlineLp ?? 0}</strong>
-                  </span>
-                  <span class="kpi-chip" title="Visitantes em /donate">
-                    <span class="kpi-chip-dot" style="background:#ffd54f"></span>
-                    <span class="kpi-chip-label">/donate</span>
-                    <strong>{snap.kpis.onlineDonate ?? 0}</strong>
-                  </span>
+                <div class="kpi-online-row">
+                  <div class="kpi-online-num">{snap.kpis.online}</div>
+                  <div class="kpi-online-split">
+                    <span class="kpi-online-pill" title="Visitantes em / (LP)">
+                      <span class="kpi-online-pill-dot" style="background:#02a95c"></span>
+                      <span class="kpi-online-pill-label">LP</span>
+                      <strong>{snap.kpis.onlineLp ?? 0}</strong>
+                    </span>
+                    <span class="kpi-online-pill" title="Visitantes em /donate">
+                      <span class="kpi-online-pill-dot" style="background:#ffd54f"></span>
+                      <span class="kpi-online-pill-label">/donate</span>
+                      <strong>{snap.kpis.onlineDonate ?? 0}</strong>
+                    </span>
+                  </div>
                 </div>
               {:else if cardId === 'sessions'}
                 <div class="kpi-label">Sessões</div>
@@ -4428,8 +4430,8 @@
     grid-auto-flow: dense;
   }
   .kpi {
-    background: #182337;
-    border: 1px solid #22304d;
+    background: #11161d;
+    border: 1px solid #1a1f28;
     padding: 16px 18px;
     border-radius: 12px; position: relative;
     overflow: hidden;
@@ -4438,17 +4440,13 @@
     justify-content: center;
     min-width: 0;
     line-height: 1;
-    /* IMPORTANTE: NÃO usar height:100% aqui.
-       .kpi ao mesmo tempo é .grid-stack-item-content (position:absolute
-       com top:12/bottom:12 do GridStack). height:100% quebra o bottom
-       inset e faz o card grudar no próximo verticalmente. Deixamos o
-       inset absolute do GridStack calcular a altura sozinho. */
+    /* NÃO usar height:100% aqui — quebra o bottom inset do GridStack */
     box-sizing: border-box;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
     cursor: grab;
   }
   .kpi:hover {
-    border-color: #2f4066;
+    border-color: #2a3340;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(2, 169, 92, 0.15);
   }
   .kpi .kpi-sub:not(.kpi-delta) { display: none; }
@@ -4516,38 +4514,76 @@
   }
   .kpi-live .kpi-value { color: #02a95c; }
 
-  /* Card Online Agora (PC) — compacto pra bater altura dos outros cards */
-  .kpi-online-hero {
-    position: relative;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    margin: 4px 0 2px;
-    padding: 4px 0 0;
+  /* Card Online Agora — compacto horizontal:  [•N grande] [chips LP / donate] */
+  .kpi-online-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
-  .kpi-online-number {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 2rem; font-weight: 700; letter-spacing: -0.03em;
-    color: #02a95c;
+  .kpi-online-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #22C55E;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.85);
+    animation: livePulseCard 1.6s ease-in-out infinite;
+  }
+  @keyframes livePulseCard {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.55; transform: scale(0.85); }
+  }
+  .kpi-online-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+    gap: 12px;
+  }
+  .kpi-online-num {
+    font-family: inherit;
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
     line-height: 1;
-    /* Glow puro no numero — sem container box visivel */
-    text-shadow:
-      0 0 10px rgba(2,169,92,0.55),
-      0 0 24px rgba(2,169,92,0.3),
-      0 0 48px rgba(2,169,92,0.15);
+    color: #22C55E;
+    text-shadow: 0 0 12px rgba(34, 197, 94, 0.35);
   }
-  .kpi-online-caption {
-    color: #8b94a4; font-size: 0.65rem; margin-top: 4px;
-    text-align: center; letter-spacing: 0.02em;
+  .kpi-online-split {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-end;
+    flex-shrink: 0;
   }
-  .kpi-breakdown-online {
-    justify-content: center; gap: 6px; margin-top: 6px;
-    flex-wrap: wrap;
+  .kpi-online-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 999px;
+    font-size: 0.6875rem;
+    color: #cbd5e1;
+    line-height: 1;
+    white-space: nowrap;
   }
-  .kpi-breakdown-online .kpi-chip {
-    padding: 3px 7px;
-    font-size: 0.7rem;
-    background: linear-gradient(180deg, #11161d 0%, #0a0d12 100%);
+  .kpi-online-pill-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
   }
-  .kpi-breakdown-online .kpi-chip strong { font-size: 0.7rem; }
+  .kpi-online-pill-label {
+    color: #94a3b8;
+    font-weight: 600;
+  }
+  .kpi-online-pill strong {
+    color: #f1f5f9;
+    font-weight: 700;
+    font-size: 0.75rem;
+    margin-left: 2px;
+  }
 
   .kpi-breakdown {
     display: flex; flex-wrap: wrap; gap: 6px;
