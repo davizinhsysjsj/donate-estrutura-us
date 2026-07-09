@@ -1356,6 +1356,20 @@
     if (next.has(id)) next.delete(id); else next.add(id);
     visibleCards = next;
     localStorage.setItem('vitrack_cards', JSON.stringify([...next]));
+    // Após adicionar/remover card, deixa o Svelte atualizar DOM e depois
+    // faz o GridStack redescobrir widgets (novo card entra na grid, funil
+    // abaixo é empurrado automaticamente).
+    setTimeout(() => {
+      if (!gridInstance || typeof window === 'undefined') return;
+      try {
+        // Re-registra qualquer novo .grid-stack-item que o Svelte adicionou
+        const items = gridEl?.querySelectorAll('.grid-stack-item');
+        items?.forEach((el) => {
+          if (!(el as any).gridstackNode) gridInstance.makeWidget(el as HTMLElement);
+        });
+        gridInstance.compact();
+      } catch {}
+    }, 50);
   }
 
   // Cálculo de lucro
@@ -4412,18 +4426,29 @@
     bottom: var(--gs-item-margin-bottom) !important;
     left: var(--gs-item-margin-left) !important;
   }
-  /* Handles de resize — SÓ aparecem no editMode (opacity 0 quando static) */
+  /* Handles de resize — SÓ existem no editMode. Fora dele: 100% invisível.
+     Dentro: opacity 0.5 sempre + 0.9 no hover. */
   :global(.kpi-grid .grid-stack-item > .ui-resizable-handle) {
     opacity: 0 !important;
     color: #6b7787;
     transition: opacity 0.15s;
-    pointer-events: none;
+    pointer-events: none !important;
   }
   :global(.kpi-grid.edit-mode .grid-stack-item > .ui-resizable-handle) {
-    pointer-events: auto;
+    opacity: 0.5 !important;
+    pointer-events: auto !important;
   }
   :global(.kpi-grid.edit-mode .grid-stack-item:hover > .ui-resizable-handle) {
-    opacity: 0.7 !important;
+    opacity: 0.9 !important;
+  }
+  /* Cards em editMode ganham border verde discreto */
+  :global(.kpi-grid.edit-mode) .kpi {
+    border-color: rgba(2, 169, 92, 0.4);
+    box-shadow: 0 0 0 1px rgba(2, 169, 92, 0.1);
+  }
+  :global(.kpi-grid.edit-mode) .kpi:hover {
+    border-color: rgba(2, 169, 92, 0.7);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(2, 169, 92, 0.4);
   }
   :global(.kpi-grid .grid-stack-item.ui-draggable-dragging) {
     opacity: 0.9; z-index: 100;
@@ -4447,7 +4472,7 @@
   .kpi {
     background: #11161d;
     border: 1px solid #1a1f28;
-    padding: 18px 20px;
+    padding: 22px 24px;
     border-radius: 12px; position: relative;
     overflow: hidden;
     transition: border-color 0.15s, box-shadow 0.15s;
@@ -4470,7 +4495,7 @@
   /* Info icon discreto no canto superior direito */
   .kpi::after {
     content: '';
-    position: absolute; top: 16px; right: 16px;
+    position: absolute; top: 20px; right: 20px;
     width: 14px; height: 14px;
     background-color: #6b7787;
     -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='12' y1='16' x2='12' y2='12'/><line x1='12' y1='8' x2='12.01' y2='8'/></svg>") center/contain no-repeat;
@@ -4511,7 +4536,7 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
     line-height: 1.2;
-    padding-right: 26px;
+    padding-right: 30px;
   }
   .kpi-value {
     font-family: inherit;
@@ -4520,11 +4545,11 @@
     letter-spacing: -0.02em;
     line-height: 1.15;
     white-space: nowrap;
-    margin-top: 8px;
+    margin-top: 14px;
     color: #f1f5f9;
   }
   .kpi .kpi-delta {
-    margin-top: 8px;
+    margin-top: 10px;
     font-size: 0.75rem;
     line-height: 1.1;
     font-weight: 600;
@@ -4553,8 +4578,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: 10px;
-    gap: 12px;
+    margin-top: 14px;
+    padding-right: 4px;
+    gap: 18px;
   }
   .kpi-online-num {
     font-family: inherit;
