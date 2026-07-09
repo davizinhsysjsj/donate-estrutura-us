@@ -129,9 +129,11 @@ function parseInsight(d: any) {
     cpc:           parseFloat(d.cpc          || '0'),
     ctr:           parseFloat(d.ctr          || '0'),
     landingPageViews, viewContent, addToCart, initiateCheckout, purchases, purchaseValue, leads,
-    roas:          spend > 0 ? purchaseValue / spend : 0,
-    cpa:           purchases > 0 ? spend / purchases : 0,
-    costPerLPV:    landingPageViews > 0 ? spend / landingPageViews : 0,
+    // Threshold spend >= 1 evita ROAS/CPA absurdos no começo do dia
+    // (ex: gasto €0.03 + venda €50 = ROAS 1666x)
+    roas:          spend >= 1 ? purchaseValue / spend : 0,
+    cpa:           purchases > 0 && spend >= 1 ? spend / purchases : 0,
+    costPerLPV:    landingPageViews > 0 && spend >= 1 ? spend / landingPageViews : 0,
   };
 }
 
@@ -156,9 +158,9 @@ function sumInsights(a: ReturnType<typeof parseInsight>, b: ReturnType<typeof pa
     initiateCheckout:  a.initiateCheckout + b.initiateCheckout,
     purchases, purchaseValue,
     leads: a.leads + b.leads,
-    roas:       spend > 0 ? purchaseValue / spend : 0,
-    cpa:        purchases > 0 ? spend / purchases : 0,
-    costPerLPV: landingPageViews > 0 ? spend / landingPageViews : 0,
+    roas:       spend >= 1 ? purchaseValue / spend : 0,
+    cpa:        purchases > 0 && spend >= 1 ? spend / purchases : 0,
+    costPerLPV: landingPageViews > 0 && spend >= 1 ? spend / landingPageViews : 0,
   };
 }
 
@@ -203,8 +205,8 @@ function applyLiveAttribution(data: any, preset: string): any {
     if (agg.purchases > (target.purchases || 0)) {
       target.purchases = agg.purchases;
       target.purchaseValue = agg.purchaseValue;
-      target.roas = target.spend > 0 ? target.purchaseValue / target.spend : 0;
-      target.cpa = target.purchases > 0 ? target.spend / target.purchases : 0;
+      target.roas = target.spend >= 1 ? target.purchaseValue / target.spend : 0;
+      target.cpa = target.purchases > 0 && target.spend >= 1 ? target.spend / target.purchases : 0;
       target.liveAttribution = true;
     }
   }
@@ -331,9 +333,9 @@ export const GET: RequestHandler = async ({ url }) => {
             merged.cpm = merged.impressions > 0 ? (merged.spend / merged.impressions) * 1000 : 0;
             merged.cpc = merged.clicks > 0 ? merged.spend / merged.clicks : 0;
             merged.ctr = merged.impressions > 0 ? (merged.clicks / merged.impressions) * 100 : 0;
-            merged.roas = merged.spend > 0 ? merged.purchaseValue / merged.spend : 0;
-            merged.cpa = merged.purchases > 0 ? merged.spend / merged.purchases : 0;
-            merged.costPerLPV = merged.landingPageViews > 0 ? merged.spend / merged.landingPageViews : 0;
+            merged.roas = merged.spend >= 1 ? merged.purchaseValue / merged.spend : 0;
+            merged.cpa = merged.purchases > 0 && merged.spend >= 1 ? merged.spend / merged.purchases : 0;
+            merged.costPerLPV = merged.landingPageViews > 0 && merged.spend >= 1 ? merged.spend / merged.landingPageViews : 0;
             map.set(key, merged);
           } else {
             map.set(key, shapeCampaign(c, metaMap.get(key)));

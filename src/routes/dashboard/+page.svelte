@@ -793,9 +793,11 @@
     out.cpm = out.impressions > 0 ? (out.spend / out.impressions) * 1000 : 0;
     out.cpc = out.clicks > 0 ? out.spend / out.clicks : 0;
     out.ctr = out.impressions > 0 ? (out.clicks / out.impressions) * 100 : 0;
-    out.roas = out.spend > 0 ? out.purchaseValue / out.spend : 0;
-    out.cpa = out.purchases > 0 ? out.spend / out.purchases : 0;
-    out.costPerLPV = out.landingPageViews > 0 ? out.spend / out.landingPageViews : 0;
+    // Threshold spend >= 1 evita ROAS/CPA absurdos no começo do dia
+    // quando gasto é fração de centavo mas vendas já entraram.
+    out.roas = out.spend >= 1 ? out.purchaseValue / out.spend : 0;
+    out.cpa = out.purchases > 0 && out.spend >= 1 ? out.spend / out.purchases : 0;
+    out.costPerLPV = out.landingPageViews > 0 && out.spend >= 1 ? out.spend / out.landingPageViews : 0;
     out.currency = results[0]?.currency || 'EUR';
     out.accountId = results.map((r) => r?.accountId).filter(Boolean).join(',');
     out.datePreset = results[0]?.datePreset;
@@ -1479,7 +1481,10 @@
   function roasOf(c: any): number {
     const sp = c?.spend || 0;
     const rv = c?.purchaseValue || 0;
-    return sp > 0 ? rv / sp : 0;
+    // Threshold: gasto < 1 (moeda da conta) = ruído estatístico do começo do dia.
+    // Sem isso, ROAS pode virar valores absurdos tipo 2340x quando gasto é fração
+    // de centavo mas vendas já entraram.
+    return sp >= 1 ? rv / sp : 0;
   }
   function roasClass(c: any): string {
     if (!c?.spend) return '';
