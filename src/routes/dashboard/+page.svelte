@@ -1106,8 +1106,8 @@
       if (!gridEl || gridInstance) return;
       gridInstance = GridStack.init({
         column: 12,
-        cellHeight: 44,        // altura por row; 2 rows já dá ~90px que combina com KPI compacto
-        margin: 6,             // espaço entre cards (visual "delimitado")
+        cellHeight: 30,        // altura por row baixa — cards controlam via gs-h (2..6)
+        margin: 8,             // gap uniforme entre cards (vertical + horizontal)
         float: false,
         animate: true,
         disableOneColumnMode: false,
@@ -2315,11 +2315,11 @@
               class="grid-stack-item"
               gs-id={cardId}
               gs-w={savedGridLayout[cardId]?.w ?? 3}
-              gs-h={savedGridLayout[cardId]?.h ?? (cardId === 'online' ? 3 : 2)}
+              gs-h={savedGridLayout[cardId]?.h ?? (cardId === 'online' ? 4 : 3)}
               gs-x={savedGridLayout[cardId]?.x ?? undefined}
               gs-y={savedGridLayout[cardId]?.y ?? undefined}
               gs-min-w="2"
-              gs-min-h="2"
+              gs-min-h="3"
             >
             <div
               class="grid-stack-item-content kpi"
@@ -4371,47 +4371,34 @@
   /* ── GridStack + KPIs ── */
   :global(.kpi-grid.grid-stack) {
     background: transparent;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
     min-height: 80px;
   }
-  /* Container onde o KPI real vive.
-     Precisa MANTER o padding do .kpi (não zeramos com inset). */
+  /* grid-stack-item-content: apenas position, sem zerar padding/inset */
   :global(.kpi-grid .grid-stack-item-content) {
-    /* GridStack por default seta inset:2px — mantém pra dar respiro entre cards.
-       NÃO zerar padding aqui, senão o texto cola nas bordas. */
     overflow: visible;
   }
-  :global(.kpi-grid .grid-stack-item > .ui-resizable-handle),
-  :global(.kpi-grid .grid-stack-item > .ui-resizable-e),
-  :global(.kpi-grid .grid-stack-item > .ui-resizable-se),
-  :global(.kpi-grid .grid-stack-item > .ui-resizable-s),
-  :global(.kpi-grid .grid-stack-item > .ui-resizable-sw),
-  :global(.kpi-grid .grid-stack-item > .ui-resizable-w) {
-    opacity: 0.4;
-    color: #6b7787;
+  /* Handles de resize — visíveis discreto sempre, mais fortes no hover */
+  :global(.kpi-grid .grid-stack-item > .ui-resizable-handle) {
+    opacity: 0; color: #6b7787;
     transition: opacity 0.15s;
   }
-  :global(.kpi-grid .grid-stack-item:hover > .ui-resizable-handle),
-  :global(.kpi-grid .grid-stack-item:hover > .ui-resizable-e),
-  :global(.kpi-grid .grid-stack-item:hover > .ui-resizable-se),
-  :global(.kpi-grid .grid-stack-item:hover > .ui-resizable-s),
-  :global(.kpi-grid .grid-stack-item:hover > .ui-resizable-sw),
-  :global(.kpi-grid .grid-stack-item:hover > .ui-resizable-w) {
-    opacity: 0.85;
+  :global(.kpi-grid .grid-stack-item:hover > .ui-resizable-handle) {
+    opacity: 0.65;
   }
   :global(.kpi-grid .grid-stack-item.ui-draggable-dragging) {
-    opacity: 0.85; z-index: 100;
+    opacity: 0.9; z-index: 100;
+    cursor: grabbing !important;
   }
-  :global(.kpi-grid .grid-stack-item.ui-resizable-resizing) {
-    opacity: 0.9;
-  }
+  :global(.kpi-grid .grid-stack-item.ui-resizable-resizing) { opacity: 0.95; }
+  /* Placeholder verde durante drag/resize — indicador visual do slot */
   :global(.kpi-grid .grid-stack-placeholder > .placeholder-content) {
-    background: rgba(2, 169, 92, 0.08);
-    border: 1px dashed rgba(2, 169, 92, 0.35);
-    border-radius: 10px;
+    background: rgba(2, 169, 92, 0.10);
+    border: 1.5px dashed rgba(2, 169, 92, 0.5);
+    border-radius: 12px;
     inset: 4px !important;
   }
-  /* Fallback pra layout antigo quando gridstack não estiver ativo */
+  /* Fallback pra layout sem gridstack (SSR/loading) */
   .kpi-grid:not(.grid-stack) {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 10px; margin-bottom: 16px;
@@ -4419,37 +4406,47 @@
     grid-auto-flow: dense;
   }
   .kpi {
-    background: #182337; border: 1px solid #22304d;
-    padding: 14px 18px 16px;
-    border-radius: 10px; position: relative;
-    overflow: visible;
-    transition: transform 0.15s, border-color 0.15s;
-    display: flex; flex-direction: column; min-width: 0;
+    background: #182337;
+    border: 1px solid #22304d;
+    padding: 16px 18px;
+    border-radius: 12px; position: relative;
+    overflow: hidden;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    display: flex; flex-direction: column;
+    justify-content: center; /* centraliza label+valor no eixo Y */
+    min-width: 0;
     line-height: 1;
-    height: 100%; /* preenche o grid-stack-item-content */
+    height: 100%;
     box-sizing: border-box;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    cursor: grab;
   }
-  .kpi:hover { border-color: #2a3340; transform: translateY(-1px); }
+  .kpi:hover {
+    border-color: #2f4066;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(2, 169, 92, 0.15);
+  }
   .kpi .kpi-sub:not(.kpi-delta) { display: none; }
   /* Info icon discreto no canto superior direito */
   .kpi::after {
     content: '';
-    position: absolute; top: 12px; right: 14px;
-    width: 13px; height: 13px;
+    position: absolute; top: 14px; right: 14px;
+    width: 14px; height: 14px;
     background-color: #6b7787;
     -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='12' y1='16' x2='12' y2='12'/><line x1='12' y1='8' x2='12.01' y2='8'/></svg>") center/contain no-repeat;
             mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='12' y1='16' x2='12' y2='12'/><line x1='12' y1='8' x2='12.01' y2='8'/></svg>") center/contain no-repeat;
     opacity: 0.5;
     pointer-events: none;
+    transition: opacity 0.15s;
   }
-  /* Cores das nossas classes de tom — voltam ao verde/laranja/branco originais */
-  .kpi-tone-positive .kpi-value { color: #02a95c; }
-  .kpi-tone-negative .kpi-value { color: #ffaa00; }
-  .kpi-tone-neutral  .kpi-value { color: #f1f5f9; }
-  /* Label sempre cinza como era antes — só o valor colore */
+  .kpi:hover::after { opacity: 0.8; }
+  /* Cores das nossas classes de tom */
+  .kpi-tone-positive .kpi-value { color: #22C55E; }
+  .kpi-tone-negative .kpi-value { color: #FBAA1F; }
+  .kpi-tone-neutral  .kpi-value { color: #F1F5F9; }
+  /* Label mais claro e legível */
   .kpi-tone-positive .kpi-label,
   .kpi-tone-negative .kpi-label,
-  .kpi-tone-neutral  .kpi-label { color: #8b94a4; }
+  .kpi-tone-neutral  .kpi-label { color: #94a3b8; }
   /* Tamanhos escolhidos em "Personalizar" */
   .kpi.kpi-medium { grid-column: span 2; }
   .kpi.kpi-large { grid-column: span 3; }
@@ -4467,13 +4464,13 @@
   }
   @keyframes shimmer { 0% { transform:translateX(-100%);} 100% { transform:translateX(100%);} }
   .kpi-label {
-    color: #8b94a4;
-    font-size: 0.6875rem;
-    font-weight: 600;
+    color: #94a3b8;
+    font-size: 0.75rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     line-height: 1.2;
-    padding-right: 22px;
+    padding-right: 24px;
   }
   .kpi-value {
     font-family: inherit;
@@ -4482,10 +4479,15 @@
     letter-spacing: -0.02em;
     line-height: 1.15;
     white-space: nowrap;
-    margin-top: 6px;
+    margin-top: 8px;
     color: #f1f5f9;
   }
-  .kpi .kpi-delta { margin-top: 6px; font-size: 0.75rem; line-height: 1.1; }
+  .kpi .kpi-delta {
+    margin-top: 8px;
+    font-size: 0.75rem;
+    line-height: 1.1;
+    font-weight: 600;
+  }
   .kpi-live .kpi-value { color: #02a95c; }
 
   /* Card Online Agora (PC) — compacto pra bater altura dos outros cards */
