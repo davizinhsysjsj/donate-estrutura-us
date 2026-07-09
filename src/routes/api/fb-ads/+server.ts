@@ -33,6 +33,35 @@ function saveDiskCache(): void {
 // Carrega na inicialização
 loadDiskCache();
 
+/**
+ * Retorna string YYYY-MM-DD do dia atual no fuso America/Sao_Paulo com offset opcional.
+ * offsetDays=0 → hoje BRT. offsetDays=-1 → ontem BRT.
+ */
+function brtDate(offsetDays = 0): string {
+  const TZ = 'America/Sao_Paulo';
+  const now = new Date();
+  const dateStr = new Intl.DateTimeFormat('sv-SE', { timeZone: TZ }).format(now); // YYYY-MM-DD
+  if (offsetDays === 0) return dateStr;
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const shifted = new Date(Date.UTC(y, m - 1, d + offsetDays));
+  return shifted.toISOString().slice(0, 10);
+}
+
+/**
+ * Substitui date_preset por time_range com fuso BRT explícito.
+ * Assim Meta usa a MESMA janela que o dashboard (00:00 BRT → 23:59:59 BRT) —
+ * antes o date_preset=today do Meta usava o fuso da conta (que pode ser UTC/EU),
+ * incluindo vendas de "ontem BRT" nas de "hoje" e vice-versa.
+ *
+ * Retorna a query string encoded pronta pra concat na URL.
+ * Ex: dateRangeParam('today') → 'time_range=%7B%22since%22%3A%222026-07-09%22%2C%22until%22%3A%222026-07-09%22%2C%22time_zone%22%3A%22America%2FSao_Paulo%22%7D'
+ */
+function dateRangeParam(preset: 'today' | 'yesterday'): string {
+  const date = preset === 'today' ? brtDate(0) : brtDate(-1);
+  const range = { since: date, until: date, time_zone: 'America/Sao_Paulo' };
+  return `time_range=${encodeURIComponent(JSON.stringify(range))}`;
+}
+
 // Mapeia janela do dashboard para date_preset da FB API.
 // IMPORTANTE: Graph API v18+ usa "last_Xd" (sem underscore antes do d).
 const PRESET_MAP: Record<string, string> = {
@@ -295,8 +324,8 @@ export const GET: RequestHandler = async ({ url }) => {
     // ── Caso especial: Hoje + Ontem ───────────────────────────────────
     if (preset === '__hoje_ontem__') {
       const [todayBody, yesterdayBody] = await Promise.all([
-        fbFetch(`${FB_ACCT}/insights?fields=${fields}&date_preset=today&access_token=${FB_TOKEN}`),
-        fbFetch(`${FB_ACCT}/insights?fields=${fields}&date_preset=yesterday&access_token=${FB_TOKEN}`),
+        fbFetch(`${FB_ACCT}/insights?fields=${fields}&${dateRangeParam('today')}&access_token=${FB_TOKEN}`),
+        fbFetch(`${FB_ACCT}/insights?fields=${fields}&${dateRangeParam('yesterday')}&access_token=${FB_TOKEN}`),
       ]);
 
       const td = todayBody.data?.[0];
@@ -312,8 +341,8 @@ export const GET: RequestHandler = async ({ url }) => {
       if (withCampaigns) {
         const camQS = `fields=${camFields}&level=campaign&limit=500&access_token=${FB_TOKEN}`;
         const [todayList, yestList, metaMap] = await Promise.all([
-          fbFetchAll(`${FB_ACCT}/insights?${camQS}&date_preset=today`),
-          fbFetchAll(`${FB_ACCT}/insights?${camQS}&date_preset=yesterday`),
+          fbFetchAll(`${FB_ACCT}/insights?${camQS}&${dateRangeParam('today')}`),
+          fbFetchAll(`${FB_ACCT}/insights?${camQS}&${dateRangeParam('yesterday')}`),
           loadCampaignMeta(),
         ]);
         // Merge por campaign_id — soma metricas dos 2 periodos
@@ -371,15 +400,21 @@ export const GET: RequestHandler = async ({ url }) => {
     }
 
     // ── Caso normal ───────────────────────────────────────────────────
+    // Se preset é 'today' ou 'yesterday', usa time_range com fuso BRT
+    // pra bater com a janela do dashboard. Outros presets (last_7_d, etc)
+    // continuam com date_preset original.
+    const dateFilter = preset === 'today' || preset === 'yesterday'
+      ? dateRangeParam(preset as 'today' | 'yesterday')
+      : `date_preset=${preset}`;
     const body = await fbFetch(
-      `${FB_ACCT}/insights?fields=${fields}&date_preset=${preset}&access_token=${FB_TOKEN}`
+      `${FB_ACCT}/insights?fields=${fields}&${dateFilter}&access_token=${FB_TOKEN}`
     );
     const d = body.data?.[0];
 
     let campaigns: any[] = [];
     if (withCampaigns) {
       const [list, metaMap] = await Promise.all([
-        fbFetchAll(`${FB_ACCT}/insights?fields=${camFields}&date_preset=${preset}&level=campaign&limit=500&access_token=${FB_TOKEN}`),
+        fbFetchAll(`${FB_ACCT}/insights?fields=${camFields}&${dateFilter}&level=campaign&limit=500&access_token=${FB_TOKEN}`),
         loadCampaignMeta(),
       ]);
       campaigns = list.map((c: any) => shapeCampaign(c, metaMap.get(c.campaign_id)));
