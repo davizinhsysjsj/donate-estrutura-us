@@ -3,29 +3,10 @@ import type { RequestHandler } from './$types';
 import { getFbToken, getDefaultAccountId, maybeRefreshInBackground } from '$lib/server/fb-token';
 import { getPurchasesByDimension } from '$lib/server/analytics';
 
-/**
- * Retorna string YYYY-MM-DD do dia atual no fuso America/Sao_Paulo com offset opcional.
- */
-function brtDate(offsetDays = 0): string {
-  const TZ = 'America/Sao_Paulo';
-  const now = new Date();
-  const dateStr = new Intl.DateTimeFormat('sv-SE', { timeZone: TZ }).format(now);
-  if (offsetDays === 0) return dateStr;
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const shifted = new Date(Date.UTC(y, m - 1, d + offsetDays));
-  return shifted.toISOString().slice(0, 10);
-}
-
-/**
- * Substitui date_preset por time_range com fuso BRT explícito pra que
- * Meta use a mesma janela do dashboard (00:00 → 23:59 BRT).
- */
+// A conta Meta já está em America/Sao_Paulo, então date_preset=today
+// bate exatamente com "hoje BRT". Não usa time_range com time_zone
+// porque Meta retorna erro 100 (Invalid keys 'time_zone').
 function dateFilterFor(preset: string): string {
-  if (preset === 'today' || preset === 'yesterday') {
-    const date = preset === 'today' ? brtDate(0) : brtDate(-1);
-    const range = { since: date, until: date, time_zone: 'America/Sao_Paulo' };
-    return `time_range=${encodeURIComponent(JSON.stringify(range))}`;
-  }
   return `date_preset=${preset}`;
 }
 

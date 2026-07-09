@@ -70,6 +70,8 @@
   let sidebarOpen = $state(true);
   let mobileMenuOpen = $state(false);
   let mobileFiltersOpen = $state(false);
+  // No mobile, mantemos o layout e cores como estavam antes das mudanças de PC.
+  let isMobile = $state(false);
   let detailSid = $state<string | null>(null);
   let detailData = $state<any>(null);
   // Janela da aba Live em segundos: 120 (live = 2min, default), 900 (15min), 3600 (1h)
@@ -212,6 +214,12 @@
     if (!data.authed) return;
     pull();
     pollTimer = setInterval(pull, 1500);
+    // Detecta mobile e mantém sincronizado com resize/rotate
+    const mq = window.matchMedia('(max-width: 768px)');
+    isMobile = mq.matches;
+    const onChange = (e: MediaQueryListEvent) => { isMobile = e.matches; };
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
   });
   onDestroy(() => { if (pollTimer) clearInterval(pollTimer); });
 
@@ -2367,13 +2375,16 @@
               class:kpi-profit-pos={cardId === 'profit' && profitBrl > 0}
               class:kpi-profit-neg={cardId === 'profit' && profitBrl < 0}
               class:kpi-tone-positive={(
+                (isMobile && (cardId === 'faturamento' || cardId === 'revenue')) ||
                 (cardId === 'profit' && lucroUtmBrl >= 0) ||
                 cardId === 'roas' || cardId === 'roi' || cardId === 'margem'
               )}
-              class:kpi-tone-negative={cardId === 'profit' && lucroUtmBrl < 0}
+              class:kpi-tone-negative={(
+                (isMobile && (cardId === 'spend' || cardId === 'taxas_card')) ||
+                (cardId === 'profit' && lucroUtmBrl < 0)
+              )}
               class:kpi-tone-neutral={(
-                cardId === 'faturamento' || cardId === 'revenue' ||
-                cardId === 'spend' || cardId === 'taxas_card' ||
+                (!isMobile && (cardId === 'faturamento' || cardId === 'revenue' || cardId === 'spend' || cardId === 'taxas_card')) ||
                 cardId === 'online' || cardId === 'sessions' || cardId === 'pageviews' ||
                 cardId === 'conversion' || cardId === 'duration'
               )}
@@ -2422,7 +2433,25 @@
                   <span class="kpi-online-dot"></span>
                   Online agora
                 </div>
-                <div class="kpi-value kpi-online-num">{snap.kpis.online}</div>
+                {#if isMobile}
+                  <div class="kpi-online-row">
+                    <div class="kpi-online-num">{snap.kpis.online}</div>
+                    <div class="kpi-online-split">
+                      <span class="kpi-online-pill" title="Visitantes em / (LP)">
+                        <span class="kpi-online-pill-dot" style="background:#02a95c"></span>
+                        <span class="kpi-online-pill-label">LP</span>
+                        <strong>{snap.kpis.onlineLp ?? 0}</strong>
+                      </span>
+                      <span class="kpi-online-pill" title="Visitantes em /donate">
+                        <span class="kpi-online-pill-dot" style="background:#ffd54f"></span>
+                        <span class="kpi-online-pill-label">/donate</span>
+                        <strong>{snap.kpis.onlineDonate ?? 0}</strong>
+                      </span>
+                    </div>
+                  </div>
+                {:else}
+                  <div class="kpi-value kpi-online-num">{snap.kpis.online}</div>
+                {/if}
               {:else if cardId === 'sessions'}
                 <div class="kpi-label">Sessões</div>
                 <div class="kpi-value">{fmtNum(snap.kpis.totalSessions)}</div>
@@ -2488,14 +2517,23 @@
           {@const clicks = fbAds.clicks || 0}
           {@const lpv = fbAds.landingPageViews || 0}
           {@const ics = fbAds.initiateCheckout || 0}
+          {@const vinic = fbAds.purchases || 0}
           {@const vapr = snap.kpis.purchased || 0}
           {@const base = Math.max(clicks, 1)}
-          {@const steps = [
-            { label: 'Cliques',     value: clicks, pct: 100 },
-            { label: 'Vis. Página', value: lpv,    pct: (lpv / base) * 100 },
-            { label: 'ICs',         value: ics,    pct: (ics / base) * 100 },
-            { label: 'Vendas Apr.', value: vapr,   pct: (vapr / base) * 100 }
-          ]}
+          {@const steps = isMobile
+            ? [
+                { label: 'Cliques',      value: clicks, pct: 100 },
+                { label: 'Vis. Página',  value: lpv,    pct: (lpv / base) * 100 },
+                { label: 'ICs',          value: ics,    pct: (ics / base) * 100 },
+                { label: 'Vendas Inic.', value: vinic,  pct: (vinic / base) * 100 },
+                { label: 'Vendas Apr.',  value: vapr,   pct: (vapr / base) * 100 }
+              ]
+            : [
+                { label: 'Cliques',     value: clicks, pct: 100 },
+                { label: 'Vis. Página', value: lpv,    pct: (lpv / base) * 100 },
+                { label: 'ICs',         value: ics,    pct: (ics / base) * 100 },
+                { label: 'Vendas Apr.', value: vapr,   pct: (vapr / base) * 100 }
+              ]}
           {@const halfHeights = steps.map(s => Math.max(6, (s.pct / 100) * 105))}
           {@const stepW = 1000 / (steps.length - 1)}
           {@const convPath = buildConvFunnelPath(halfHeights, stepW)}
@@ -4342,10 +4380,12 @@
 
   /* ── Funil de Conversão (Meta Ads) ── */
   .conv-funnel-section { margin-bottom: 16px; }
-  .conv-funnel { position: relative; padding-top: 4px; }
+  /* Nº de etapas do funil: 4 no desktop, 5 no mobile (Vendas Iniciadas). */
+  .conv-funnel { position: relative; padding-top: 4px; --conv-cols: 4; }
+  @media (max-width: 768px) { .conv-funnel { --conv-cols: 5; } }
   .conv-headers {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(var(--conv-cols), 1fr);
     text-align: center;
     color: #cbd5e1;
     font-size: 0.9375rem;
@@ -4365,7 +4405,7 @@
   }
   .conv-lanes {
     position: absolute; inset: 0;
-    display: grid; grid-template-columns: repeat(5, 1fr);
+    display: grid; grid-template-columns: repeat(var(--conv-cols), 1fr);
     pointer-events: none;
   }
   .conv-lane {
@@ -4385,7 +4425,7 @@
   .conv-pct { line-height: 1; }
   .conv-values {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(var(--conv-cols), 1fr);
     text-align: center;
     color: #f1f5f9;
     font-size: 1rem;
@@ -5468,9 +5508,12 @@
        (descricoes, conversoes EUR/USD, deltas). So fica label + valor. */
     .kpi-grid > .kpi .kpi-sub { display: none; }
     .kpi { padding: 14px 14px; }
-    .kpi-label { font-size: 0.625rem; }
+    /* Info icon volta pra 14/14 (posição antiga, casa com padding menor) */
+    .kpi::after { top: 14px; right: 14px; }
+    .kpi-label { font-size: 0.625rem; padding-right: 24px; }
     .kpi-value { font-size: 1.5rem; margin-top: 4px; }
     .kpi-sub { font-size: 0.6875rem; margin-top: 4px; }
+    .kpi .kpi-delta { margin-top: 4px; }
     /* Online Agora — mobile */
     .kpi-online-hero { margin: 10px 0 6px; padding: 16px 4px 10px; }
     .kpi-online-number { font-size: 2.5rem; }
