@@ -2362,15 +2362,13 @@
               class:kpi-profit-pos={cardId === 'profit' && profitBrl > 0}
               class:kpi-profit-neg={cardId === 'profit' && profitBrl < 0}
               class:kpi-tone-positive={(
-                cardId === 'faturamento' || cardId === 'revenue' ||
                 (cardId === 'profit' && lucroUtmBrl >= 0) ||
                 cardId === 'roas' || cardId === 'roi' || cardId === 'margem'
               )}
-              class:kpi-tone-negative={(
-                cardId === 'spend' || cardId === 'taxas_card' ||
-                (cardId === 'profit' && lucroUtmBrl < 0)
-              )}
+              class:kpi-tone-negative={cardId === 'profit' && lucroUtmBrl < 0}
               class:kpi-tone-neutral={(
+                cardId === 'faturamento' || cardId === 'revenue' ||
+                cardId === 'spend' || cardId === 'taxas_card' ||
                 cardId === 'online' || cardId === 'sessions' || cardId === 'pageviews' ||
                 cardId === 'conversion' || cardId === 'duration'
               )}
