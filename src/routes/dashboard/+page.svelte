@@ -2377,16 +2377,15 @@
               class:kpi-profit-pos={cardId === 'profit' && profitBrl > 0}
               class:kpi-profit-neg={cardId === 'profit' && profitBrl < 0}
               class:kpi-tone-positive={(
-                (isMobile && (cardId === 'faturamento' || cardId === 'revenue')) ||
                 (cardId === 'profit' && lucroUtmBrl >= 0) ||
                 cardId === 'roas' || cardId === 'roi' || cardId === 'margem'
               )}
               class:kpi-tone-negative={(
-                (isMobile && (cardId === 'spend' || cardId === 'taxas_card')) ||
-                (cardId === 'profit' && lucroUtmBrl < 0)
+                cardId === 'profit' && lucroUtmBrl < 0
               )}
               class:kpi-tone-neutral={(
-                (!isMobile && (cardId === 'faturamento' || cardId === 'revenue' || cardId === 'spend' || cardId === 'taxas_card')) ||
+                cardId === 'faturamento' || cardId === 'revenue' ||
+                cardId === 'spend' || cardId === 'taxas_card' ||
                 cardId === 'online' || cardId === 'sessions' || cardId === 'pageviews' ||
                 cardId === 'conversion' || cardId === 'duration'
               )}
@@ -5704,9 +5703,27 @@
     background: #11161d; border: 1px solid #1f2630; border-radius: 12px;
     padding: 16px;
   }
-  /* Mobile: esconde botao Personalizar (so long-press ativa) */
+  /* Mobile: Personalizar vira icone-so ao lado da Moeda */
   @media (max-width: 640px) {
-    .btn-customize-desktop { display: none; }
+    .topbar-customize {
+      padding: 7px 10px;
+      font-size: 0.75rem;
+      line-height: 1;
+    }
+    .topbar-customize.btn-customize-desktop {
+      /* mostra so o icone "⊙" no mobile */
+      font-size: 0;
+      padding: 7px 9px;
+    }
+    .topbar-customize.btn-customize-desktop::before {
+      content: '⊙';
+      font-size: 0.95rem;
+      line-height: 1;
+      display: inline-block;
+    }
+    .topbar-customize.btn-customize-exit {
+      padding: 7px 10px;
+    }
     .kpi-grid.edit-mode .kpi {
       animation: kpi-wiggle 0.5s ease-in-out infinite;
       -webkit-user-select: none; user-select: none;
