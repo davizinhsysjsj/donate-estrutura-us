@@ -5357,6 +5357,53 @@
 
   /* ─────────────── RESPONSIVE — MOBILE ≤ 768px ─────────────── */
   @media (max-width: 768px) {
+    /* GridStack OFF no mobile — usa CSS grid puro como antes das mudanças.
+       O CSS lib do gridstack força position:absolute nos items com --gs vars
+       calculadas p/ desktop, esmagando os cards no mobile. Override total. */
+    :global(.kpi-grid.grid-stack) {
+      background: transparent !important;
+      margin-bottom: 16px !important;
+      min-height: 0 !important;
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      grid-auto-flow: dense !important;
+      gap: 10px !important;
+      align-items: stretch !important;
+      height: auto !important;
+      position: static !important;
+    }
+    :global(.kpi-grid.grid-stack > .grid-stack-item) {
+      position: static !important;
+      width: auto !important;
+      height: auto !important;
+      min-height: 0 !important;
+      transform: none !important;
+      left: auto !important;
+      top: auto !important;
+      right: auto !important;
+      bottom: auto !important;
+      inset: auto !important;
+      grid-column: span 1;
+    }
+    :global(.kpi-grid.grid-stack > .grid-stack-item[gs-id="online"]),
+    :global(.kpi-grid.grid-stack > .grid-stack-item[gs-id="online_full"]) {
+      grid-column: span 2;
+    }
+    :global(.kpi-grid.grid-stack > .grid-stack-item > .grid-stack-item-content) {
+      position: static !important;
+      inset: auto !important;
+      top: auto !important;
+      right: auto !important;
+      bottom: auto !important;
+      left: auto !important;
+      width: 100% !important;
+      height: auto !important;
+      overflow: visible !important;
+    }
+    :global(.kpi-grid.grid-stack > .grid-stack-item > .ui-resizable-handle) {
+      display: none !important;
+    }
+
     /* App layout: sidebar vira drawer */
     .app, .app.sidebar-collapsed { grid-template-columns: 1fr; }
 
