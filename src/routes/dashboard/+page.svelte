@@ -384,6 +384,29 @@
     return d === 'mobile' ? '📱' : d === 'tablet' ? '📲' : '🖥';
   }
 
+  // Simbolo por moeda ISO. Fallback: retorna o codigo cru.
+  function currSym(c?: string | null): string {
+    switch ((c || '').toUpperCase()) {
+      case 'EUR': return '€';
+      case 'GBP': return '£';
+      case 'USD': return '$';
+      case 'BRL': return 'R$';
+      default:    return c ? c + ' ' : '';
+    }
+  }
+
+  // Formata purchase tag na moeda ORIGINAL da venda (nao converter).
+  // Prefere purchaseAmountRaw+purchaseCurrency; cai pro EUR normalizado se
+  // sessao antiga nao tem os campos raw. Sempre arredonda pra 2 casas.
+  function fmtPaid(s: any): string {
+    const raw = Number(s?.purchaseAmountRaw);
+    if (Number.isFinite(raw) && raw > 0) {
+      return `${currSym(s.purchaseCurrency)}${raw.toFixed(2)}`;
+    }
+    const eur = Number(s?.purchaseAmount);
+    return `€${(Number.isFinite(eur) ? eur : 0).toFixed(2)}`;
+  }
+
   // Delta KPIs
   function deltaClass(d: number) {
     if (d > 0.01) return 'up';
@@ -2728,7 +2751,7 @@
                   <span class="campaign-cell" title={s.utm_campaign || ''}>{s.utm_campaign || '—'}</span>
                   <span>{fmtDuration(s.durationSec)}</span>
                   <span>
-                    {#if s.purchaseAmount}<span class="tag tag-gold">€{s.purchaseAmount} paid</span>
+                    {#if s.purchaseAmount}<span class="tag tag-gold">{fmtPaid(s)} paid</span>
                     {:else if s.clickedBancontact}<span class="tag tag-green">checkout</span>
                     {:else if s.selectedAmount !== null}<span class="tag tag-orange">€{s.selectedAmount}</span>
                     {:else if s.reachedDonate}<span class="tag tag-blue">/donate</span>
@@ -2897,7 +2920,7 @@
                 <span class="campaign-cell" title={s.utm_campaign || ''}>{s.utm_campaign || '—'}</span>
                 <span>{fmtDuration(s.durationSec)}</span>
                 <span>
-                  {#if s.purchaseAmount}<span class="tag tag-gold">€{s.purchaseAmount}</span>
+                  {#if s.purchaseAmount}<span class="tag tag-gold">{fmtPaid(s)}</span>
                   {:else if s.clickedBancontact}<span class="tag tag-green">checkout</span>
                   {:else if s.selectedAmount !== null}<span class="tag tag-orange">€{s.selectedAmount}</span>
                   {:else if s.reachedDonate}<span class="tag tag-blue">/donate</span>
@@ -4148,7 +4171,7 @@
             <div><span>Chegou em /donate:</span> {s.reachedDonate ? '✓' : '—'}</div>
             <div><span>Selecionou:</span> {s.selectedAmount ? '€' + s.selectedAmount : '—'}</div>
             <div><span>Bancontact:</span> {s.clickedBancontact ? '✓' : '—'}</div>
-            <div><span>Comprou:</span> {s.purchaseAmount ? '€' + s.purchaseAmount : '—'}</div>
+            <div><span>Comprou:</span> {s.purchaseAmount ? fmtPaid(s) : '—'}</div>
           </div>
           <div class="detail-card">
             <h4>VSL</h4>

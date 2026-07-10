@@ -846,6 +846,8 @@ export function snapshot(opts: SnapshotOpts) {
       selectedAmount: s.selectedAmount,
       clickedBancontact: s.clickedBancontact,
       purchaseAmount: s.purchaseAmount,
+      purchaseAmountRaw: s.purchaseAmountRaw,
+      purchaseCurrency: s.purchaseCurrency,
       scrollMax: s.scrollMax,
       vslMaxQuartile: s.vslMaxQuartile,
       isBot: s.isBot,
