@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getFbToken, getDefaultAccountId, maybeRefreshInBackground } from '$lib/server/fb-token';
-import { getPurchasesByDimension } from '$lib/server/analytics';
+import { getPurchasesByDimensionRange, rangeForFbPreset } from '$lib/server/analytics';
 
 // A conta Meta já está em America/Sao_Paulo, então date_preset=today
 // bate exatamente com "hoje BRT". Não usa time_range com time_zone
@@ -113,22 +113,14 @@ export const GET: RequestHandler = async ({ url }) => {
   // Live attribution helper — sobrepoe purchases server-side quando > Meta.
   // Aplicado em TODOS os retornos (cache hit ou miss) pra nao "congelar"
   // a contagem durante o TTL do cache. Clone o array de items antes de mutar.
-  const MS_DAY = 24 * 60 * 60 * 1000;
-  function windowMsForPreset(p: string): number {
-    switch (p) {
-      case 'today':       return MS_DAY;
-      case 'yesterday':   return 2 * MS_DAY;
-      case 'last_7d':     return 7 * MS_DAY;
-      case 'last_14d':    return 14 * MS_DAY;
-      case 'last_30d':    return 30 * MS_DAY;
-      case 'this_month':  return 31 * MS_DAY;
-      default:            return MS_DAY;
-    }
-  }
+  //
+  // Filtra por range de dia BRT (rangeForFbPreset), NAO janela rolante de N
+  // horas. A conta Meta esta em America/Sao_Paulo entao date_preset=today =
+  // 00:00 BRT ate agora; janela rolante contava vendas do dia errado.
   function applyLiveAttribution(payload: any) {
     if (!payload || !Array.isArray(payload.items) || payload.items.length === 0) return payload;
     const dim: 'utm_term' | 'utm_content' = level === 'adset' ? 'utm_term' : 'utm_content';
-    const live = getPurchasesByDimension(dim, windowMsForPreset(preset));
+    const live = getPurchasesByDimensionRange(dim, rangeForFbPreset(preset));
     if (live.size === 0) return payload;
     const items = payload.items.map((it: any) => ({ ...it }));
     for (const [key, agg] of live.entries()) {

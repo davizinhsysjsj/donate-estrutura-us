@@ -1010,10 +1010,24 @@ export function getPurchasesByDimension(
   windowMs?: number
 ): Map<string, { purchases: number; purchaseValue: number; currency: string }> {
   const cutoff = windowMs ? Date.now() - windowMs : 0;
+  return getPurchasesByDimensionRange(dim, { startMs: cutoff, endMs: Number.MAX_SAFE_INTEGER });
+}
+
+/**
+ * Como `getPurchasesByDimension`, mas filtra por range [startMs, endMs).
+ * Uso: alinhar a live attribution com os limites de dia BRT que o Meta usa
+ * em date_preset=today/yesterday (a conta esta em America/Sao_Paulo).
+ * Janelas rolantes de N horas contam eventos do dia errado.
+ */
+export function getPurchasesByDimensionRange(
+  dim: 'utm_campaign' | 'utm_term' | 'utm_content',
+  range: { startMs: number; endMs: number }
+): Map<string, { purchases: number; purchaseValue: number; currency: string }> {
+  const { startMs, endMs } = range;
   const out = new Map<string, { purchases: number; purchaseValue: number; currency: string }>();
   for (const e of events) {
     if (e.ev !== 'purchase') continue;
-    if (e.ts < cutoff) continue;
+    if (e.ts < startMs || e.ts >= endMs) continue;
     const raw = (e[dim] || '').trim().toLowerCase();
     if (!raw) continue;
     const amount = Number((e.data as any)?.amount) || 0;
@@ -1027,6 +1041,58 @@ export function getPurchasesByDimension(
     }
   }
   return out;
+}
+
+/**
+ * Meia-noite BRT (America/Sao_Paulo, UTC-3, sem DST desde 2019) N dias atras.
+ * Ex: saoPauloDayStart(0) = 00:00 BRT de hoje; (1) = 00:00 BRT de ontem.
+ * Retorna em epoch ms (UTC).
+ */
+export function saoPauloDayStart(daysAgo = 0): number {
+  const BRT_OFFSET_MS = 3 * 60 * 60 * 1000;
+  const nowBrt = new Date(Date.now() - BRT_OFFSET_MS);
+  const brtMidnightAsUtc = Date.UTC(
+    nowBrt.getUTCFullYear(),
+    nowBrt.getUTCMonth(),
+    nowBrt.getUTCDate() - daysAgo,
+  );
+  return brtMidnightAsUtc + BRT_OFFSET_MS;
+}
+
+/** Inicio do mes atual em BRT (00:00 BRT do dia 1). */
+export function saoPauloMonthStart(): number {
+  const BRT_OFFSET_MS = 3 * 60 * 60 * 1000;
+  const nowBrt = new Date(Date.now() - BRT_OFFSET_MS);
+  const brtMidnightAsUtc = Date.UTC(nowBrt.getUTCFullYear(), nowBrt.getUTCMonth(), 1);
+  return brtMidnightAsUtc + BRT_OFFSET_MS;
+}
+
+/**
+ * Traduz um date_preset da FB API para range [startMs, endMs) em fuso BRT,
+ * casando com o que a Meta retorna (a conta esta em America/Sao_Paulo).
+ */
+export function rangeForFbPreset(preset: string): { startMs: number; endMs: number } {
+  const now = Date.now();
+  switch (preset) {
+    case 'today':
+      return { startMs: saoPauloDayStart(0), endMs: now };
+    case 'yesterday':
+      return { startMs: saoPauloDayStart(1), endMs: saoPauloDayStart(0) };
+    case '__hoje_ontem__':
+    case 'hoje_ontem':
+      return { startMs: saoPauloDayStart(1), endMs: now };
+    case 'last_7d':
+      // Meta: hoje + 6 dias antes
+      return { startMs: saoPauloDayStart(6), endMs: now };
+    case 'last_14d':
+      return { startMs: saoPauloDayStart(13), endMs: now };
+    case 'last_30d':
+      return { startMs: saoPauloDayStart(29), endMs: now };
+    case 'this_month':
+      return { startMs: saoPauloMonthStart(), endMs: now };
+    default:
+      return { startMs: saoPauloDayStart(0), endMs: now };
+  }
 }
 
 // Wrapper de compatibilidade com o consumidor antigo (/api/fb-ads campaigns).

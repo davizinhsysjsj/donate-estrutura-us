@@ -3,7 +3,7 @@ import type { RequestHandler } from './$types';
 import fs from 'node:fs';
 import path from 'node:path';
 import { getFbToken, getDefaultAccountId, maybeRefreshInBackground } from '$lib/server/fb-token';
-import { getPurchasesByCampaign } from '$lib/server/analytics';
+import { getPurchasesByDimensionRange, rangeForFbPreset } from '$lib/server/analytics';
 
 // Cache em memória por chave
 const _cache: Record<string, { data: any; ts: number }> = {};
@@ -173,25 +173,17 @@ function sumInsights(a: ReturnType<typeof parseInsight>, b: ReturnType<typeof pa
 // O Meta tem delay tipico de 30min-6h pra refletir CAPI no Ads Manager. Como
 // nosso webhook Shopify ja grava UTMs+purchase no Vitrack na hora, podemos
 // sobrepor o numero de purchases/purchaseValue quando o nosso > Meta.
-const MS_DAY = 24 * 60 * 60 * 1000;
-function windowMsForPreset(preset: string): number {
-  switch (preset) {
-    case 'today':       return MS_DAY;
-    case 'yesterday':   return 2 * MS_DAY;
-    case '__hoje_ontem__': return 2 * MS_DAY;
-    case 'last_7d':     return 7 * MS_DAY;
-    case 'last_14d':    return 14 * MS_DAY;
-    case 'last_30d':    return 30 * MS_DAY;
-    case 'this_month':  return 31 * MS_DAY;
-    default:            return MS_DAY;
-  }
-}
+//
+// IMPORTANTE: filtramos por range de dia BRT (saoPauloDayStart), NAO janela
+// rolante de N horas. A conta Meta esta em America/Sao_Paulo, entao
+// date_preset=today = 00:00-agora BRT. Janela rolante contava vendas do dia
+// anterior no periodo "hoje" (e vice-versa em "ontem").
 // Match: nosso utm_campaign (lowercase) precisa estar contido no name da
 // campanha Meta (ou vice-versa). Cobre nomes como "PT-shadow-v2-broad" vs
 // utm_campaign=shadow. Quando 2+ matchings, soma todos no maior gasto.
 function applyLiveAttribution(data: any, preset: string): any {
   if (!data || !Array.isArray(data.campaigns) || data.campaigns.length === 0) return data;
-  const live = getPurchasesByCampaign(windowMsForPreset(preset));
+  const live = getPurchasesByDimensionRange('utm_campaign', rangeForFbPreset(preset));
   if (live.size === 0) return data;
   // Clone shallow das campanhas pra nao mutar o cache em memoria/disco
   const campaigns = data.campaigns.map((c: any) => ({ ...c }));
