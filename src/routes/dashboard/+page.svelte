@@ -384,6 +384,23 @@
     return d === 'mobile' ? '📱' : d === 'tablet' ? '📲' : '🖥';
   }
 
+  // Meta URL builder manda utm_campaign={{campaign.name}}|{{campaign.id}} e
+  // utm_medium={{adset.name}}|{{adset.id}}. Aqui retornamos so o nome (parte
+  // antes do '|'). Se nao tem '|', retorna o valor cru.
+  function utmName(v?: string | null): string {
+    if (!v) return '';
+    const cut = v.indexOf('|');
+    return cut >= 0 ? v.slice(0, cut).trim() : v.trim();
+  }
+  // Combina campanha + adset (ambos so nome). Usado na coluna CAMPANHA das
+  // Sessoes Ativas — o ID cru era ruido visual e nao servia pra nada.
+  function fmtCampaignCell(s: any): string {
+    const c = utmName(s?.utm_campaign);
+    const a = utmName(s?.utm_medium);
+    if (c && a) return `${c} · ${a}`;
+    return c || a || '—';
+  }
+
   // Simbolo por moeda ISO. Fallback: retorna o codigo cru.
   function currSym(c?: string | null): string {
     switch ((c || '').toUpperCase()) {
@@ -2748,7 +2765,7 @@
                   <span>{flagFor(s.countryCode)} {s.city || s.country || '—'}</span>
                   <span>{devIcon(s.device)} {s.device}</span>
                   <span class="muted">{s.utm_source || '(direct)'}</span>
-                  <span class="campaign-cell" title={s.utm_campaign || ''}>{s.utm_campaign || '—'}</span>
+                  <span class="campaign-cell" title={`${s.utm_campaign || ''}${s.utm_medium ? ' · ' + s.utm_medium : ''}`}>{fmtCampaignCell(s)}</span>
                   <span>{fmtDuration(s.durationSec)}</span>
                   <span>
                     {#if s.purchaseAmount}<span class="tag tag-gold">{fmtPaid(s)} paid</span>
@@ -2917,7 +2934,7 @@
                 <span>{flagFor(s.countryCode)} {s.city || '—'}</span>
                 <span>{devIcon(s.device)} {s.browser || s.device}</span>
                 <span class="muted">{s.utm_source || '(direct)'}</span>
-                <span class="campaign-cell" title={s.utm_campaign || ''}>{s.utm_campaign || '—'}</span>
+                <span class="campaign-cell" title={`${s.utm_campaign || ''}${s.utm_medium ? ' · ' + s.utm_medium : ''}`}>{fmtCampaignCell(s)}</span>
                 <span>{fmtDuration(s.durationSec)}</span>
                 <span>
                   {#if s.purchaseAmount}<span class="tag tag-gold">{fmtPaid(s)}</span>

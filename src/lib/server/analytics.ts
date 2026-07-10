@@ -842,6 +842,7 @@ export function snapshot(opts: SnapshotOpts) {
       idleSec: Math.round((now - (s.lastActivityAt ?? s.lastSeenAt)) / 1000),
       utm_source: s.utm_source || null,
       utm_campaign: s.utm_campaign || null,
+      utm_medium: s.utm_medium || null,
       reachedDonate: s.reachedDonate,
       selectedAmount: s.selectedAmount,
       clickedBancontact: s.clickedBancontact,
