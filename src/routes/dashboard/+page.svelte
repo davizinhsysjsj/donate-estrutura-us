@@ -776,10 +776,10 @@
   );
   const fbActiveAccountLabel = $derived(
     fbActiveAccounts.length === 0
-      ? (fbAccountIds.length ? `${fbAccountIds.length} contas` : 'Conta padrão')
+      ? (fbAccountIds.length ? 'Contas' : 'Conta padrão')
       : fbActiveAccounts.length === 1
       ? fbActiveAccounts[0].name
-      : `${fbActiveAccounts.length} contas`
+      : 'Contas'
   );
 
   // Cache key local (SWR) — varia com janela + set de IDs (ordem normalizada)
@@ -2020,7 +2020,6 @@
               ? fbActiveAccounts.map((a) => a.name).join(', ')
               : 'Selecionar contas'}
           >
-            <span class="account-btn-icon">⌬</span>
             <span class="account-btn-label">
               {fbAccountsLoading && !fbAccounts.length ? 'Carregando…' : fbActiveAccountLabel}
             </span>
@@ -2096,7 +2095,6 @@
         <!-- Período de visualização colapsável -->
         <div class="selector-wrap" use:clickOutsidePeriod>
           <button class="selector-btn period-label-btn" class:active={periodOpen} onclick={() => (periodOpen = !periodOpen)}>
-            <span class="selector-icon">📅</span>
             <span class="selector-label">Período</span>
             <span class="selector-value">{PERIOD_LABELS[period]}</span>
             <span class="selector-chevron" class:open={periodOpen}>▾</span>
@@ -2138,10 +2136,7 @@
             </div>
           {/if}
         </div>
-        </div>
-      </div>
-      <div class="topbar-right" class:mobile-open={mobileFiltersOpen}>
-        <!-- Personalizar / Concluir edicao (so desktop; mobile usa long-press) -->
+        <!-- Personalizar / Concluir na mesma linha dos seletores (mobile+desktop) -->
         {#if activeTab === 'overview'}
           {#if editMode}
             <button class="btn-customize btn-customize-exit topbar-customize" onclick={exitEditMode}>
@@ -2153,6 +2148,9 @@
             </button>
           {/if}
         {/if}
+        </div>
+      </div>
+      <div class="topbar-right" class:mobile-open={mobileFiltersOpen}>
         <button
           class="btn-update topbar-update"
           onclick={refresh}
