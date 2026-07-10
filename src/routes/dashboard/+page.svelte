@@ -1133,8 +1133,12 @@
         resizable: { handles: 'e, se, s, sw, w' },
         draggable: { handle: '.grid-stack-item-content', scroll: true },
         minRow: 1,
-        staticGrid: true
+        // Iniciar com static=false pra lib registrar drag+resize handles nos items.
+        // Depois o $effect abaixo aplica o estado real conforme editMode.
+        staticGrid: false
       }, gridEl);
+      // Aplica o estado static real conforme editMode logo apos criar (evita flash)
+      try { gridInstance.setStatic(!editMode); } catch {}
       // Compacta layout: cards flutuam pro topo/esquerda, tira gaps vazios
       try { gridInstance.compact(); } catch {}
       gridInstance.on('change', () => {
@@ -2433,25 +2437,7 @@
                   <span class="kpi-online-dot"></span>
                   Online agora
                 </div>
-                {#if isMobile}
-                  <div class="kpi-online-row">
-                    <div class="kpi-online-num">{snap.kpis.online}</div>
-                    <div class="kpi-online-split">
-                      <span class="kpi-online-pill" title="Visitantes em / (LP)">
-                        <span class="kpi-online-pill-dot" style="background:#02a95c"></span>
-                        <span class="kpi-online-pill-label">LP</span>
-                        <strong>{snap.kpis.onlineLp ?? 0}</strong>
-                      </span>
-                      <span class="kpi-online-pill" title="Visitantes em /donate">
-                        <span class="kpi-online-pill-dot" style="background:#ffd54f"></span>
-                        <span class="kpi-online-pill-label">/donate</span>
-                        <strong>{snap.kpis.onlineDonate ?? 0}</strong>
-                      </span>
-                    </div>
-                  </div>
-                {:else}
-                  <div class="kpi-value kpi-online-num">{snap.kpis.online}</div>
-                {/if}
+                <div class="kpi-value kpi-online-num">{snap.kpis.online}</div>
               {:else if cardId === 'sessions'}
                 <div class="kpi-label">Sessões</div>
                 <div class="kpi-value">{fmtNum(snap.kpis.totalSessions)}</div>
