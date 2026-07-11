@@ -696,11 +696,11 @@
           <button
             type="button"
             class="inline-tier"
-            class:popular={tier.amount === 50}
+            class:popular={tier.amount === 100}
             disabled={quickDonating !== null}
             onclick={() => quickDonate(tier.amount)}
           >
-            {#if tier.amount === 50}
+            {#if tier.amount === 100}
               <span class="inline-tier-badge">Most chosen</span>
             {/if}
             <span class="inline-tier-value">£{tier.amount}</span>
@@ -907,10 +907,10 @@
               type="button"
               class="amount-btn amount-btn-tier"
               class:selected={selectedAmount === tier.amount}
-              class:popular={tier.amount === 50}
+              class:popular={tier.amount === 100}
               onclick={() => selectAmount(tier.amount)}
             >
-              {#if tier.amount === 50}
+              {#if tier.amount === 100}
                 <span class="amount-btn-badge">Most chosen</span>
               {/if}
               <span class="amount-btn-value">£{tier.amount}</span>
