@@ -68,20 +68,20 @@
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="exit-overlay" onclick={close}>
     <div class="exit-popup" role="dialog" aria-modal="true" onclick={(e) => e.stopPropagation()}>
-      <button class="exit-close" onclick={close} aria-label="Sluiten">✕</button>
+      <button class="exit-close" onclick={close} aria-label="Cerrar">✕</button>
 
       <div class="exit-icon">🐾</div>
-      <h2 class="exit-title">Wacht — Loki heeft je nodig.</h2>
+      <h2 class="exit-title">Espera — Loki te necesita.</h2>
       <p class="exit-body">
-        Voor slechts <strong>€10</strong> voed je vanavond 2 opvangdieren.<br />
-        Eenmalig. Geen abonnement. 88% gaat rechtstreeks naar de dieren.
+        Por sólo <strong>€10</strong> alimentas esta noche a 2 animales rescatados.<br />
+        Una sola vez. Sin suscripción. 88% va directamente a los animales.
       </p>
 
       <button class="exit-cta" onclick={handleDonate}>
-        Ik doneer €10 voor Loki
+        Dono €10 por Loki
       </button>
 
-      <button class="exit-skip" onclick={close}>Nee, ik ga weg</button>
+      <button class="exit-skip" onclick={close}>No, salir</button>
     </div>
   </div>
 {/if}

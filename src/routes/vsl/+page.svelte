@@ -170,10 +170,10 @@
   function carouselGoTo(i: number) { rescuedIndex = i; }
 
   const MENU_ITEMS = [
-    { id: 'story-section', label: 'Verhaal' },
-    { id: 'testimonials-section', label: 'Supporters' },
-    { id: 'donations', label: 'Donaties' },
-    { id: 'organizer-section', label: 'Organisator' }
+    { id: 'story-section', label: 'Historia' },
+    { id: 'testimonials-section', label: 'Apoyos' },
+    { id: 'donations', label: 'Donaciones' },
+    { id: 'organizer-section', label: 'Organizador' }
   ];
 
   function scrollToSection(id: string) {
@@ -252,7 +252,7 @@
       window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(CAMPAIGN.shareUrl)}`, '_blank');
     } else {
       navigator.clipboard?.writeText(CAMPAIGN.shareUrl).then(() => {
-        showToast('Link gekopieerd!');
+        showToast('¡Enlace copiado!');
         shareOpen = false;
       });
     }
@@ -268,12 +268,12 @@
 
 <header class="header">
   <a href="/" class="header-logo">
-    <img src="/logo.webp" alt="Officiële Donaties België" class="logo-img" />
-    <span class="header-flag" aria-hidden="true">🇧🇪</span>
+    <img src="/logo.webp" alt="Donaciones Oficiales España" class="logo-img" />
+    <span class="header-flag" aria-hidden="true">🇪🇸</span>
   </a>
   <button
     class="header-menu-btn"
-    aria-label="Menu openen"
+    aria-label="Abrir menú"
     aria-expanded={menuOpen}
     onclick={() => (menuOpen = !menuOpen)}
   >
@@ -287,10 +287,10 @@
   {#if menuOpen}
     <button
       class="header-menu-backdrop"
-      aria-label="Menu sluiten"
+      aria-label="Cerrar menú"
       onclick={() => (menuOpen = false)}
     ></button>
-    <nav class="header-menu-dropdown" aria-label="Sitenavigatie">
+    <nav class="header-menu-dropdown" aria-label="Navegación del sitio">
       {#each MENU_ITEMS as item}
         <button class="header-menu-item" onclick={() => scrollToSection(item.id)}>
           {item.label}
@@ -320,14 +320,14 @@
       <button
         class="hero-arrow hero-arrow-prev"
         onclick={() => { heroIdx = (heroIdx - 1 + heroImages.length) % heroImages.length; }}
-        aria-label="Vorige"
+        aria-label="Anterior"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <button
         class="hero-arrow hero-arrow-next"
         onclick={() => { heroIdx = (heroIdx + 1) % heroImages.length; }}
-        aria-label="Volgende"
+        aria-label="Siguiente"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
@@ -341,18 +341,26 @@
         <ProgressCard
           raised={raisedEur}
           goal={CAMPAIGN.goalEur}
-          lastDonorName={lastDonor.anonymous ? 'Anoniem' : lastDonor.name}
+          lastDonorName={lastDonor.anonymous ? 'Anónimo' : lastDonor.name}
           lastDonorAmount={lastDonor.amount}
           lastDonorAgo={lastDonor.ago}
           onDonate={openDonation}
           onShare={() => (shareOpen = true)}
           onDonorsClick={scrollToDonors}
+          currency="€"
+          locale="es-ES"
+          raisedLabel="recaudado"
+          ofLabel="de"
+          donatedVerb="donó"
+          donateLabel="Donar"
+          shareLabel="Compartir"
+          donorsAria="Ver todos los donantes"
         />
       </div>
 
       <div class="progress-stats-row">
-        <span><span class="donations-count">{donationsCount}</span> donaties</span>
-        <span>{daysLeft} dagen over</span>
+        <span><span class="donations-count">{donationsCount}</span> donaciones</span>
+        <span>{daysLeft} días restantes</span>
       </div>
 
       <div id="story-section" data-section="story" class="story-text" class:story-text-collapsed={!descExpanded}>
@@ -361,7 +369,7 @@
         {/each}
       </div>
       <button class="read-more" onclick={() => (descExpanded = !descExpanded)}>
-        {descExpanded ? 'Minder lezen' : 'Meer lezen'}
+        {descExpanded ? 'Leer menos' : 'Leer más'}
       </button>
     </section>
 
@@ -381,43 +389,43 @@
       ></video>
 
       {#if !audioEnabled}
-        <button class="vsl-overlay" onclick={enableAudio} aria-label="Klik om te horen">
+        <button class="vsl-overlay" onclick={enableAudio} aria-label="Haz clic para escuchar">
           <div class="vsl-play-circle">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
               <polygon points="6,4 20,12 6,20" />
             </svg>
           </div>
-          <span class="vsl-click-label">Klik om te horen</span>
+          <span class="vsl-click-label">Haz clic para escuchar</span>
         </button>
       {/if}
     </div>
 
-    <!-- Geredde honden carousel -->
+    <!-- Perros rescatados carousel -->
     <section class="section rescued-section" data-section="rescued-dogs">
-      <div class="section-eyebrow">Deze week</div>
-      <h2 class="section-title">Geredde honden deze week</h2>
+      <div class="section-eyebrow">Esta semana</div>
+      <h2 class="section-title">Perros rescatados esta semana</h2>
 
       <div
         class="carousel-wrap"
         role="region"
-        aria-label="Geredde honden"
+        aria-label="Perros rescatados"
         ontouchstart={(e) => { cTouchX = e.touches[0].clientX; }}
         ontouchend={(e) => { const dx = e.changedTouches[0].clientX - cTouchX; if (dx > 40) carouselPrev(); else if (dx < -40) carouselNext(); }}
       >
         {#each rescuedDogs as dog, i}
           <img
             src={dog.src}
-            alt="Gered hondje {i + 1}"
+            alt="Perro rescatado {i + 1}"
             class="carousel-img {i === rescuedIndex ? 'carousel-img-active' : ''}"
             loading={i === 0 ? 'eager' : 'lazy'}
             draggable="false"
           />
         {/each}
 
-        <button class="carousel-btn carousel-btn-prev" onclick={carouselPrev} aria-label="Vorige">
+        <button class="carousel-btn carousel-btn-prev" onclick={carouselPrev} aria-label="Anterior">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-        <button class="carousel-btn carousel-btn-next" onclick={carouselNext} aria-label="Volgende">
+        <button class="carousel-btn carousel-btn-next" onclick={carouselNext} aria-label="Siguiente">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </div>
@@ -427,12 +435,12 @@
           <button
             class="carousel-dot {i === rescuedIndex ? 'active' : ''}"
             onclick={() => carouselGoTo(i)}
-            aria-label="Afbeelding {i + 1}"
+            aria-label="Imagen {i + 1}"
           ></button>
         {/each}
       </div>
 
-      <p class="rescued-caption">Ze hebben voedsel nodig.</p>
+      <p class="rescued-caption">Necesitan comida.</p>
     </section>
 
     {#if descExpanded}
@@ -444,8 +452,8 @@
 
     <!-- Words of support / testimonials -->
     <section class="section" id="testimonials-section" data-section="testimonials">
-      <div class="section-eyebrow">Steunbetuigingen</div>
-      <h2 class="section-title">Van supporters in heel België.</h2>
+      <div class="section-eyebrow">Testimonios</div>
+      <h2 class="section-title">De personas de toda España.</h2>
       <div class="testimonial-row">
         {#each CAMPAIGN.testimonials as t}
           <div class="testimonial-card">
@@ -467,10 +475,10 @@
     <div class="donations" id="donations">
       <div class="donations-header">
         <div class="donations-title">
-          Donaties
+          Donaciones
           <span class="donations-badge">{donationsCount}</span>
         </div>
-        <button class="donations-link" onclick={() => (donorsModalOpen = true)}>Alles bekijken</button>
+        <button class="donations-link" onclick={() => (donorsModalOpen = true)}>Ver todo</button>
       </div>
       <ul class="donor-list">
         {#each donorsList.slice(0, 5) as d}
@@ -491,13 +499,13 @@
         {/each}
       </ul>
       <button class="btn-see-all" onclick={() => (donorsModalOpen = true)}>
-        Bekijk alle {donorsList.length}+ donaties
+        Ver todas las {donorsList.length}+ donaciones
       </button>
     </div>
 
     <!-- Organizer -->
     <div class="organizer" id="organizer-section">
-      <h3>Organisator</h3>
+      <h3>Organizador</h3>
       <div class="organizer-row">
         <div class="organizer-avatar">
           {#if CAMPAIGN.organizerImage}
@@ -508,7 +516,7 @@
         </div>
         <div style="flex:1;min-width:0">
           <div class="organizer-name">{CAMPAIGN.organizer}</div>
-          <div class="organizer-sub">Organisator</div>
+          <div class="organizer-sub">Organizador</div>
           <div class="organizer-sub">{CAMPAIGN.organizerCity}</div>
         </div>
       </div>
@@ -521,7 +529,7 @@
         </div>
         <div class="badge-protected">
           <Shield size={14} />
-          Donatie beschermd
+          Donación protegida
         </div>
       </div>
     </div>
@@ -535,14 +543,14 @@
         <a href="#" aria-label="Instagram"><Instagram size={20} /></a>
       </div>
 
-      <div class="footer-copy">© 2026 {CAMPAIGN.brand} Opvang</div>
+      <div class="footer-copy">© 2026 {CAMPAIGN.brand} Refugio</div>
 
       <div class="footer-links">
-        <a href="#">Voorwaarden</a>
-        <a href="#">Privacy</a>
-        <a href="#">Terugbetalingen</a>
+        <a href="#">Términos</a>
+        <a href="#">Privacidad</a>
+        <a href="#">Reembolsos</a>
         <a href="#">Cookies</a>
-        <a href="mailto:hello@pawsco.com">Contact</a>
+        <a href="mailto:hello@pawsco.com">Contacto</a>
       </div>
     </footer>
   </div>
@@ -552,12 +560,20 @@
 <StickyBottomBar
   raised={CAMPAIGN.raisedEur}
   goal={CAMPAIGN.goalEur}
-  lastDonorName={lastDonor.anonymous ? 'Anoniem' : lastDonor.name}
+  lastDonorName={lastDonor.anonymous ? 'Anónimo' : lastDonor.name}
   lastDonorAmount={lastDonor.amount}
   lastDonorAgo={lastDonor.ago}
   onDonate={openDonation}
   onShare={() => (shareOpen = true)}
   onDonorsClick={scrollToDonors}
+  currency="€"
+  locale="es-ES"
+  raisedLabel="recaudado"
+  ofLabel="de"
+  donatedVerb="donó"
+  donateLabel="Donar"
+  shareLabel="Compartir"
+  donorsAria="Ver todos los donantes"
 />
 
 <!-- Donation Sheet -->
@@ -566,21 +582,21 @@
   class:open={donationOpen}
   role="dialog"
   aria-modal="true"
-  aria-label="Donatie"
+  aria-label="Donación"
   onclick={(e) => e.target === e.currentTarget && (donationOpen = false)}
 >
   <div class="sheet" role="document">
     <div class="sheet-handle"></div>
     <div class="sheet-title">
-      {currentStep === 1 ? 'Doe een donatie' : 'Bevestig je donatie'}
+      {currentStep === 1 ? 'Haz una donación' : 'Confirma tu donación'}
     </div>
     {#if currentStep === 1}
-      <p class="sheet-subtitle">Elke donatie voedt opvangdieren in onze Belgische partneropvangen.</p>
+      <p class="sheet-subtitle">Cada donación alimenta a animales rescatados en nuestros refugios asociados en España.</p>
     {/if}
 
     {#if currentStep === 1}
       <div class="step-form active">
-        <div class="step-label">Kies een bedrag</div>
+        <div class="step-label">Elige un importe</div>
         <div class="amount-grid amount-grid-2x2">
           {#each TIERS as tier}
             <button
@@ -591,33 +607,32 @@
               onclick={() => selectAmount(tier.amount)}
             >
               {#if tier.amount === 25}
-                <span class="amount-btn-badge">Meest gekozen</span>
+                <span class="amount-btn-badge">Más elegido</span>
               {/if}
               <span class="amount-btn-value">€{tier.amount}</span>
-              <span class="amount-btn-sub">voedt {tier.dogs} {tier.dogs === 1 ? 'dier' : 'dieren'}</span>
+              <span class="amount-btn-sub">alimenta a {tier.dogs} {tier.dogs === 1 ? 'animal' : 'animales'}</span>
             </button>
           {/each}
         </div>
       </div>
     {:else}
       <div class="step-form active">
-        <button class="btn-back" onclick={() => (currentStep = 1)}>← Terug</button>
+        <button class="btn-back" onclick={() => (currentStep = 1)}>← Volver</button>
         <div class="confirm-screen">
-          <div class="step-label">Jouw donatie</div>
+          <div class="step-label">Tu donación</div>
           <div class="confirm-amount">€{selectedAmount}</div>
-          <p class="confirm-sub">Vandaag red je {dogsForAmount(selectedAmount)} {dogsForAmount(selectedAmount) === 1 ? 'dier' : 'dieren'}.</p>
+          <p class="confirm-sub">Hoy salvas {dogsForAmount(selectedAmount)} {dogsForAmount(selectedAmount) === 1 ? 'animal' : 'animales'}.</p>
 
           <p class="confirm-direct-note">
-            Jouw donatie gaat rechtstreeks naar de voeding en verzorging van geredde dieren bij onze partneropvangen in België.
+            Tu donación va directamente a la alimentación y cuidado de animales rescatados en nuestros refugios asociados en España.
           </p>
 
           <button class="btn-bancontact" onclick={handleDonate} disabled={donating}>
             {#if donating}
               <div class="spinner spinner-dark"></div>
-              <span class="btn-bancontact-text">Doorverwijzen…</span>
+              <span class="btn-bancontact-text">Redirigiendo…</span>
             {:else}
-              <img src="/bancontact.webp" alt="Bancontact" class="btn-bancontact-logo" />
-              <span class="btn-bancontact-text">Doe €{selectedAmount} met Bancontact</span>
+              <span class="btn-bancontact-text">Donar €{selectedAmount} con tarjeta</span>
             {/if}
           </button>
         </div>
@@ -632,12 +647,12 @@
   class:open={shareOpen}
   role="dialog"
   aria-modal="true"
-  aria-label="Delen"
+  aria-label="Compartir"
   onclick={(e) => e.target === e.currentTarget && (shareOpen = false)}
 >
   <div class="sheet" role="document">
     <div class="sheet-handle"></div>
-    <div class="sheet-title">Deel deze campagne</div>
+    <div class="sheet-title">Comparte esta campaña</div>
     <div class="share-grid">
       <button class="share-btn" onclick={() => shareTo('whatsapp')}>
         <div class="share-icon" style="background:var(--primary-soft)">
@@ -661,7 +676,7 @@
             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
           </svg>
         </div>
-        <span class="share-label">Link kopiëren</span>
+        <span class="share-label">Copiar enlace</span>
       </button>
     </div>
   </div>
@@ -673,13 +688,13 @@
   class:open={donorsModalOpen}
   role="dialog"
   aria-modal="true"
-  aria-label="Alle donaties"
+  aria-label="Todas las donaciones"
   onclick={(e) => e.target === e.currentTarget && (donorsModalOpen = false)}
 >
   <div class="sheet sheet-donors" role="document">
     <div class="sheet-handle"></div>
-    <div class="sheet-title">Alle donaties ({donationsCount})</div>
-    <p class="sheet-subtitle">Laatste supporters die Belgische opvangcentra helpen.</p>
+    <div class="sheet-title">Todas las donaciones ({donationsCount})</div>
+    <p class="sheet-subtitle">Últimos donantes que ayudan a refugios en toda España.</p>
     <ul class="donor-list donor-list-full">
       {#each donorsList as d}
         <li class="donor-item">
@@ -698,7 +713,7 @@
         </li>
       {/each}
     </ul>
-    <button class="sheet-close-btn" onclick={() => (donorsModalOpen = false)}>Sluiten</button>
+    <button class="sheet-close-btn" onclick={() => (donorsModalOpen = false)}>Cerrar</button>
   </div>
 </div>
 

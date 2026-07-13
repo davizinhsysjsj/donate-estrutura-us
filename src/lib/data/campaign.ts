@@ -20,15 +20,15 @@ export type CampaignUpdate = {
 export const CAMPAIGN = {
   // Branding
   brand: 'PawsCo',
-  organizer: 'Aoife Murphy',
-  organizerCity: 'Antwerpen, België',
+  organizer: 'Elena Ruiz',
+  organizerCity: 'Barcelona, España',
   organizerImage: '/organizer.webp',
-  category: 'Dieren',
-  createdMonth: 'mei 2026',
+  category: 'Animales',
+  createdMonth: 'julio 2026',
 
   // Hero
-  title: 'Meer dan 57 geredde honden in België zitten zonder eten',
-  subtitle: "Aoife Murphy organiseert deze inzamelactie om opvangcentra in Antwerpen te steunen.",
+  title: 'Más de 57 perros rescatados en España están sin comida',
+  subtitle: "Elena Ruiz organiza esta recaudación para apoyar a los refugios de Barcelona.",
   // Deixe vazio ("") pra renderizar placeholder cinza. Quando tiver URL, template usa direto.
   heroImage: '/hero-rescue.webp',
   storyImage: '',
@@ -38,110 +38,110 @@ export const CAMPAIGN = {
   goalEur: 890,
   donationsCount: 47,
   // Data de encerramento da campanha (ISO). daysLeft calculado dinamicamente a partir daqui.
-  campaignEndDate: '2026-06-30',
+  campaignEndDate: '2026-08-31',
   daysLeft: 21, // fallback caso campaignEndDate seja removido
 
   // Story
   story: [
-    "Help ons te voeden wie niet om hulp kan vragen 🐾",
-    "Op dit moment staat Honden Poten voor een kritieke situatie. Tientallen geredde dieren — verlaten honden en katten — zijn volledig afhankelijk van onze hulp om te overleven... en we zitten zonder voer, zonder medicijnen, zonder middelen om door te gaan.",
-    "Elke gedoneerde euro zorgt ervoor dat deze dieren krijgen wat ze nodig hebben: voedsel, dierenartsenzorg en een veilige plek. Jij kunt vandaag een leven redden."
+    "Ayúdanos a alimentar a los que no pueden pedir ayuda 🐾",
+    "En este momento nuestros refugios afrontan una situación crítica. Decenas de animales rescatados — perros y gatos abandonados — dependen totalmente de nuestra ayuda para sobrevivir... y estamos sin pienso, sin medicinas, sin medios para continuar.",
+    "Cada euro donado hace que estos animales reciban lo que necesitan: comida, atención veterinaria y un lugar seguro. Hoy puedes salvar una vida."
   ],
 
   // CTA / story highlight
-  highlight: 'Loki had geluk. Er wachten er nog 300.',
+  highlight: 'Loki tuvo suerte. Aún esperan 300.',
 
   // Donor list (placeholder — depois plugar feed real)
   donors: [
-    { name: 'Lieve Janssens', amount: 50, ago: 'zojuist', initials: 'LJ', color: 'av-green' },
-    { name: 'Pieter De Smet', amount: 25, ago: '3 min geleden', initials: 'PD', color: 'av-teal' },
-    { name: 'Sandra Simões', amount: 25, ago: '12 min geleden', initials: 'SS', color: 'av-coral' },
-    { name: 'Anoniem', amount: 100, ago: '28 min geleden', initials: '', color: 'av-gray', anonymous: true },
-    { name: 'Marie Dubois', amount: 35, ago: '47 min geleden', initials: 'MD', color: 'av-amber' },
-    { name: 'Diogo Gamito', amount: 10, ago: '1 u geleden', initials: 'DG', color: 'av-skyblue' },
-    { name: 'Tom Verbeek', amount: 20, ago: '2 u geleden', initials: 'TV', color: 'av-rose' },
-    { name: 'Filipa Ferreira', amount: 50, ago: '2 u geleden', initials: 'FF', color: 'av-purple' },
-    { name: 'Sofie Maes', amount: 35, ago: '3 u geleden', initials: 'SM', color: 'av-teal' },
-    { name: 'Jeroen Peeters', amount: 10, ago: '4 u geleden', initials: 'JP', color: 'av-coral' },
-    { name: 'Camille Lefèvre', amount: 25, ago: '5 u geleden', initials: 'CL', color: 'av-amber' },
-    { name: 'Anoniem', amount: 75, ago: '6 u geleden', initials: '', color: 'av-gray', anonymous: true },
-    { name: 'Bram Vermeulen', amount: 35, ago: '8 u geleden', initials: 'BV', color: 'av-blue' },
-    { name: 'Anke Vandenberg', amount: 25, ago: '10 u geleden', initials: 'AV', color: 'av-rose' },
-    { name: 'Mathieu Renard', amount: 50, ago: '11 u geleden', initials: 'MR', color: 'av-green' },
-    { name: 'Eva Claes', amount: 15, ago: '13 u geleden', initials: 'EC', color: 'av-purple' },
-    { name: 'Niels Vandeput', amount: 20, ago: '15 u geleden', initials: 'NV', color: 'av-skyblue' },
-    { name: 'Anoniem', amount: 200, ago: '18 u geleden', initials: '', color: 'av-gray', anonymous: true },
-    { name: 'Charlotte Mertens', amount: 35, ago: '20 u geleden', initials: 'CM', color: 'av-coral' },
-    { name: 'Sven Janssens', amount: 25, ago: '22 u geleden', initials: 'SJ', color: 'av-amber' }
+    { name: 'Lucía Martín', amount: 50, ago: 'ahora mismo', initials: 'LM', color: 'av-green' },
+    { name: 'Pablo García', amount: 25, ago: 'hace 3 min', initials: 'PG', color: 'av-teal' },
+    { name: 'Sandra Simões', amount: 25, ago: 'hace 12 min', initials: 'SS', color: 'av-coral' },
+    { name: 'Anónimo', amount: 100, ago: 'hace 28 min', initials: '', color: 'av-gray', anonymous: true },
+    { name: 'María Delgado', amount: 35, ago: 'hace 47 min', initials: 'MD', color: 'av-amber' },
+    { name: 'Diego Gamito', amount: 10, ago: 'hace 1 h', initials: 'DG', color: 'av-skyblue' },
+    { name: 'Tomás Vera', amount: 20, ago: 'hace 2 h', initials: 'TV', color: 'av-rose' },
+    { name: 'Filipa Ferreira', amount: 50, ago: 'hace 2 h', initials: 'FF', color: 'av-purple' },
+    { name: 'Sofía Molina', amount: 35, ago: 'hace 3 h', initials: 'SM', color: 'av-teal' },
+    { name: 'Javier Pérez', amount: 10, ago: 'hace 4 h', initials: 'JP', color: 'av-coral' },
+    { name: 'Carmen López', amount: 25, ago: 'hace 5 h', initials: 'CL', color: 'av-amber' },
+    { name: 'Anónimo', amount: 75, ago: 'hace 6 h', initials: '', color: 'av-gray', anonymous: true },
+    { name: 'Bruno Vidal', amount: 35, ago: 'hace 8 h', initials: 'BV', color: 'av-blue' },
+    { name: 'Ana Vargas', amount: 25, ago: 'hace 10 h', initials: 'AV', color: 'av-rose' },
+    { name: 'Miguel Rivera', amount: 50, ago: 'hace 11 h', initials: 'MR', color: 'av-green' },
+    { name: 'Elena Castro', amount: 15, ago: 'hace 13 h', initials: 'EC', color: 'av-purple' },
+    { name: 'Nacho Villar', amount: 20, ago: 'hace 15 h', initials: 'NV', color: 'av-skyblue' },
+    { name: 'Anónimo', amount: 200, ago: 'hace 18 h', initials: '', color: 'av-gray', anonymous: true },
+    { name: 'Cristina Marín', amount: 35, ago: 'hace 20 h', initials: 'CM', color: 'av-coral' },
+    { name: 'Sergio Jiménez', amount: 25, ago: 'hace 22 h', initials: 'SJ', color: 'av-amber' }
   ] satisfies CampaignDonor[],
 
   // Ons werk — carrossel de fotos da rotina no abrigo (LP + VSL)
   workImages: [
-    { src: '/work-1.webp', caption: 'Elke ochtend begint hier — voeren wat we hebben.' },
-    { src: '/work-2.webp', caption: 'Onze vrijwilligers zorgen voor elk dier, elke dag.' },
-    { src: '/work-3.webp', caption: 'Een veilige plek dankzij donateurs zoals jij.' }
+    { src: '/work-1.webp', caption: 'Cada mañana empieza aquí — dar de comer con lo que tenemos.' },
+    { src: '/work-2.webp', caption: 'Nuestros voluntarios cuidan de cada animal, cada día.' },
+    { src: '/work-3.webp', caption: 'Un lugar seguro gracias a donantes como tú.' }
   ],
 
   // Stats card
   stats: [
-    { value: '2.847', label: 'dieren die wachten in partneropvangen' },
-    { value: '12', label: 'opvangpartners in heel België' },
-    { value: '€4,20', label: 'voedt één opvangdier een week lang' },
-    { value: '88%', label: 'gaat rechtstreeks naar voeding & verzorging' }
+    { value: '2.847', label: 'animales esperando en refugios asociados' },
+    { value: '12', label: 'refugios asociados en toda España' },
+    { value: '€4,20', label: 'alimenta a un animal rescatado una semana' },
+    { value: '88%', label: 'va directamente a comida y cuidados' }
   ],
 
   // Testimonials / words of support — pessoas que ja doaram pra Shadow
   testimonials: [
     {
       avatar: '/avatars/women-44.webp',
-      name: 'Emma B.',
-      city: 'Antwerpen',
-      quote: "Ik liet mijn dochtertje (8) de foto van Shadow zien en ze begon meteen te huilen. Samen hebben we €30 gedoneerd uit haar spaarpot. Elke avond vraagt ze of het al beter gaat met hem."
+      name: 'Elena B.',
+      city: 'Barcelona',
+      quote: "Le enseñé a mi hija (8) la foto de Shadow y se puso a llorar en el acto. Juntas donamos €30 de su hucha. Cada noche me pregunta si ya está mejor."
     },
     {
       avatar: '/avatars/men-32.webp',
-      name: 'Niels V.',
-      city: 'Gent',
-      quote: 'Ik heb thuis een zwarte kat — Mowgli, 11 jaar oud. Toen ik Shadow zag liggen met dat infuus, moest ik direct aan hem denken. €50 gedoneerd. Ik kon gewoon niet wegklikken.'
+      name: 'Nacho V.',
+      city: 'Valencia',
+      quote: 'Tengo un gato negro en casa — Mowgli, 11 años. Cuando vi a Shadow con la vía puesta, me acordé de él enseguida. €50 donados. No pude pasar de largo.'
     },
     {
       avatar: '/avatars/women-68.webp',
-      name: 'Camille L.',
-      city: 'Brussel',
-      quote: 'Mijn kat Felix is 2 jaar geleden overleden aan kanker. Toen ik over Shadow las, kreeg ik tranen in mijn ogen. €100 gedoneerd voor zijn operatie — in Felix’s naam.'
+      name: 'Carmen L.',
+      city: 'Madrid',
+      quote: 'Mi gato Felix murió de cáncer hace 2 años. Cuando leí sobre Shadow, se me saltaron las lágrimas. €100 donados para su operación — en memoria de Felix.'
     },
     {
       avatar: '/avatars/women-12.webp',
-      name: 'Lieve D.',
-      city: 'Brugge',
-      quote: "Ik heb Shadow’s verhaal op Facebook gezien en kon de hele avond niet stoppen met denken aan dat arme beestje. €25 gedoneerd voor zijn eten — elke euro telt nu."
+      name: 'Lucía D.',
+      city: 'Sevilla',
+      quote: "Vi la historia de Shadow en Facebook y no pude dejar de pensar en ese pobre animal en toda la noche. €25 donados para su comida — cada euro cuenta ahora."
     },
     {
       avatar: '/avatars/men-76.webp',
-      name: 'Mathieu R.',
-      city: 'Luik',
-      quote: 'Vorig jaar werd ik zelf geopereerd. Ik weet wat het is om alleen te zijn en bang. Shadow verdient die tweede kans ook. €40 gedoneerd vanmorgen.'
+      name: 'Mateo R.',
+      city: 'Bilbao',
+      quote: 'El año pasado me operaron a mí. Sé lo que es estar solo y con miedo. Shadow también se merece esa segunda oportunidad. €40 donados esta mañana.'
     },
     {
       avatar: '/avatars/men-52.webp',
-      name: 'Sven J.',
-      city: 'Leuven',
-      quote: "Als student kan ik niet veel missen, maar €15 voor Shadow lukte wel. Alstublieft hou ons op de hoogte van zijn operatie — ik denk de hele week aan hem."
+      name: 'Sergio J.',
+      city: 'Zaragoza',
+      quote: "Como estudiante no puedo permitirme mucho, pero €15 para Shadow sí. Por favor mantenednos al día de su operación — pienso en él toda la semana."
     },
     {
       avatar: '/avatars/women-29.webp',
-      name: 'Charlotte M.',
-      city: 'Namen',
-      quote: 'De röntgenfoto met die tumor heeft me echt geraakt. Mijn man en ik hebben samen €60 gedoneerd. Laat het ons alstublieft weten als hij door de operatie heen is.'
+      name: 'Carla M.',
+      city: 'Málaga',
+      quote: 'La radiografía con el tumor me impactó mucho. Mi marido y yo donamos €60 juntos. Por favor avisadnos cuando salga de la operación.'
     },
     {
       avatar: '/avatars/men-15.webp',
-      name: 'Bram V.',
-      city: 'Mechelen',
-      quote: "Ik werk als koerier en zie veel zwerfdieren onderweg. Maar Shadow’s ogen op die foto raakten me anders. €35 gedoneerd. Sterkte aan iedereen die voor hem zorgt."
+      name: 'Bruno V.',
+      city: 'Granada',
+      quote: "Trabajo de repartidor y veo muchos animales callejeros. Pero los ojos de Shadow en esa foto me llegaron distinto. €35 donados. Ánimo a todos los que cuidan de él."
     }
   ],
 
   shareUrl: 'https://belgianpawsfoundation.org',
-  shareTitle: 'Help deze winter Belgische opvangdieren te voeden'
+  shareTitle: 'Ayuda a alimentar a los animales rescatados este invierno'
 };
