@@ -72,13 +72,13 @@
     title: "Ellie is 9. Samen betalen we haar behandeling.",
     subtitle: "Ellie's ouders werken hard, maar hun loon dekt de kosten van haar stamceltransplantatie niet. Belgen komen samen om haar te helpen — elke bijdrage telt.",
     storyPreview: [
-      "Dit is Ellie 🤍",
+      "Dit is Ellie.",
       "Ze is negen jaar oud, woont in Antwerpen, en werd zes weken geleden gediagnosticeerd met leukemie. Haar leven kan gered worden — maar niet zonder onze hulp."
     ],
     storyRest: [
       "Haar mama Sarah maakt schoon bij Albert Heijn en werkt 's avonds nog in een woonzorgcentrum. Haar papa Mark rijdt een bestelwagen. Samen verdienen ze net iets meer dan het minimumloon. Ze hebben hun spaargeld opgemaakt, de auto verkocht, geld geleend van familie — en tóch komen ze €15.750 tekort voor de stamceltransplantatie die Ellie's leven kan redden.",
       "Overal in België komen mensen nu samen om Ellie te helpen. Buren, klasgenoten, collega's van Sarah, wildvreemden — iedereen doneert wat hij of zij kan missen. €10, €25, €50. Elk beetje brengt Ellie dichter bij haar behandeling, dichter bij thuiskomen, dichter bij haar tiende verjaardag in november.",
-      "Kunt u niet doneren? Deel deze pagina alstublieft met uw familie, vrienden en collega's. Eén klik op 'delen' kan iemand anders bereiken die wél kan bijdragen. Zo helpt u Ellie misschien nog meer dan met een donatie zelf. Bedankt dat u haar verhaal leest 🤍"
+      "Kunt u niet doneren? Deel deze pagina alstublieft met uw familie, vrienden en collega's. Eén klik op 'delen' kan iemand anders bereiken die wél kan bijdragen. Zo helpt u Ellie misschien nog meer dan met een donatie zelf. Bedankt dat u haar verhaal leest."
     ],
     highlight: "Elke donatie én elke gedeelde link brengt Ellie dichter bij haar behandeling. Bedankt voor uw hulp — hoe klein ook.",
     goalEur: 15750,
@@ -522,11 +522,6 @@
           shareLabel="Delen"
           donorsAria="Bekijk alle donateurs"
         />
-      </div>
-
-      <div class="progress-stats-row">
-        <span><span class="donations-count">{donationsCount}</span> donaties</span>
-        <span>Nog {ELLIE_DAYS_LEFT} dagen voordat Ellie's behandelingsvenster sluit</span>
       </div>
 
       <div id="story-section" data-section="story" class="story-text">
