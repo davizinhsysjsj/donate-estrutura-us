@@ -535,11 +535,11 @@
               <figure class="story-inline-figure">
                 <img
                   src="/ellie/ellie-hope-inline.jpg"
-                  alt="Ellie na haar behandeling"
+                  alt="Ellie tijdens haar verjaardag in het ziekenhuis"
                   loading="lazy"
                   decoding="async"
                   width="900"
-                  height="900"
+                  height="509"
                 />
               </figure>
             {/if}
@@ -1024,8 +1024,8 @@
 
   /* Imagem inline no meio da descrição — contida, centralizada, cantos suaves */
   .story-inline-figure {
-    margin: 20px auto;
-    max-width: 320px;
+    margin: 22px auto;
+    max-width: 460px;
     width: 100%;
     padding: 0;
   }
@@ -1037,7 +1037,7 @@
     box-shadow: 0 8px 22px rgba(0,0,0,0.14);
   }
   @media (min-width: 640px) {
-    .story-inline-figure { max-width: 380px; }
+    .story-inline-figure { max-width: 540px; }
   }
 
   .adopt-section { padding-top: 18px; padding-bottom: 24px; }
