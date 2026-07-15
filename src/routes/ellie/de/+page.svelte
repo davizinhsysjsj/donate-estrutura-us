@@ -43,46 +43,6 @@
     { name: 'Daan R.',      amount: 35,  ago: '22 u geleden',    initials: 'DR', color: 'av-coral',   anonymous: false }
   ];
 
-  // Testimonials reais sobre a Ellie (cidades BE-first)
-  const ELLIE_TESTIMONIALS = [
-    {
-      avatar: '/avatars/women-44.webp',
-      name: 'Emma B.',
-      city: 'Antwerpen',
-      quote: "Mijn eigen dochter is 9 — net als Ellie. Ik kon niet stoppen met huilen toen ik haar verhaal las. Ik heb €50 gedoneerd en het meteen gedeeld in onze mama-WhatsAppgroep."
-    },
-    {
-      avatar: '/avatars/men-32.webp',
-      name: 'Lars W.',
-      city: 'Gent',
-      quote: "Mijn zusje lag jaren geleden in het UZ Gent voor leukemie. Wetende dat er nu een klein meisje vecht voor haar leven — dat raakte me hard. €100 gedoneerd. Kom op Ellie."
-    },
-    {
-      avatar: '/avatars/women-68.webp',
-      name: 'Sara L.',
-      city: 'Brugge',
-      quote: 'Mijn man is vorig jaar aan kanker overleden. Ik weet hoe het voelt om te wachten op een behandeling die alles kan veranderen. Ellie is pas 9. €200 voor haar, lieverd.'
-    },
-    {
-      avatar: '/avatars/women-12.webp',
-      name: 'Cato D.',
-      city: 'Leuven',
-      quote: "Ik zag de MRI-scan en kon niet ademen. Mijn zoontje is ook 9. Dit had hij kunnen zijn. €75 gedoneerd en morgen kom ik terug om meer te geven."
-    },
-    {
-      avatar: '/avatars/men-76.webp',
-      name: 'David R.',
-      city: 'Mechelen',
-      quote: 'Ik werk in de kinderoncologie. Wat Ellie doormaakt is brutaal voor een kind van haar leeftijd. Leukemiebehandeling is agressief maar overleefbaar — elke euro helpt. €100 gedoneerd, en veel liefs voor haar familie.'
-    },
-    {
-      avatar: '/avatars/men-52.webp',
-      name: 'Stefan J.',
-      city: 'Brussel',
-      quote: "Mijn beste vriend verloor zijn dochter aan leukemie toen ze 9 was. Ik wist toen niet wat te zeggen. Nu weet ik het: doneer. €50 voor Ellie, ter nagedachtenis aan kleine Kato."
-    }
-  ];
-
   // Doadores reais (das últimas 24h, filtrados por funil Ellie) sobrem no topo,
   // fakes completam até dar 20 itens. Assim que uma compra real chega, ela vira
   // o "último doador" que aparece no ProgressCard e sticky bar.
@@ -281,7 +241,6 @@
 
   const MENU_ITEMS = [
     { id: 'story-section', label: 'Verhaal' },
-    { id: 'testimonials-section', label: 'Steunbetuigingen' },
     { id: 'donations', label: 'Donaties' },
     { id: 'organizer-section', label: 'Organisator' }
   ];
@@ -590,26 +549,6 @@
         <span class="story-highlight">{ELLIE.highlight}</span>
       </section>
     {/if}
-
-    <!-- Testimonials -->
-    <section class="section" id="testimonials-section" data-section="testimonials">
-      <div class="section-eyebrow">Steunbetuigingen</div>
-      <h2 class="section-title">Van mensen uit heel Nederland en België.</h2>
-      <div class="testimonial-row">
-        {#each ELLIE_TESTIMONIALS as t}
-          <div class="testimonial-card">
-            <div class="testimonial-head">
-              <img src={t.avatar} alt={t.name} class="testimonial-avatar-img" loading="lazy" width="80" height="80" decoding="async" />
-              <div>
-                <div class="testimonial-name">{t.name}</div>
-                <div class="testimonial-meta">{t.city}</div>
-              </div>
-            </div>
-            <p class="testimonial-quote">"{t.quote}"</p>
-          </div>
-        {/each}
-      </div>
-    </section>
 
     <!-- ────────────────────────────────────────────────────────────────
          SEÇÃO INLINE DE DOAÇÃO — checkout direto, sem passar por /donate
