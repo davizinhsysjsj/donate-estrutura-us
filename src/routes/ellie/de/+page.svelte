@@ -69,20 +69,20 @@
   // Campanha: ELLIE · 9 JAAR · HOOG-RISICO LEUKEMIE · ANTWERPEN
   // ──────────────────────────────────────────────────────────────
   const ELLIE = {
-    title: "Ellie is 9. Ze heeft 42 dagen om te beginnen met de behandeling die haar leven kan redden.",
-    subtitle: "Acute leukemie, hoog risico. Eén kans. Eén gezin dat het zich niet kan veroorloven te verliezen.",
+    title: "Ellie is 9. Samen betalen we haar behandeling.",
+    subtitle: "Ellie's ouders werken hard, maar hun loon dekt de kosten van haar stamceltransplantatie niet. Belgen komen samen om haar te helpen — elke bijdrage telt.",
     storyPreview: [
       "Dit is Ellie 🤍",
-      "Zes weken geleden kwam ze thuis van school en zei dat ze buikpijn had. Sarah, haar mama, dacht dat er iets rondwaarde in het derde leerjaar. De huisarts stuurde ze naar het UZ Antwerpen Centrum 'voor de zekerheid'. Toen stopte alles."
+      "Ze is negen jaar oud, woont in Antwerpen, en werd zes weken geleden gediagnosticeerd met leukemie. Haar leven kan gered worden — maar niet zonder onze hulp."
     ],
     storyRest: [
-      "Hoog-risico acute leukemie. Een agressieve bloedkanker die haar beenmerg heeft aangetast. De artsen waren eerlijk tegen Sarah: alleen standaard chemo geeft Ellie 40-50% kans. Het volledige protocol — intensieve chemo + stamceltransplantatie + een gespecialiseerde CAR-T immunotherapie-studie in Duitsland — brengt haar overlevingskans op 78%. De studie is wat de ziekteverzekering niet dekt.",
-      "Sarah werkt twee jobs — schoonmaakshifts bij Albert Heijn in Deurne en een late shift in het woonzorgcentrum. Ellie's papa Mark rijdt een bestelwagen. Ze hebben vorige maand de auto verkocht. Ze hebben €2.100 bij elkaar gekregen. Het gat tussen wat ze hebben en wat de studie in Duitsland kost — €15.750 — is wat tussen Ellie en haar tiende verjaardag in november staat.",
-      "€15 dekt één dag anti-misselijkheidsmedicatie tijdens chemo. €100 helpt betalen voor één MIBG-scan. €250 dekt één immunotherapiedosis. Elke euro brengt haar dichter bij een toekomst waarin ze terug naar school kan, terug naar haar vriendinnetjes, terug naar gewoon een kind zijn."
+      "Haar mama Sarah maakt schoon bij Albert Heijn en werkt 's avonds nog in een woonzorgcentrum. Haar papa Mark rijdt een bestelwagen. Samen verdienen ze net iets meer dan het minimumloon. Ze hebben hun spaargeld opgemaakt, de auto verkocht, geld geleend van familie — en tóch komen ze €15.750 tekort voor de stamceltransplantatie die Ellie's leven kan redden.",
+      "Overal in België komen mensen nu samen om Ellie te helpen. Buren, klasgenoten, collega's van Sarah, wildvreemden — iedereen doneert wat hij of zij kan missen. €10, €25, €50. Elk beetje brengt Ellie dichter bij haar behandeling, dichter bij thuiskomen, dichter bij haar tiende verjaardag in november.",
+      "Kunt u niet doneren? Deel deze pagina alstublieft met uw familie, vrienden en collega's. Eén klik op 'delen' kan iemand anders bereiken die wél kan bijdragen. Zo helpt u Ellie misschien nog meer dan met een donatie zelf. Bedankt dat u haar verhaal leest 🤍"
     ],
-    highlight: "De tijd tikt weg. Help Ellie vandaag — €15.750 om de immunotherapie-studie te financieren die haar leven kan redden.",
+    highlight: "Elke donatie én elke gedeelde link brengt Ellie dichter bij haar behandeling. Bedankt voor uw hulp — hoe klein ook.",
     goalEur: 15750,
-    shareTitle: "Help Ellie (9) leukemie te overwinnen — 42 dagen om de studie te financieren die haar kan redden",
+    shareTitle: "Help Ellie (9) — samen betalen we haar levensreddende behandeling",
     shareUrl: 'https://belgianpawsfoundation.org/ellie/de'
   };
 
