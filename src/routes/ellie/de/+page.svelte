@@ -73,7 +73,7 @@
       avatar: '/avatars/men-76.webp',
       name: 'David R.',
       city: 'Mechelen',
-      quote: 'Ik werk in de kinderoncologie. Wat Ellie doormaakt is brutaal voor een kind van haar leeftijd. Neuroblastoombehandeling is agressief maar overleefbaar — elke euro helpt. €100 gedoneerd, en veel liefs voor haar familie.'
+      quote: 'Ik werk in de kinderoncologie. Wat Ellie doormaakt is brutaal voor een kind van haar leeftijd. Leukemiebehandeling is agressief maar overleefbaar — elke euro helpt. €100 gedoneerd, en veel liefs voor haar familie.'
     },
     {
       avatar: '/avatars/men-52.webp',
@@ -106,23 +106,23 @@
   const ELLIE_DAYS_LEFT = ellieDaysLeft;
 
   // ──────────────────────────────────────────────────────────────
-  // Campanha: ELLIE · 9 JAAR · HOOG-RISICO NEUROBLASTOOM · ANTWERPEN
+  // Campanha: ELLIE · 9 JAAR · HOOG-RISICO LEUKEMIE · ANTWERPEN
   // ──────────────────────────────────────────────────────────────
   const ELLIE = {
     title: "Ellie is 9. Ze heeft 42 dagen om te beginnen met de behandeling die haar leven kan redden.",
-    subtitle: "Hoog-risico neuroblastoom. Eén kans. Eén gezin dat het zich niet kan veroorloven te verliezen.",
+    subtitle: "Acute leukemie, hoog risico. Eén kans. Eén gezin dat het zich niet kan veroorloven te verliezen.",
     storyPreview: [
       "Dit is Ellie 🤍",
       "Zes weken geleden kwam ze thuis van school en zei dat ze buikpijn had. Sarah, haar mama, dacht dat er iets rondwaarde in het derde leerjaar. De huisarts stuurde ze naar het UZ Antwerpen Centrum 'voor de zekerheid'. Toen stopte alles."
     ],
     storyRest: [
-      "Hoog-risico neuroblastoom. Een zeldzame, agressieve kinderkanker die zich al heeft verspreid naar haar beenmerg. De artsen waren eerlijk tegen Sarah: alleen standaard chemo geeft Ellie 40-50% kans. Het volledige protocol — chemo + operatie + stamceltransplantatie + een gespecialiseerde immunotherapie-studie in Duitsland — brengt haar overlevingskans op 78%. De studie is wat de ziekteverzekering niet dekt.",
+      "Hoog-risico acute leukemie. Een agressieve bloedkanker die haar beenmerg heeft aangetast. De artsen waren eerlijk tegen Sarah: alleen standaard chemo geeft Ellie 40-50% kans. Het volledige protocol — intensieve chemo + stamceltransplantatie + een gespecialiseerde CAR-T immunotherapie-studie in Duitsland — brengt haar overlevingskans op 78%. De studie is wat de ziekteverzekering niet dekt.",
       "Sarah werkt twee jobs — schoonmaakshifts bij Albert Heijn in Deurne en een late shift in het woonzorgcentrum. Ellie's papa Mark rijdt een bestelwagen. Ze hebben vorige maand de auto verkocht. Ze hebben €2.100 bij elkaar gekregen. Het gat tussen wat ze hebben en wat de studie in Duitsland kost — €15.750 — is wat tussen Ellie en haar tiende verjaardag in november staat.",
       "€15 dekt één dag anti-misselijkheidsmedicatie tijdens chemo. €100 helpt betalen voor één MIBG-scan. €250 dekt één immunotherapiedosis. Elke euro brengt haar dichter bij een toekomst waarin ze terug naar school kan, terug naar haar vriendinnetjes, terug naar gewoon een kind zijn."
     ],
     highlight: "De tijd tikt weg. Help Ellie vandaag — €15.750 om de immunotherapie-studie te financieren die haar leven kan redden.",
     goalEur: 15750,
-    shareTitle: "Help Ellie (9) neuroblastoom te overwinnen — 42 dagen om de studie te financieren die haar kan redden",
+    shareTitle: "Help Ellie (9) leukemie te overwinnen — 42 dagen om de studie te financieren die haar kan redden",
     shareUrl: 'https://belgianpawsfoundation.org/ellie/de'
   };
 
@@ -172,7 +172,7 @@
   // TODO: adicionar mais cenas reais da Ellie (mum-hand, before-park, etc.) na próxima leva
   const HERO_SLIDES = [
     { src: '/ellie/ellie-coma-hero.webp', pos: 'center center' },
-    { src: '/ellie/ellie-mri.webp',       pos: 'center center' }
+    { src: '/ellie/ellie-drawing.webp',   pos: 'center center' }
   ];
   let heroIdx = $state(0);
   let heroTimer: ReturnType<typeof setInterval> | null = null;
@@ -611,65 +611,6 @@
       </div>
     </section>
 
-    <!-- Carta da mãe — 3 da manhã, hospital -->
-    <section class="section before-section" id="voor-diagnose" data-section="voor-diagnose">
-      <div class="section-eyebrow">3 uur 's nachts in het ziekenhuis</div>
-      <h2 class="section-title">Een brief van haar mama.</h2>
-
-      <div class="before-letter">
-        <p class="before-greeting">Beste lezer,</p>
-
-        <p>
-          Het is drie uur 's nachts. Ik zit op de vloer naast Ellie's
-          ziekenhuisbed in het UZ Antwerpen. Ik weet niet eens waarom
-          ik dit schrijf.
-        </p>
-
-        <p>
-          Ik ga je nergens om vragen. Zes weken geleden scrollde ik ook
-          langs posts zoals deze. Ik voelde iets. Ik las verder. Dat was
-          het.
-        </p>
-
-        <p>
-          Vanavond, vlak voor de verpleegster kwam om haar infuus te
-          verwisselen, keek ze me aan en zei:
-        </p>
-
-        <p class="before-key">
-          <strong>"Mama, als ik beter word, kunnen we deze zomer nog steeds naar zee? Je had het beloofd."</strong>
-        </p>
-
-        <p>
-          Ze is negen. Ze denkt dat dit een zware griep is. Ze weet niet
-          wat neuroblastoom betekent.
-        </p>
-
-        <p>
-          Ik antwoordde niet. Ik draaide mijn hoofd weg zodat ze me niet
-          kon zien. Toen ik terugkeek had ze zichzelf opgekruld met haar
-          oude knuffelbeer — die ze al heeft sinds ze twee was — vast
-          tegen haar buik gedrukt, precies waar de tumor zit.
-        </p>
-
-        <p>
-          Ik had nooit gedacht dat ik degene zou zijn die zoiets zou
-          schrijven. Niet ik. Niet onze Ellie. Maar hier ben ik dan.
-        </p>
-
-        <p>
-          Alsjeblieft, help me mijn kleine meid te redden. Elke euro die
-          je doneert brengt haar dichter bij die studie in Duitsland. Ik
-          wil gewoon mijn belofte over de zee kunnen houden. Ik wil
-          gewoon dat ze haar tiende verjaardag haalt.
-        </p>
-
-        <p class="before-signoff">
-          <span class="before-name">Sarah — Ellie's mama</span>
-        </p>
-      </div>
-    </section>
-
     <!-- ────────────────────────────────────────────────────────────────
          SEÇÃO INLINE DE DOAÇÃO — checkout direto, sem passar por /donate
     ──────────────────────────────────────────────────────────────── -->
@@ -1028,7 +969,7 @@
   <div class="sheet sheet-donors" role="document">
     <div class="sheet-handle"></div>
     <div class="sheet-title">Alle donaties ({donationsCount})</div>
-    <p class="sheet-subtitle">Laatste supporters die Ellie helpen neuroblastoom te overwinnen.</p>
+    <p class="sheet-subtitle">Laatste supporters die Ellie helpen leukemie te overwinnen.</p>
     <ul class="donor-list donor-list-full">
       {#each donorsList as d}
         <li class="donor-item">
@@ -1071,57 +1012,6 @@
 
 
 <style>
-  /* Voor de diagnose — brief van de mama */
-  .before-section {
-    padding-top: 28px;
-    padding-bottom: 32px;
-    border-top: 1px solid #e5e7eb;
-    margin-top: 8px;
-  }
-  .before-letter {
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 1.0625rem;
-    line-height: 1.7;
-    color: #1f2937;
-    margin-top: 6px;
-  }
-  .before-letter p {
-    margin: 0 0 16px;
-  }
-  .before-greeting {
-    font-size: 1.125rem;
-    color: #111;
-  }
-  .before-key {
-    background: #fef2f2;
-    border-left: 4px solid #dc2626;
-    padding: 14px 16px;
-    border-radius: 4px;
-    font-size: 1.125rem;
-    text-align: center;
-    color: #7f1d1d;
-    margin: 22px 0 !important;
-  }
-  .before-cta-text {
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    border-radius: 10px;
-    padding: 16px 18px;
-    color: #78350f;
-    margin: 22px 0 !important;
-  }
-  .before-signoff {
-    margin-top: 24px !important;
-    color: #374151;
-    font-style: italic;
-  }
-  .before-name {
-    font-style: normal;
-    font-weight: 600;
-    color: #111;
-    font-family: system-ui, -apple-system, sans-serif;
-  }
-
   /* GoFundMe logo — usa .logo-img global (28px mobile / 32px tablet+) */
   .header-logo .header-flag { margin-left: 8px; font-size: 1.2rem; }
 
