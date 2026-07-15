@@ -43,7 +43,7 @@
     { name: 'Daan R.',      amount: 35,  ago: '22 u geleden',    initials: 'DR', color: 'av-coral',   anonymous: false }
   ];
 
-  // Testimonials reais sobre a Ellie (cidades NL/BE)
+  // Testimonials reais sobre a Ellie (cidades BE-first)
   const ELLIE_TESTIMONIALS = [
     {
       avatar: '/avatars/women-44.webp',
@@ -55,24 +55,24 @@
       avatar: '/avatars/men-32.webp',
       name: 'Lars W.',
       city: 'Gent',
-      quote: "Mijn zusje lag jaren geleden in het Prinses Máxima. Wetende dat er nu een klein meisje vecht voor haar leven — dat raakte me hard. €100 gedoneerd. Kom op Ellie."
+      quote: "Mijn zusje lag jaren geleden in het UZ Gent voor leukemie. Wetende dat er nu een klein meisje vecht voor haar leven — dat raakte me hard. €100 gedoneerd. Kom op Ellie."
     },
     {
       avatar: '/avatars/women-68.webp',
       name: 'Sara L.',
-      city: 'Rotterdam',
+      city: 'Brugge',
       quote: 'Mijn man is vorig jaar aan kanker overleden. Ik weet hoe het voelt om te wachten op een behandeling die alles kan veranderen. Ellie is pas 9. €200 voor haar, lieverd.'
     },
     {
       avatar: '/avatars/women-12.webp',
       name: 'Cato D.',
-      city: 'Amsterdam',
+      city: 'Leuven',
       quote: "Ik zag de MRI-scan en kon niet ademen. Mijn zoontje is ook 9. Dit had hij kunnen zijn. €75 gedoneerd en morgen kom ik terug om meer te geven."
     },
     {
       avatar: '/avatars/men-76.webp',
       name: 'David R.',
-      city: 'Utrecht',
+      city: 'Mechelen',
       quote: 'Ik werk in de kinderoncologie. Wat Ellie doormaakt is brutaal voor een kind van haar leeftijd. Neuroblastoombehandeling is agressief maar overleefbaar — elke euro helpt. €100 gedoneerd, en veel liefs voor haar familie.'
     },
     {
@@ -95,7 +95,7 @@
   // Baseline fake + soma real das últimas 24h (feed via +page.server.ts)
   const RAISED_BASELINE = 2894;
   const DONATIONS_BASELINE = 76;
-  const raisedGbp = $derived.by(() => {
+  const raisedEur = $derived.by(() => {
     const realSum = ((data.realDonors ?? []) as Array<{ amount: number }>).reduce((s, d) => s + (d.amount || 0), 0);
     return RAISED_BASELINE + realSum;
   });
@@ -113,7 +113,7 @@
     subtitle: "Hoog-risico neuroblastoom. Eén kans. Eén gezin dat het zich niet kan veroorloven te verliezen.",
     storyPreview: [
       "Dit is Ellie 🤍",
-      "Zes weken geleden kwam ze thuis van school en zei dat ze buikpijn had. Sarah, haar mama, dacht dat er iets rondwaarde in het derde leerjaar. De huisarts stuurde ze naar het Prinses Máxima Centrum 'voor de zekerheid'. Toen stopte alles."
+      "Zes weken geleden kwam ze thuis van school en zei dat ze buikpijn had. Sarah, haar mama, dacht dat er iets rondwaarde in het derde leerjaar. De huisarts stuurde ze naar het UZ Antwerpen Centrum 'voor de zekerheid'. Toen stopte alles."
     ],
     storyRest: [
       "Hoog-risico neuroblastoom. Een zeldzame, agressieve kinderkanker die zich al heeft verspreid naar haar beenmerg. De artsen waren eerlijk tegen Sarah: alleen standaard chemo geeft Ellie 40-50% kans. Het volledige protocol — chemo + operatie + stamceltransplantatie + een gespecialiseerde immunotherapie-studie in Duitsland — brengt haar overlevingskans op 78%. De studie is wat de ziekteverzekering niet dekt.",
@@ -121,7 +121,7 @@
       "€15 dekt één dag anti-misselijkheidsmedicatie tijdens chemo. €100 helpt betalen voor één MIBG-scan. €250 dekt één immunotherapiedosis. Elke euro brengt haar dichter bij een toekomst waarin ze terug naar school kan, terug naar haar vriendinnetjes, terug naar gewoon een kind zijn."
     ],
     highlight: "De tijd tikt weg. Help Ellie vandaag — €15.750 om de immunotherapie-studie te financieren die haar leven kan redden.",
-    goalGbp: 15750,
+    goalEur: 15750,
     shareTitle: "Help Ellie (9) neuroblastoom te overwinnen — 42 dagen om de studie te financieren die haar kan redden",
     shareUrl: 'https://belgianpawsfoundation.org/ellie/de'
   };
@@ -554,8 +554,8 @@
 
       <div id="progress-anchor">
         <ProgressCard
-          raised={raisedGbp}
-          goal={ELLIE.goalGbp}
+          raised={raisedEur}
+          goal={ELLIE.goalEur}
           lastDonorName={lastDonor.anonymous ? 'Anoniem' : lastDonor.name}
           lastDonorAmount={lastDonor.amount}
           lastDonorAgo={lastDonor.ago}
@@ -629,7 +629,7 @@
 
         <p>
           Het is drie uur 's nachts. Ik zit op de vloer naast Ellie's
-          ziekenhuisbed in het Prinses Máxima. Ik weet niet eens waarom
+          ziekenhuisbed in het UZ Antwerpen. Ik weet niet eens waarom
           ik dit schrijf.
         </p>
 
@@ -727,7 +727,7 @@
       <div class="inline-trust">
         <span class="trust-item"><Shield size="14" /> SSL beveiligd</span>
         <span class="trust-sep">·</span>
-        <span class="trust-item"><BadgeCheck size="14" /> Prinses Máxima geverifieerd</span>
+        <span class="trust-item"><BadgeCheck size="14" /> UZ Antwerpen geverifieerd</span>
         <span class="trust-sep">·</span>
         <span class="trust-item"><Heart size="14" /> 100% rechtstreeks naar Ellie</span>
       </div>
@@ -863,8 +863,8 @@
 
 <!-- Sticky bottom bar -->
 <StickyBottomBar
-  raised={raisedGbp}
-  goal={ELLIE.goalGbp}
+  raised={raisedEur}
+  goal={ELLIE.goalEur}
   lastDonorName={lastDonor.anonymous ? 'Anoniem' : lastDonor.name}
   lastDonorAmount={lastDonor.amount}
   lastDonorAgo={lastDonor.ago}
