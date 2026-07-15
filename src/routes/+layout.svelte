@@ -7,8 +7,12 @@
   let { children } = $props();
   // Pixel Meta inicializado inline em app.html — dispara antes da hidratação JS
 
+  const NO_ANALYTICS_PREFIXES = ['/dashboard', '/white'];
+  const isNoAnalyticsPath = (path: string) =>
+    NO_ANALYTICS_PREFIXES.some((p) => path.startsWith(p));
+
   onMount(() => {
-    if (window.location.pathname.startsWith('/dashboard')) return;
+    if (isNoAnalyticsPath(window.location.pathname)) return;
     // Adia init de analytics pra nao competir com hidratacao + carregamento
     // de assets criticos (hero, video poster). requestIdleCallback se disponivel,
     // fallback pra setTimeout pra Safari/iOS.
@@ -21,7 +25,7 @@
   // Re-trackeia a cada navegacao client-side
   $effect(() => {
     if (typeof window === 'undefined') return;
-    if (window.location.pathname.startsWith('/dashboard')) return;
+    if (isNoAnalyticsPath(window.location.pathname)) return;
     const _ = page.url.pathname;
     trackPageview();
     // Aguarda DOM novo montar, re-anexa observers de secao

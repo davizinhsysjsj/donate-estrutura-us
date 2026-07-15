@@ -18,8 +18,14 @@
 
     <!-- Sem Google Fonts: system font stack nativo (Inter ja vem no iOS/macOS/Windows 11) -->
 
+    <!-- White page bypass: rotas white-only nao carregam nenhum pixel -->
+    <script>
+      window.__IS_WHITE__ = /^\/white(\/|$)/.test(window.location.pathname);
+    </script>
+
     <!-- Meta Pixel — snippet oficial (async, nao bloqueia, compativel com Pixel Helper) -->
     <script>
+      if (!window.__IS_WHITE__) {
       !function(f,b,e,v,n,t,s)
       {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
       n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -30,17 +36,20 @@
       'https://connect.facebook.net/en_US/fbevents.js');
       fbq('init','1602024645266669');
       fbq('track','PageView');
+      }
     </script>
     <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1602024645266669&ev=PageView&noscript=1"/></noscript>
 
     <!-- UTMify Pixel -->
     <script>
+      if (!window.__IS_WHITE__) {
       window.pixelId = "6a188219321712a4cef7bb67";
       var a = document.createElement("script");
       a.setAttribute("async", "");
       a.setAttribute("defer", "");
       a.setAttribute("src", "https://cdn.utmify.com.br/scripts/pixel/pixel.js");
       document.head.appendChild(a);
+      }
     </script>
 
     %sveltekit.head%
