@@ -25,7 +25,7 @@ interface StoredDonor {
 	lastInitial?: string; // sem ponto, soh letra (ex: "D")
 	amount: number;
 	currency: string;
-	funnel?: 'ellie' | 'lina'; // qual funil originou a doação — filtra na LP correta
+	funnel?: 'ellie' | 'lina' | 'ellie-nl'; // qual funil originou a doação — filtra na LP correta
 }
 
 export interface FeedDonor {
@@ -37,7 +37,7 @@ export interface FeedDonor {
 	anonymous: boolean;
 	ts: number;
 	real: true;
-	funnel?: 'ellie' | 'lina';
+	funnel?: 'ellie' | 'lina' | 'ellie-nl';
 }
 
 const COLORS = [
@@ -82,7 +82,7 @@ export function addRealDonor(input: {
 	lastName?: string | null;
 	amount: number;
 	currency?: string;
-	funnel?: 'ellie' | 'lina';
+	funnel?: 'ellie' | 'lina' | 'ellie-nl';
 }) {
 	if (!input.amount || input.amount <= 0) return;
 
@@ -90,6 +90,7 @@ export function addRealDonor(input: {
 	const rawLast = (input.lastName || '').trim();
 
 	// Nome default: "Anonymous" pra Ellie (EN), "Anoniem" pra Lina (NL)
+	// Ellie (UK) usa "Anonymous"; ellie-nl (BE) e lina (NL/BE) usam "Anoniem"
 	const anonName = input.funnel === 'ellie' ? 'Anonymous' : 'Anoniem';
 	const firstName = rawFirst || anonName;
 	const lastInitial = rawLast ? rawLast.charAt(0).toUpperCase() : undefined;
@@ -151,7 +152,7 @@ export function getDonorsCountLastDays(days: number): number {
  * @param opts.locale - idioma do "ago" (default 'nl'). Ellie usa 'en'.
  */
 export function getRecentRealDonors(opts?: {
-	funnel?: 'ellie' | 'lina';
+	funnel?: 'ellie' | 'lina' | 'ellie-nl';
 	locale?: 'nl' | 'pt' | 'en';
 }): FeedDonor[] {
 	const arr = load();
@@ -172,6 +173,9 @@ export function getRecentRealDonors(opts?: {
 				// currency GBP indica funil UK / Ellie
 				if (!d.funnel && d.currency === 'GBP') return true;
 				return false;
+			}
+			if (targetFunnel === 'ellie-nl') {
+				return d.funnel === 'ellie-nl';
 			}
 			// Lina: aceita 'lina' ou legacy sem funnel em currency não-GBP
 			if (d.funnel === 'lina') return true;

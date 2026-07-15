@@ -332,7 +332,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			lastName: shipping.last_name || customer.last_name,
 			amount: value,
 			currency,
-			funnel: funnelAttr === 'ellie' ? 'ellie' : funnelAttr === 'lina' ? 'lina' : undefined
+			funnel: funnelAttr === 'ellie' ? 'ellie' : funnelAttr === 'ellie-nl' ? 'ellie-nl' : funnelAttr === 'lina' ? 'lina' : undefined
 		});
 	} catch (e) {
 		console.error('[shopify-purchase] addRealDonor failed', e);
@@ -353,8 +353,12 @@ export const POST: RequestHandler = async ({ request }) => {
 	if (email) {
 		try {
 			const firstName = shipping.first_name || customer.first_name || undefined;
-			// Locale: 'ellie' → 'en' (UK), fallback deduzido por currency dentro de scheduleEmailFlow
-			const emailLocale = funnelAttr === 'ellie' ? 'en' as const : undefined;
+			// Locale: 'ellie' → 'en' (UK), 'ellie-nl' → 'nl' (BE), fallback por currency
+			const emailLocale = funnelAttr === 'ellie'
+				? 'en' as const
+				: funnelAttr === 'ellie-nl'
+					? 'nl' as const
+					: undefined;
 			const flowResult = scheduleEmailFlow({ toEmail: email, firstName, amount: value, currency, locale: emailLocale });
 			if (!flowResult.scheduled) {
 				console.log('[shopify-purchase] email flow skipped (already sent)', { orderId, email, reason: flowResult.reason });
