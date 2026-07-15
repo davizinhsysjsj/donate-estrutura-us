@@ -529,8 +529,20 @@
           <p>{paragraph}</p>
         {/each}
         {#if descExpanded}
-          {#each ELLIE.storyRest as paragraph}
+          {#each ELLIE.storyRest as paragraph, i}
             <p>{paragraph}</p>
+            {#if i === 1}
+              <figure class="story-inline-figure">
+                <img
+                  src="/ellie/ellie-hope-inline.jpg"
+                  alt="Ellie na haar behandeling"
+                  loading="lazy"
+                  decoding="async"
+                  width="900"
+                  height="900"
+                />
+              </figure>
+            {/if}
           {/each}
         {/if}
       </div>
@@ -1008,6 +1020,24 @@
     .hero-arrow { width: 36px; height: 36px; }
     .hero-arrow-prev { left: 8px; }
     .hero-arrow-next { right: 8px; }
+  }
+
+  /* Imagem inline no meio da descrição — contida, centralizada, cantos suaves */
+  .story-inline-figure {
+    margin: 20px auto;
+    max-width: 320px;
+    width: 100%;
+    padding: 0;
+  }
+  .story-inline-figure img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 14px;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.14);
+  }
+  @media (min-width: 640px) {
+    .story-inline-figure { max-width: 380px; }
   }
 
   .adopt-section { padding-top: 18px; padding-bottom: 24px; }
