@@ -131,7 +131,7 @@
   // Hero carousel (rotativo 4s, pausa em interação) — pos é object-position por slide
   // TODO: adicionar mais cenas reais da Ellie (mum-hand, before-park, etc.) na próxima leva
   const HERO_SLIDES = [
-    { src: '/ellie/ellie-nurses-sign.jpg', pos: 'center center' },
+    { src: '/ellie/ellie-nurses-sign-hero.jpg', pos: 'center center' },
     { src: '/ellie/ellie-drawing.webp',    pos: 'center center' }
   ];
   let heroIdx = $state(0);
