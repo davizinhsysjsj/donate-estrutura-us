@@ -125,6 +125,24 @@ export const handle: Handle = async ({ event, resolve }) => {
   ).toLowerCase();
   const path = event.url.pathname;
 
+  // ── Apple Pay domain verification ──
+  // NMI/Apple exige este arquivo em /.well-known/apple-developer-merchantid-domain-association
+  // para provar que somos donos do domínio. SvelteKit ignora rotas com "." então
+  // interceptamos aqui e servimos direto o conteudo da env APPLE_PAY_DOMAIN_ASSOCIATION.
+  if (path === '/.well-known/apple-developer-merchantid-domain-association') {
+    const contents = env.APPLE_PAY_DOMAIN_ASSOCIATION;
+    if (!contents) {
+      return new Response('Apple Pay domain association not configured', { status: 404 });
+    }
+    return new Response(contents, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'public, max-age=3600'
+      }
+    });
+  }
+
   // ── Alias /vitrack → /dashboard (enquanto vitrack.online está morto) ──
   if (path === '/vitrack' || path === '/vitrack/') {
     throw redirect(302, '/dashboard');

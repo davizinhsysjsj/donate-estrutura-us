@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tick } from 'svelte';
+	import { onMount } from 'svelte';
 	import { env } from '$env/dynamic/public';
 
 	interface Props {
@@ -25,7 +25,8 @@
 	const COLLECT_SRC = 'https://secure.nmi.com/token/Collect.js';
 
 	let scriptPromise: Promise<void> | null = null;
-	let configuredOnce = false;
+	let lastConfiguredAmount = 0;
+	let mounted = false;
 
 	function loadCollectScript(): Promise<void> {
 		// biome-ignore lint/suspicious/noExplicitAny: window global
@@ -53,14 +54,12 @@
 		return scriptPromise;
 	}
 
-	function configureCollect() {
+	function configureCollect(forAmount: number) {
 		// biome-ignore lint/suspicious/noExplicitAny: NMI global
 		const CollectJS = (window as any).CollectJS;
 		if (!CollectJS) {
 			console.warn('[NMI] CollectJS global missing at configure time');
-			errorMsg = 'Could not load secure payment. Please refresh the page.';
-			status = 'error';
-			return;
+			return false;
 		}
 		try {
 			CollectJS.configure({
@@ -74,10 +73,6 @@
 					'background-color': '#ffffff',
 					padding: '0 12px'
 				},
-				invalidCss: { color: '#c53030' },
-				validCss: { color: '#111' },
-				focusCss: { color: '#111' },
-				placeholderCss: { color: '#9ca3af' },
 				fields: {
 					ccnumber: { selector: '#nmi-ccnumber', placeholder: '4111 1111 1111 1111' },
 					ccexp: { selector: '#nmi-ccexp', placeholder: 'MM / YY' },
@@ -95,35 +90,21 @@
 						contactFieldsMappedTo: 'billing'
 					}
 				},
-				price: amount.toFixed(2),
+				price: forAmount.toFixed(2),
 				currency: 'USD',
 				country: 'US',
-				callback: onCollectCallback,
-				validationCallback: onValidation,
-				fieldsAvailableCallback: () => {
-					status = 'ready';
-				},
-				timeoutDuration: 15000,
-				timeoutCallback: () => {
-					console.warn('[NMI] tokenization timed out');
-					errorMsg = 'Payment timed out. Please try again.';
-					status = 'error';
-				}
+				callback: onCollectCallback
 			});
-			configuredOnce = true;
-			// Fallback: if fieldsAvailableCallback never fires, mark ready after 1.5s
+			lastConfiguredAmount = forAmount;
+			// mark ready after a short delay to let iframes render
 			setTimeout(() => {
 				if (status === 'loading') status = 'ready';
-			}, 1500);
+			}, 800);
+			return true;
 		} catch (e) {
 			console.error('[NMI] configure error', e);
-			errorMsg = 'Could not initialize secure payment.';
-			status = 'error';
+			return false;
 		}
-	}
-
-	function onValidation(_field: string, _valid: boolean, _message: string) {
-		// no-op — CollectJS handles UI via CSS classes
 	}
 
 	// biome-ignore lint/suspicious/noExplicitAny: NMI response shape
@@ -147,9 +128,9 @@
 		const walletEmail = wallet.email || walletBilling.email || '';
 
 		const billing = {
-			first_name: (firstName || walletBilling.firstName || 'Donor').trim(),
-			last_name: (lastName || walletBilling.lastName || 'Anonymous').trim(),
-			postal_code: (postalCode || walletBilling.postalCode || '00000').trim(),
+			first_name: (firstName || walletBilling.firstName || '').trim(),
+			last_name: (lastName || walletBilling.lastName || '').trim(),
+			postal_code: (postalCode || walletBilling.postalCode || '').trim(),
 			country: walletBilling.country || 'US',
 			email: (email || walletEmail || '').trim()
 		};
@@ -200,7 +181,7 @@
 		// biome-ignore lint/suspicious/noExplicitAny: NMI global
 		const CollectJS = (window as any).CollectJS;
 		if (!CollectJS) {
-			errorMsg = 'Payment not ready. Please refresh.';
+			errorMsg = 'Payment not ready. Please wait a moment.';
 			return;
 		}
 		CollectJS.startPaymentRequest(e);
@@ -208,19 +189,14 @@
 
 	function tryAgain() {
 		errorMsg = '';
-		if (configuredOnce) {
-			status = 'ready';
-		} else {
-			status = 'loading';
-			void initialize();
-		}
+		status = 'ready';
 	}
 
 	function handleOverlayClick(e: MouseEvent) {
 		if (e.target === e.currentTarget && status !== 'processing') onClose();
 	}
 
-	async function initialize() {
+	async function ensureConfigured(forAmount: number) {
 		if (!PUBLIC_KEY) {
 			errorMsg = 'Payment configuration missing.';
 			status = 'error';
@@ -228,147 +204,172 @@
 		}
 		try {
 			await loadCollectScript();
-			await tick();
-			await new Promise((r) => setTimeout(r, 30));
 			// biome-ignore lint/suspicious/noExplicitAny: NMI global
 			if (!(window as any).CollectJS) {
 				throw new Error('CollectJS not available after load');
 			}
-			configureCollect();
+			// wait a frame so DOM containers exist
+			await new Promise((r) => setTimeout(r, 20));
+			const ok = configureCollect(forAmount);
+			if (!ok) {
+				errorMsg = 'Could not initialize secure payment. Please try again.';
+				status = 'error';
+			}
 		} catch (e) {
-			console.error('[NMI] init error', e);
+			console.error('[NMI] load error', e);
 			errorMsg = 'Could not load secure payment. Please refresh the page.';
 			status = 'error';
 		}
 	}
 
-	let lastOpen = $state(false);
-	$effect(() => {
-		if (open && !lastOpen) {
-			lastOpen = true;
+	onMount(() => {
+		mounted = true;
+		// preload script + configure on first amount so iframes are ready
+		if (open) {
 			status = 'loading';
 			errorMsg = '';
-			configuredOnce = false;
-			void initialize();
+			void ensureConfigured(amount);
+		}
+	});
+
+	let lastOpen = $state(false);
+	$effect(() => {
+		if (!mounted) return;
+		if (open && !lastOpen) {
+			lastOpen = true;
+			// Only reconfigure if amount changed OR first time
+			if (lastConfiguredAmount !== amount) {
+				status = 'loading';
+				errorMsg = '';
+				void ensureConfigured(amount);
+			} else {
+				// iframes still there, just reset UI
+				if (status === 'error' || status === 'success') status = 'ready';
+				errorMsg = '';
+			}
 		} else if (!open && lastOpen) {
 			lastOpen = false;
 		}
 	});
 </script>
 
-{#if open}
-	<div
-		class="nmi-overlay"
-		onclick={handleOverlayClick}
-		role="dialog"
-		aria-modal="true"
-		aria-labelledby="nmi-title"
-	>
-		<div class="nmi-modal" role="document">
-			<button
-				class="nmi-close"
-				onclick={onClose}
-				disabled={status === 'processing'}
-				aria-label="Close"
-				type="button">×</button
-			>
+<!-- Modal is ALWAYS in the DOM so CollectJS iframes persist between open/close.
+     Visibility is controlled via CSS to avoid destroying iframes. -->
+<div
+	class="nmi-overlay"
+	class:nmi-visible={open}
+	onclick={handleOverlayClick}
+	role="dialog"
+	aria-modal="true"
+	aria-labelledby="nmi-title"
+	aria-hidden={!open}
+>
+	<div class="nmi-modal" role="document">
+		<button
+			class="nmi-close"
+			onclick={onClose}
+			disabled={status === 'processing'}
+			aria-label="Close"
+			type="button">×</button
+		>
 
-			<h2 id="nmi-title" class="nmi-title">Support Ellie</h2>
-			<div class="nmi-amount">
-				<span class="nmi-currency">{currencySymbol}</span>{amount}
+		<h2 id="nmi-title" class="nmi-title">Support Ellie</h2>
+		<div class="nmi-amount">
+			<span class="nmi-currency">{currencySymbol}</span>{amount}
+		</div>
+		<div class="nmi-sub">Secure one-time donation</div>
+
+		{#if status === 'success'}
+			<div class="nmi-success-box">
+				<div class="nmi-check">✓</div>
+				<div class="nmi-success-title">Thank you!</div>
+				<div class="nmi-success-text">
+					Your donation was received. Ellie's family thanks you.
+				</div>
 			</div>
-			<div class="nmi-sub">Secure one-time donation</div>
-
-			{#if status === 'success'}
-				<div class="nmi-success-box">
-					<div class="nmi-check">✓</div>
-					<div class="nmi-success-title">Thank you!</div>
-					<div class="nmi-success-text">
-						Your donation was received. Ellie's family thanks you.
-					</div>
-				</div>
-			{:else}
-				{#if errorMsg}
-					<div class="nmi-error-box">
-						<span>{errorMsg}</span>
-						<button type="button" onclick={tryAgain} class="nmi-retry">Try again</button>
-					</div>
-				{/if}
-
-				<div class="nmi-wallets">
-					<div id="nmi-apple-pay" class="nmi-wallet-btn"></div>
-					<div id="nmi-google-pay" class="nmi-wallet-btn"></div>
-				</div>
-
-				<div class="nmi-divider"><span>or pay with card</span></div>
-
-				<form onsubmit={submitCard}>
-					<div class="nmi-row">
-						<input
-							class="nmi-input"
-							bind:value={firstName}
-							placeholder="First name"
-							autocomplete="given-name"
-							required
-							disabled={status === 'processing'}
-						/>
-						<input
-							class="nmi-input"
-							bind:value={lastName}
-							placeholder="Last name"
-							autocomplete="family-name"
-							required
-							disabled={status === 'processing'}
-						/>
-					</div>
-					<input
-						class="nmi-input"
-						bind:value={email}
-						type="email"
-						placeholder="Email"
-						autocomplete="email"
-						required
-						disabled={status === 'processing'}
-					/>
-					<div id="nmi-ccnumber" class="nmi-field"></div>
-					<div class="nmi-row">
-						<div id="nmi-ccexp" class="nmi-field"></div>
-						<div id="nmi-cvv" class="nmi-field"></div>
-					</div>
-					<input
-						class="nmi-input"
-						bind:value={postalCode}
-						placeholder="ZIP code"
-						autocomplete="postal-code"
-						maxlength="10"
-						required
-						disabled={status === 'processing'}
-					/>
-
-					<button
-						type="submit"
-						class="nmi-submit"
-						disabled={status === 'processing' || status === 'loading'}
-					>
-						{#if status === 'processing'}
-							<span class="nmi-spinner"></span> Processing…
-						{:else if status === 'loading'}
-							<span class="nmi-spinner"></span> Loading…
-						{:else}
-							🔒 Donate {currencySymbol}{amount} securely
-						{/if}
-					</button>
-				</form>
-
-				<div class="nmi-trust">
-					<span>🔒 SSL encrypted</span>
-					<span class="nmi-dot">·</span>
-					<span>Powered by NMI</span>
+		{:else}
+			{#if errorMsg}
+				<div class="nmi-error-box">
+					<span>{errorMsg}</span>
+					<button type="button" onclick={tryAgain} class="nmi-retry">Try again</button>
 				</div>
 			{/if}
-		</div>
+
+			<div class="nmi-wallets">
+				<div id="nmi-apple-pay" class="nmi-wallet-btn nmi-wallet-apple"></div>
+				<div id="nmi-google-pay" class="nmi-wallet-btn nmi-wallet-google"></div>
+			</div>
+
+			<div class="nmi-divider" class:nmi-divider-solo={status === 'loading'}>
+				<span>or pay with card</span>
+			</div>
+
+			<form onsubmit={submitCard}>
+				<div class="nmi-row">
+					<input
+						class="nmi-input"
+						bind:value={firstName}
+						placeholder="First name"
+						autocomplete="given-name"
+						required
+						disabled={status === 'processing'}
+					/>
+					<input
+						class="nmi-input"
+						bind:value={lastName}
+						placeholder="Last name"
+						autocomplete="family-name"
+						required
+						disabled={status === 'processing'}
+					/>
+				</div>
+				<input
+					class="nmi-input"
+					bind:value={email}
+					type="email"
+					placeholder="Email"
+					autocomplete="email"
+					required
+					disabled={status === 'processing'}
+				/>
+				<div id="nmi-ccnumber" class="nmi-field"></div>
+				<div class="nmi-row">
+					<div id="nmi-ccexp" class="nmi-field"></div>
+					<div id="nmi-cvv" class="nmi-field"></div>
+				</div>
+				<input
+					class="nmi-input"
+					bind:value={postalCode}
+					placeholder="ZIP code"
+					autocomplete="postal-code"
+					maxlength="10"
+					required
+					disabled={status === 'processing'}
+				/>
+
+				<button
+					type="submit"
+					class="nmi-submit"
+					disabled={status === 'processing' || status === 'loading'}
+				>
+					{#if status === 'processing'}
+						<span class="nmi-spinner"></span> Processing…
+					{:else if status === 'loading'}
+						<span class="nmi-spinner"></span> Loading…
+					{:else}
+						🔒 Donate {currencySymbol}{amount} securely
+					{/if}
+				</button>
+			</form>
+
+			<div class="nmi-trust">
+				<span>🔒 SSL encrypted</span>
+				<span class="nmi-dot">·</span>
+				<span>Powered by NMI</span>
+			</div>
+		{/if}
 	</div>
-{/if}
+</div>
 
 <style>
 	.nmi-overlay {
@@ -381,15 +382,15 @@
 		justify-content: center;
 		z-index: 10000;
 		padding: 1rem;
-		animation: nmi-fadein 0.18s ease-out;
+		visibility: hidden;
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 0.18s ease-out;
 	}
-	@keyframes nmi-fadein {
-		from {
-			opacity: 0;
-		}
-		to {
-			opacity: 1;
-		}
+	.nmi-overlay.nmi-visible {
+		visibility: visible;
+		opacity: 1;
+		pointer-events: auto;
 	}
 	.nmi-modal {
 		background: #fff;
@@ -401,17 +402,11 @@
 		position: relative;
 		max-height: 92vh;
 		overflow-y: auto;
-		animation: nmi-slidein 0.22s ease-out;
+		transform: translateY(20px);
+		transition: transform 0.22s ease-out;
 	}
-	@keyframes nmi-slidein {
-		from {
-			transform: translateY(20px);
-			opacity: 0;
-		}
-		to {
-			transform: translateY(0);
-			opacity: 1;
-		}
+	.nmi-overlay.nmi-visible .nmi-modal {
+		transform: translateY(0);
 	}
 	.nmi-close {
 		position: absolute;
@@ -473,9 +468,20 @@
 	}
 	.nmi-wallet-btn {
 		min-height: 0;
+		border-radius: 12px;
+		overflow: hidden;
 	}
 	.nmi-wallet-btn:empty {
 		display: none;
+	}
+	.nmi-wallet-btn :global(button),
+	.nmi-wallet-btn :global(iframe),
+	.nmi-wallet-btn :global(> div) {
+		border-radius: 12px !important;
+		overflow: hidden !important;
+	}
+	.nmi-wallet-btn :global(.apple-pay-button) {
+		border-radius: 12px !important;
 	}
 	.nmi-divider {
 		display: flex;
@@ -518,6 +524,13 @@
 		margin-bottom: 0.5rem;
 	}
 	.nmi-input::placeholder {
+		color: #9ca3af;
+		opacity: 1;
+	}
+	.nmi-input::-webkit-input-placeholder {
+		color: #9ca3af;
+	}
+	.nmi-input::-moz-placeholder {
 		color: #9ca3af;
 		opacity: 1;
 	}
