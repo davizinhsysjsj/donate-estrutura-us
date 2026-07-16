@@ -86,9 +86,14 @@
 						buttonType: 'donate',
 						buttonColor: 'default',
 						emailRequired: true
+					},
+					applePay: {
+						selector: '#nmi-apple-pay',
+						buttonType: 'donate',
+						buttonStyle: 'black',
+						contactFields: ['email'],
+						contactFieldsMappedTo: 'billing'
 					}
-					// applePay removed for now — style keys were breaking configure().
-					// Will re-add once domain verification is done in the NMI panel.
 				},
 				price: forAmount.toFixed(2),
 				currency: 'USD',
@@ -357,6 +362,7 @@
 			{/if}
 
 			<div class="nmi-wallets">
+				<div id="nmi-apple-pay" class="nmi-wallet-btn nmi-wallet-apple"></div>
 				<div id="nmi-google-pay" class="nmi-wallet-btn nmi-wallet-google"></div>
 			</div>
 
@@ -553,6 +559,13 @@
 		border-radius: 12px;
 		overflow: hidden;
 		line-height: 0;
+		min-height: 48px;
+	}
+	.nmi-wallet-btn :global(> *) {
+		height: 48px !important;
+		min-height: 48px !important;
+		border-radius: 12px !important;
+		display: block !important;
 	}
 	.nmi-wallet-btn:empty {
 		display: none;
