@@ -19,7 +19,6 @@
 	let firstName = $state('');
 	let lastName = $state('');
 	let email = $state('');
-	let postalCode = $state('');
 
 	const PUBLIC_KEY = env.PUBLIC_NMI_PUBLIC_KEY || '';
 	const COLLECT_SRC = 'https://secure.nmi.com/token/Collect.js';
@@ -94,7 +93,14 @@
 				price: forAmount.toFixed(2),
 				currency: 'USD',
 				country: 'US',
-				callback: onCollectCallback
+				callback: onCollectCallback,
+				validationCallback: onValidation,
+				timeoutDuration: 15000,
+				timeoutCallback: () => {
+					console.warn('[NMI] tokenization timeout');
+					errorMsg = 'Payment timed out. Please try again.';
+					status = 'error';
+				}
 			});
 			lastConfiguredAmount = forAmount;
 			return true;
@@ -117,8 +123,18 @@
 		return iframesRendered();
 	}
 
+	const invalidFields = $state<Record<string, string>>({});
+	function onValidation(field: string, valid: boolean, message: string) {
+		if (valid) {
+			delete invalidFields[field];
+		} else {
+			invalidFields[field] = message || 'invalid';
+		}
+	}
+
 	// biome-ignore lint/suspicious/noExplicitAny: NMI response shape
 	function onCollectCallback(response: any) {
+		console.log('[NMI] callback fired', response);
 		if (!response || !response.token) {
 			console.warn('[NMI] callback with no token', response);
 			errorMsg = 'Could not process card. Please try again.';
@@ -140,7 +156,6 @@
 		const billing = {
 			first_name: (firstName || walletBilling.firstName || '').trim(),
 			last_name: (lastName || walletBilling.lastName || '').trim(),
-			postal_code: (postalCode || walletBilling.postalCode || '').trim(),
 			country: walletBilling.country || 'US',
 			email: (email || walletEmail || '').trim()
 		};
@@ -183,8 +198,13 @@
 
 	function submitCard(e: Event) {
 		e.preventDefault();
-		if (!firstName.trim() || !lastName.trim() || !email.trim() || !postalCode.trim()) {
-			errorMsg = 'Please fill in all fields above.';
+		if (!firstName.trim() || !lastName.trim() || !email.trim()) {
+			errorMsg = 'Please fill in name and email above.';
+			return;
+		}
+		const missing = ['ccnumber', 'ccexp', 'cvv'].filter((f) => invalidFields[f] !== undefined);
+		if (missing.length > 0) {
+			errorMsg = 'Please complete the card fields correctly.';
 			return;
 		}
 		errorMsg = '';
@@ -194,7 +214,15 @@
 			errorMsg = 'Payment not ready. Please wait a moment.';
 			return;
 		}
-		CollectJS.startPaymentRequest(e);
+		console.log('[NMI] startPaymentRequest');
+		status = 'processing';
+		try {
+			CollectJS.startPaymentRequest();
+		} catch (err) {
+			console.error('[NMI] startPaymentRequest error', err);
+			errorMsg = 'Could not submit payment. Please try again.';
+			status = 'error';
+		}
 	}
 
 	function tryAgain() {
@@ -326,6 +354,7 @@
 			<form onsubmit={submitCard}>
 				<div class="nmi-row">
 					<input
+						type="text"
 						class="nmi-input"
 						bind:value={firstName}
 						placeholder="First name"
@@ -334,6 +363,7 @@
 						disabled={status === 'processing'}
 					/>
 					<input
+						type="text"
 						class="nmi-input"
 						bind:value={lastName}
 						placeholder="Last name"
@@ -356,15 +386,6 @@
 					<div id="nmi-ccexp" class="nmi-field"></div>
 					<div id="nmi-cvv" class="nmi-field"></div>
 				</div>
-				<input
-					class="nmi-input"
-					bind:value={postalCode}
-					placeholder="ZIP code"
-					autocomplete="postal-code"
-					maxlength="10"
-					required
-					disabled={status === 'processing'}
-				/>
 
 				<button
 					type="submit"
@@ -550,15 +571,20 @@
 		margin-bottom: 0.5rem;
 	}
 	.nmi-input::placeholder {
-		color: #9ca3af;
-		opacity: 1;
+		color: #6b7280 !important;
+		opacity: 1 !important;
+		-webkit-text-fill-color: #6b7280;
 	}
 	.nmi-input::-webkit-input-placeholder {
-		color: #9ca3af;
+		color: #6b7280 !important;
+		-webkit-text-fill-color: #6b7280;
 	}
 	.nmi-input::-moz-placeholder {
-		color: #9ca3af;
-		opacity: 1;
+		color: #6b7280 !important;
+		opacity: 1 !important;
+	}
+	.nmi-input:-ms-input-placeholder {
+		color: #6b7280 !important;
 	}
 	.nmi-row .nmi-input {
 		margin-bottom: 0;
@@ -571,27 +597,27 @@
 		background: #f9fafb;
 		color: #9ca3af;
 	}
+	/* Container sem border/background — o input dentro do iframe do NMI
+	   ja renderiza a propria borda (default do browser). Deixar so um
+	   evita a borda dupla que aparecia antes. */
 	.nmi-field {
 		width: 100%;
 		height: 46px;
-		border: 1.5px solid #d1d5db;
-		border-radius: 10px;
-		background: #fff;
 		margin-bottom: 0.5rem;
-		overflow: hidden;
 		display: block;
 		box-sizing: border-box;
-		transition: border-color 0.15s;
-	}
-	.nmi-field:focus-within {
-		border-color: var(--primary, #02a95c);
 	}
 	.nmi-field :global(iframe) {
 		width: 100% !important;
 		height: 100% !important;
-		border: 0 !important;
 		display: block !important;
-		background: transparent !important;
+		border: 1.5px solid #d1d5db !important;
+		border-radius: 10px !important;
+		background: #fff !important;
+		box-sizing: border-box !important;
+	}
+	.nmi-field:focus-within :global(iframe) {
+		border-color: var(--primary, #02a95c) !important;
 	}
 	.nmi-row .nmi-field {
 		margin-bottom: 0;
