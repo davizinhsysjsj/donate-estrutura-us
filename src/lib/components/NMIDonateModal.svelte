@@ -91,6 +91,8 @@
 						selector: '#nmi-apple-pay',
 						buttonType: 'donate',
 						buttonStyle: 'black',
+						buttonLanguage: 'en',
+						buttonLocale: 'en-US',
 						contactFields: ['email'],
 						contactFieldsMappedTo: 'billing'
 					}
@@ -555,19 +557,24 @@
 		gap: 0.5rem;
 		margin-bottom: 0.75rem;
 	}
+	/* Botoes wallet — force altura, borda e largura idênticas nos dois. */
 	.nmi-wallet-btn {
 		border-radius: 12px;
 		overflow: hidden;
 		line-height: 0;
+		height: 48px;
+		width: 100%;
+		box-sizing: border-box;
 	}
 	.nmi-wallet-btn:empty {
 		display: none;
 	}
-	/* CollectJS injeta um <style> tag inline dentro do container; esconder pra
+	/* CollectJS injeta um <style> inline dentro do container; esconder pra
 	   nao virar texto visivel */
 	.nmi-wallet-btn :global(style) {
 		display: none !important;
 	}
+	/* Iframe do Google Pay */
 	.nmi-wallet-btn :global(iframe) {
 		border-radius: 12px !important;
 		display: block !important;
@@ -575,16 +582,28 @@
 		height: 48px !important;
 		border: 0 !important;
 		vertical-align: top;
+		box-sizing: border-box !important;
 	}
-	.nmi-wallet-btn :global(button) {
-		border-radius: 12px !important;
+	/* Web component Apple Pay button — usa CSS Properties expostas pelo componente */
+	.nmi-wallet-btn :global(apple-pay-button) {
 		display: block !important;
 		width: 100% !important;
+		height: 48px !important;
+		--apple-pay-button-border-radius: 12px;
+		--apple-pay-button-padding: 0 0;
+		--apple-pay-button-width: 100%;
+		--apple-pay-button-height: 48px;
 	}
+	/* Fallback pra versoes antigas do NMI que renderizam como <button> */
+	.nmi-wallet-btn :global(button.apple-pay-button),
 	.nmi-wallet-btn :global(.apple-pay-button) {
 		border-radius: 12px !important;
 		display: block !important;
+		width: 100% !important;
 		height: 48px !important;
+		-webkit-appearance: -apple-pay-button;
+		-apple-pay-button-type: donate;
+		-apple-pay-button-style: black;
 	}
 	.nmi-divider {
 		display: flex;
