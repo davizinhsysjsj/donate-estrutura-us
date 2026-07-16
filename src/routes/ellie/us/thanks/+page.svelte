@@ -4,7 +4,7 @@
   let { data } = $props();
   const { amount, dogs, dateStr, orderId } = data;
 
-  const PAGE_URL = 'https://donate-estrutura.vercel.app';
+  const PAGE_URL = 'https://donate-estrutura-us-production.up.railway.app/ellie/us';
   const shareText = encodeURIComponent(
     `Ik heb zojuist geholpen om ${dogs} opvang${dogs === 1 ? 'dier' : 'dieren'} te voeden via @pawsco.rescue. Doe mee op ${PAGE_URL}`
   );
