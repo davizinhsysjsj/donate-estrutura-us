@@ -71,14 +71,8 @@
 					'font-family':
 						"system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif",
 					color: '#111',
-					'background-color': 'transparent',
-					'border-width': '0',
-					'border-style': 'none',
-					padding: '0 12px',
-					height: '44px',
-					'line-height': '44px',
-					'box-shadow': 'none',
-					outline: 'none'
+					'background-color': '#ffffff',
+					padding: '0 12px'
 				},
 				invalidCss: { color: '#c53030' },
 				validCss: { color: '#111' },

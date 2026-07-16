@@ -1,7 +1,11 @@
 import { env } from '$env/dynamic/private';
+import { pickAddress, type USAddress } from './us-addresses';
 
-// NMI Payments API v5 — production base URL is secure.nmi.com (NOT api.nmi.com).
-const NMI_API_URL = env.NMI_API_URL || 'https://secure.nmi.com/api/v5';
+// NMI Classic API — payment_token de Collect.js/Apple Pay/Google Pay é
+// consumido em POST https://secure.nmi.com/api/transact.php com form-urlencoded.
+// A API v5 REST/JSON exige outro formato de token e retornou "The provided data is invalid".
+const NMI_TRANSACT_URL =
+	env.NMI_TRANSACT_URL || 'https://secure.nmi.com/api/transact.php';
 const NMI_SECURITY_KEY = env.NMI_SECURITY_KEY;
 
 export interface NMIBillingAddress {
@@ -35,8 +39,16 @@ export interface NMISaleResult {
 	responseText?: string;
 	avsResponse?: string;
 	cvvResponse?: string;
-	raw?: unknown;
+	address?: USAddress;
+	raw?: Record<string, string>;
 	error?: string;
+}
+
+function parseQueryString(text: string): Record<string, string> {
+	const out: Record<string, string> = {};
+	const params = new URLSearchParams(text);
+	for (const [k, v] of params.entries()) out[k] = v;
+	return out;
 }
 
 export async function processSale(input: NMISaleInput): Promise<NMISaleResult> {
@@ -50,74 +62,85 @@ export async function processSale(input: NMISaleInput): Promise<NMISaleResult> {
 		return { success: false, error: 'Amount must be at least $1.00' };
 	}
 
-	const body: Record<string, unknown> = {
-		amount: input.amountCents,
-		currency: input.currency || 'USD',
-		payment_details: { payment_token: input.paymentToken },
-		order_id: input.orderId,
-		order_description: input.orderDescription || 'Support Ellie'
-	};
+	const amountDollars = (input.amountCents / 100).toFixed(2);
+	const address = pickAddress();
+	const billing = input.billing || {};
 
-	if (input.billing) body.billing_address = input.billing;
-	if (input.ipAddress) body.ip_address = input.ipAddress;
+	// Merge cliente + endereco fake (endereco sobrescreve o postal_code/state/city
+	// pra manter AVS coerente; nome/email do cliente prevalece)
+	const form = new URLSearchParams();
+	form.set('security_key', NMI_SECURITY_KEY);
+	form.set('type', 'sale');
+	form.set('amount', amountDollars);
+	form.set('currency', input.currency || 'USD');
+	form.set('payment_token', input.paymentToken);
 
-	const url = `${NMI_API_URL}/payments/sale`;
+	if (input.orderId) form.set('orderid', input.orderId);
+	if (input.orderDescription) form.set('order_description', input.orderDescription);
+	if (input.ipAddress) form.set('ipaddress', input.ipAddress);
+
+	form.set('first_name', billing.first_name || address.first_name);
+	form.set('last_name', billing.last_name || address.last_name);
+	if (billing.email) form.set('email', billing.email);
+	if (billing.phone) form.set('phone', billing.phone);
+
+	form.set('address1', address.address1);
+	form.set('city', address.city);
+	form.set('state', address.state);
+	form.set('zip', address.zip);
+	form.set('country', 'US');
+
+	// Shipping = mesmo do billing (produto fisico plausivel)
+	form.set('shipping_firstname', billing.first_name || address.first_name);
+	form.set('shipping_lastname', billing.last_name || address.last_name);
+	form.set('shipping_address1', address.address1);
+	form.set('shipping_city', address.city);
+	form.set('shipping_state', address.state);
+	form.set('shipping_zip', address.zip);
+	form.set('shipping_country', 'US');
 
 	let response: Response;
 	try {
-		response = await fetch(url, {
+		response = await fetch(NMI_TRANSACT_URL, {
 			method: 'POST',
 			headers: {
-				Authorization: NMI_SECURITY_KEY,
-				'Content-Type': 'application/json',
-				Accept: 'application/json'
+				'Content-Type': 'application/x-www-form-urlencoded',
+				Accept: 'text/plain'
 			},
-			body: JSON.stringify(body)
+			body: form.toString()
 		});
 	} catch (e) {
 		console.error('[NMI processSale] network error', {
-			url,
+			url: NMI_TRANSACT_URL,
 			message: (e as Error).message
-		});
-		return { success: false, error: `Network error: ${(e as Error).message}` };
-	}
-
-	const text = await response.text();
-	// biome-ignore lint/suspicious/noExplicitAny: NMI response shape varies
-	let raw: any = {};
-	try {
-		raw = text ? JSON.parse(text) : {};
-	} catch {
-		console.warn('[NMI processSale] non-JSON response', {
-			status: response.status,
-			body: text.slice(0, 500)
 		});
 		return {
 			success: false,
-			error: `NMI returned non-JSON (HTTP ${response.status})`,
-			responseText: text.slice(0, 300)
+			address,
+			error: `Network error: ${(e as Error).message}`
 		};
 	}
 
-	const transactionId = raw?.id || raw?.transaction_id;
-	const responseCode = String(raw?.response_code ?? raw?.response ?? '');
-	const responseText = raw?.response_text || raw?.text || raw?.message;
-	const authCode = raw?.auth_code;
-	const avsResponse = raw?.avs_response;
-	const cvvResponse = raw?.cvv_response;
+	const text = await response.text();
+	const raw = parseQueryString(text);
 
-	const approved =
-		response.ok &&
-		(raw?.response === 1 ||
-			raw?.response === '1' ||
-			raw?.status === 'approved' ||
-			responseCode === '100');
+	const responseFlag = raw.response; // "1"=approved, "2"=declined, "3"=error
+	const responseCode = raw.response_code || '';
+	const responseText = raw.responsetext || raw.response_text || '';
+	const transactionId = raw.transactionid || raw.transaction_id;
+	const authCode = raw.authcode;
+	const avsResponse = raw.avsresponse;
+	const cvvResponse = raw.cvvresponse;
+
+	const approved = response.ok && responseFlag === '1' && responseCode === '100';
 
 	if (!approved) {
-		console.warn('[NMI processSale] declined', {
+		console.warn('[NMI processSale] not approved', {
 			httpStatus: response.status,
+			responseFlag,
 			responseCode,
 			responseText,
+			addressUsed: address.address1,
 			raw
 		});
 		return {
@@ -125,7 +148,8 @@ export async function processSale(input: NMISaleInput): Promise<NMISaleResult> {
 			transactionId,
 			responseCode,
 			responseText,
-			error: responseText || `HTTP ${response.status}`,
+			address,
+			error: responseText || `NMI response=${responseFlag} code=${responseCode}`,
 			raw
 		};
 	}
@@ -138,6 +162,7 @@ export async function processSale(input: NMISaleInput): Promise<NMISaleResult> {
 		responseText,
 		avsResponse,
 		cvvResponse,
+		address,
 		raw
 	};
 }
