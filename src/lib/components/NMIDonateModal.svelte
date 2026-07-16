@@ -27,6 +27,7 @@
 	let lastConfiguredAmount = 0;
 	let mounted = false;
 	let configuring = false;
+	let applePayAvailable = $state(false);
 
 	function loadCollectScript(): Promise<void> {
 		// biome-ignore lint/suspicious/noExplicitAny: window global
@@ -284,6 +285,14 @@
 
 	onMount(() => {
 		mounted = true;
+		// Detect Apple Pay availability so we only render our fake button in Safari
+		try {
+			// biome-ignore lint/suspicious/noExplicitAny: window global
+			const w = window as any;
+			applePayAvailable = !!(w.ApplePaySession && w.ApplePaySession.canMakePayments && w.ApplePaySession.canMakePayments());
+		} catch {
+			applePayAvailable = false;
+		}
 		// Chrome (especialmente headless) injeta " " nos inputs vazios via autofill
 		// mesmo com autocomplete=off. Este poll durante 3s mata qualquer valor
 		// parasitas ate o usuario tocar o input.
@@ -364,7 +373,19 @@
 			{/if}
 
 			<div class="nmi-wallets">
-				<div id="nmi-apple-pay" class="nmi-wallet-btn nmi-wallet-apple"></div>
+				{#if applePayAvailable}
+					<!-- Container do Apple Pay: nosso botao fake por cima (visual controlado)
+					     + botao real do CollectJS por baixo (invisivel, mas captura click) -->
+					<div class="nmi-wallet-btn nmi-wallet-apple">
+						<div class="nmi-apple-fake" aria-hidden="true">
+							<span>Donate with</span>
+							<svg viewBox="0 0 170 170" xmlns="http://www.w3.org/2000/svg" width="18" height="20"
+								><path fill="#fff" d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.197-2.12-9.973-3.17-14.34-3.17-4.58 0-9.492 1.05-14.746 3.17-5.262 2.13-9.501 3.24-12.742 3.35-4.929.21-9.842-1.96-14.746-6.52-3.13-2.73-7.045-7.41-11.735-14.04-5.032-7.08-9.169-15.29-12.41-24.65-3.471-10.11-5.211-19.9-5.211-29.378 0-10.859 2.346-20.223 7.045-28.068 3.693-6.303 8.606-11.275 14.755-14.925s12.793-5.51 19.948-5.629c3.915 0 9.049 1.211 15.429 3.591 6.362 2.388 10.447 3.599 12.238 3.599 1.339 0 5.877-1.416 13.57-4.239 7.275-2.618 13.415-3.702 18.445-3.275 13.63 1.1 23.87 6.473 30.68 16.153-12.19 7.386-18.22 17.731-18.1 31.002.11 10.337 3.86 18.939 11.23 25.769 3.34 3.17 7.07 5.62 11.22 7.36-.9 2.61-1.85 5.11-2.86 7.51zM119.11 7.24c0 8.102-2.96 15.667-8.86 22.669-7.12 8.324-15.732 13.134-25.071 12.375a25.222 25.222 0 0 1-.188-3.07c0-7.778 3.386-16.102 9.399-22.908 3.002-3.446 6.82-6.311 11.45-8.597 4.62-2.252 8.99-3.497 13.1-3.71.12 1.083.17 2.166.17 3.24z"/></svg
+							><span>Pay</span>
+						</div>
+						<div id="nmi-apple-pay" class="nmi-wallet-real"></div>
+					</div>
+				{/if}
 				<div id="nmi-google-pay" class="nmi-wallet-btn nmi-wallet-google"></div>
 			</div>
 
@@ -557,24 +578,25 @@
 		gap: 0.5rem;
 		margin-bottom: 0.75rem;
 	}
-	/* Botoes wallet — force altura, borda e largura idênticas nos dois. */
+	/* Container dos wallets — mesmo tamanho e borda pra Apple e Google */
 	.nmi-wallet-btn {
+		position: relative;
 		border-radius: 12px;
 		overflow: hidden;
 		line-height: 0;
 		height: 48px;
 		width: 100%;
 		box-sizing: border-box;
+		background: #000;
 	}
 	.nmi-wallet-btn:empty {
 		display: none;
 	}
-	/* CollectJS injeta um <style> inline dentro do container; esconder pra
-	   nao virar texto visivel */
+	/* Esconder o <style> tag que CollectJS injeta */
 	.nmi-wallet-btn :global(style) {
 		display: none !important;
 	}
-	/* Iframe do Google Pay */
+	/* Google Pay iframe */
 	.nmi-wallet-btn :global(iframe) {
 		border-radius: 12px !important;
 		display: block !important;
@@ -584,26 +606,41 @@
 		vertical-align: top;
 		box-sizing: border-box !important;
 	}
-	/* Web component Apple Pay button — usa CSS Properties expostas pelo componente */
-	.nmi-wallet-btn :global(apple-pay-button) {
-		display: block !important;
-		width: 100% !important;
-		height: 48px !important;
-		--apple-pay-button-border-radius: 12px;
-		--apple-pay-button-padding: 0 0;
-		--apple-pay-button-width: 100%;
-		--apple-pay-button-height: 48px;
+	/* Apple Pay: fake button visual (por cima) + real invisivel (por baixo) */
+	.nmi-apple-fake {
+		position: absolute;
+		inset: 0;
+		background: #000;
+		color: #fff;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+		font-size: 17px;
+		font-weight: 500;
+		line-height: 1;
+		border-radius: 12px;
+		pointer-events: none;
+		z-index: 1;
 	}
-	/* Fallback pra versoes antigas do NMI que renderizam como <button> */
-	.nmi-wallet-btn :global(button.apple-pay-button),
-	.nmi-wallet-btn :global(.apple-pay-button) {
-		border-radius: 12px !important;
-		display: block !important;
+	.nmi-apple-fake svg {
+		display: inline-block;
+		vertical-align: middle;
+		margin-top: -2px;
+	}
+	.nmi-wallet-real {
+		position: absolute;
+		inset: 0;
+		z-index: 2;
+		opacity: 0;
+	}
+	.nmi-wallet-real :global(apple-pay-button),
+	.nmi-wallet-real :global(.apple-pay-button),
+	.nmi-wallet-real :global(button) {
 		width: 100% !important;
 		height: 48px !important;
-		-webkit-appearance: -apple-pay-button;
-		-apple-pay-button-type: donate;
-		-apple-pay-button-style: black;
+		border-radius: 12px !important;
 	}
 	.nmi-divider {
 		display: flex;
