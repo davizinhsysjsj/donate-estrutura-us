@@ -69,9 +69,13 @@
 					'font-size': '15px',
 					'font-family':
 						"system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif",
-					color: '#111',
+					color: '#111827',
 					'background-color': '#ffffff',
-					padding: '0 12px'
+					padding: '0 12px',
+					'border-width': '0',
+					'border-style': 'none',
+					'box-shadow': 'none',
+					outline: 'none'
 				},
 				fields: {
 					ccnumber: { selector: '#nmi-ccnumber', placeholder: '4111 1111 1111 1111' },
@@ -82,13 +86,9 @@
 						buttonType: 'donate',
 						buttonColor: 'default',
 						emailRequired: true
-					},
-					applePay: {
-						selector: '#nmi-apple-pay',
-						style: { 'button-type': 'donate', 'button-style': 'black' },
-						contactFields: ['email'],
-						contactFieldsMappedTo: 'billing'
 					}
+					// applePay removed for now — style keys were breaking configure().
+					// Will re-add once domain verification is done in the NMI panel.
 				},
 				price: forAmount.toFixed(2),
 				currency: 'USD',
@@ -277,6 +277,20 @@
 
 	onMount(() => {
 		mounted = true;
+		// Chrome (especialmente headless) injeta " " nos inputs vazios via autofill
+		// mesmo com autocomplete=off. Este poll durante 3s mata qualquer valor
+		// parasitas ate o usuario tocar o input.
+		let ticks = 0;
+		const clearer = setInterval(() => {
+			ticks++;
+			document.querySelectorAll<HTMLInputElement>('.nmi-input').forEach((i) => {
+				if (!i.dataset.userTouched && (i.value === ' ' || /^\s+$/.test(i.value))) {
+					i.value = '';
+				}
+			});
+			if (ticks > 30) clearInterval(clearer); // 3s
+		}, 100);
+		return () => clearInterval(clearer);
 	});
 
 	let lastOpen = $state(false);
@@ -343,7 +357,6 @@
 			{/if}
 
 			<div class="nmi-wallets">
-				<div id="nmi-apple-pay" class="nmi-wallet-btn nmi-wallet-apple"></div>
 				<div id="nmi-google-pay" class="nmi-wallet-btn nmi-wallet-google"></div>
 			</div>
 
@@ -352,32 +365,62 @@
 			</div>
 
 			<form onsubmit={submitCard}>
+				<!-- Decoy input antes de tudo pra consumir o autofill agressivo do Chrome -->
+				<input
+					type="text"
+					name="fake_decoy_1"
+					autocomplete="off"
+					tabindex="-1"
+					aria-hidden="true"
+					style="display:none"
+				/>
 				<div class="nmi-row">
 					<input
 						type="text"
 						class="nmi-input"
-						bind:value={firstName}
+						value={firstName}
+						oninput={(e) => {
+							e.currentTarget.dataset.userTouched = '1';
+							firstName = e.currentTarget.value;
+						}}
 						placeholder="First name"
-						autocomplete="given-name"
+						name="nmi_donor_first_x9k"
+						autocomplete="off"
+						data-lpignore="true"
+						data-form-type="other"
 						required
 						disabled={status === 'processing'}
 					/>
 					<input
 						type="text"
 						class="nmi-input"
-						bind:value={lastName}
+						value={lastName}
+						oninput={(e) => {
+							e.currentTarget.dataset.userTouched = '1';
+							lastName = e.currentTarget.value;
+						}}
 						placeholder="Last name"
-						autocomplete="family-name"
+						name="nmi_donor_last_p7m"
+						autocomplete="off"
+						data-lpignore="true"
+						data-form-type="other"
 						required
 						disabled={status === 'processing'}
 					/>
 				</div>
 				<input
 					class="nmi-input"
-					bind:value={email}
+					value={email}
+					oninput={(e) => {
+						e.currentTarget.dataset.userTouched = '1';
+						email = e.currentTarget.value;
+					}}
 					type="email"
 					placeholder="Email"
-					autocomplete="email"
+					name="nmi_donor_email_v3q"
+					autocomplete="off"
+					data-lpignore="true"
+					data-form-type="other"
 					required
 					disabled={status === 'processing'}
 				/>
@@ -586,6 +629,14 @@
 	.nmi-input:-ms-input-placeholder {
 		color: #6b7280 !important;
 	}
+	/* Kill Chrome autofill yellow background that hides placeholders */
+	.nmi-input:-webkit-autofill,
+	.nmi-input:-webkit-autofill:hover,
+	.nmi-input:-webkit-autofill:focus {
+		-webkit-box-shadow: 0 0 0 1000px #fff inset !important;
+		-webkit-text-fill-color: #111 !important;
+		transition: background-color 5000s ease-in-out 0s;
+	}
 	.nmi-row .nmi-input {
 		margin-bottom: 0;
 	}
@@ -597,27 +648,35 @@
 		background: #f9fafb;
 		color: #9ca3af;
 	}
-	/* Container sem border/background — o input dentro do iframe do NMI
-	   ja renderiza a propria borda (default do browser). Deixar so um
-	   evita a borda dupla que aparecia antes. */
+	/* readonly usado so pra bloquear autofill; visual identico ao normal */
+	.nmi-input:read-only {
+		background: #fff;
+		color: #111;
+		cursor: text;
+	}
+	/* Container tem a borda visual; o customCss remove border-width do input
+	   dentro do iframe do NMI. Assim so aparece uma borda (a nossa). */
 	.nmi-field {
 		width: 100%;
 		height: 46px;
+		border: 1.5px solid #d1d5db;
+		border-radius: 10px;
+		background: #fff;
 		margin-bottom: 0.5rem;
-		display: block;
 		box-sizing: border-box;
+		display: block;
+		overflow: hidden;
+		transition: border-color 0.15s;
+	}
+	.nmi-field:focus-within {
+		border-color: var(--primary, #02a95c);
 	}
 	.nmi-field :global(iframe) {
 		width: 100% !important;
 		height: 100% !important;
 		display: block !important;
-		border: 1.5px solid #d1d5db !important;
-		border-radius: 10px !important;
-		background: #fff !important;
-		box-sizing: border-box !important;
-	}
-	.nmi-field:focus-within :global(iframe) {
-		border-color: var(--primary, #02a95c) !important;
+		border: 0 !important;
+		background: transparent !important;
 	}
 	.nmi-row .nmi-field {
 		margin-bottom: 0;
