@@ -559,21 +559,20 @@
 		border-radius: 12px;
 		overflow: hidden;
 		line-height: 0;
-		min-height: 48px;
-	}
-	.nmi-wallet-btn :global(> *) {
-		height: 48px !important;
-		min-height: 48px !important;
-		border-radius: 12px !important;
-		display: block !important;
 	}
 	.nmi-wallet-btn:empty {
 		display: none;
+	}
+	/* CollectJS injeta um <style> tag inline dentro do container; esconder pra
+	   nao virar texto visivel */
+	.nmi-wallet-btn :global(style) {
+		display: none !important;
 	}
 	.nmi-wallet-btn :global(iframe) {
 		border-radius: 12px !important;
 		display: block !important;
 		width: 100% !important;
+		height: 48px !important;
 		border: 0 !important;
 		vertical-align: top;
 	}
@@ -585,6 +584,7 @@
 	.nmi-wallet-btn :global(.apple-pay-button) {
 		border-radius: 12px !important;
 		display: block !important;
+		height: 48px !important;
 	}
 	.nmi-divider {
 		display: flex;
