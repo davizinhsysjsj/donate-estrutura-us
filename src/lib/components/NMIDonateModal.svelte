@@ -73,10 +73,13 @@
 					color: '#111827',
 					'background-color': '#ffffff',
 					padding: '0 12px',
+					'line-height': '43px',
+					height: '43px',
 					'border-width': '0',
 					'border-style': 'none',
 					'box-shadow': 'none',
-					outline: 'none'
+					outline: 'none',
+					'vertical-align': 'middle'
 				},
 				fields: {
 					ccnumber: { selector: '#nmi-ccnumber', placeholder: '4111 1111 1111 1111' },
