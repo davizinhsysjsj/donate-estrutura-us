@@ -8,14 +8,12 @@
   import { goto, preloadData, preloadCode } from '$app/navigation';
   import ProgressCard from '$lib/components/ProgressCard.svelte';
   import StickyBottomBar from '$lib/components/StickyBottomBar.svelte';
+  import NMIDonateModal from '$lib/components/NMIDonateModal.svelte';
   import {
-    captureAndPersistFbclid, getFbp, getEid, trackEvent, uuid, buildShopifyCartUrl,
+    captureAndPersistFbclid, getFbp, trackEvent, uuid,
     type UtmData
   } from '$lib/utils/fbtracking';
   import { track as trackAnalytics, getSid } from '$lib/utils/analytics';
-  import {
-    SHOPIFY_SHOP_DOMAIN, TIER_NAME_BY_AMOUNT, pickVariantForAmount
-  } from '$lib/data/variants';
   import type { PageData } from './$types';
 
   const { data } = $props<{ data: PageData }>();
@@ -186,6 +184,11 @@
   let currentStep = $state<1 | 2>(1);
   let selectedAmount = $state<number>(DEFAULT_TIER);
   let donating = $state(false);
+
+  // NMI modal (US) — substitui redirect Shopify
+  let nmiOpen = $state(false);
+  let nmiAmount = $state<number>(0);
+  let nmiLastEventId = $state<string>('');
   let toastMessage = $state('');
   let toastVisible = $state(false);
   let menuOpen = $state(false);
@@ -315,26 +318,28 @@
       console.warn('[ellie] CAPI IC fetch threw', e);
     }
 
-    const variantId = pickVariantForAmount(amount);
-
-    // Pequeno delay pra Pixel client-side terminar de enfileirar o beacon
+    // US: em vez de redirect pro Shopify, abre modal NMI (Collect.js + Apple/Google Pay)
+    nmiAmount = amount;
+    nmiLastEventId = eventId;
     setTimeout(() => {
-      if (!variantId || variantId.startsWith('PLACEHOLDER')) {
-        window.location.href = `/supporter?tier=${amount}&event_id=${eventId}`;
-      } else {
-        window.location.href = buildShopifyCartUrl({
-          shopDomain: SHOPIFY_SHOP_DOMAIN,
-          variantId,
-          fbclid,
-          fbp,
-          eventId,
-          utm,
-          sid: getSid(),
-          eid: getEid(),
-          funnel: 'ellie-nl'
-        });
-      }
-    }, 250);
+      nmiOpen = true;
+      quickDonating = null;
+    }, 150);
+  }
+
+  function handleNmiClose() {
+    nmiOpen = false;
+    quickDonating = null;
+    donating = false;
+  }
+
+  function handleNmiSuccess(info: { transactionId?: string; orderId?: string }) {
+    const eventId = nmiLastEventId || uuid();
+    const tid = info.transactionId ?? '';
+    const oid = info.orderId ?? '';
+    setTimeout(() => {
+      window.location.href = `/supporter?tier=${nmiAmount}&event_id=${eventId}&tid=${encodeURIComponent(tid)}&oid=${encodeURIComponent(oid)}`;
+    }, 1400);
   }
 
   function selectAmount(amount: number) {
@@ -363,27 +368,14 @@
       num_items: 1
     }, eventId);
 
-    const variantId = pickVariantForAmount(selectedAmount);
-    const isPlaceholder = !variantId || variantId.startsWith('PLACEHOLDER');
-    const tierName = TIER_NAME_BY_AMOUNT[selectedAmount] || String(selectedAmount);
-
+    // US: fecha 2-step, abre modal NMI
+    nmiAmount = selectedAmount;
+    nmiLastEventId = eventId;
     setTimeout(() => {
-      if (isPlaceholder) {
-        window.location.href = `/supporter?tier=${selectedAmount}&event_id=${eventId}`;
-      } else {
-        window.location.href = buildShopifyCartUrl({
-          shopDomain: SHOPIFY_SHOP_DOMAIN,
-          variantId,
-          fbclid,
-          fbp,
-          eventId,
-          utm,
-          sid: getSid(),
-          eid: getEid(),
-          funnel: 'ellie-nl'
-        });
-      }
-    }, 800);
+      donationOpen = false;
+      donating = false;
+      nmiOpen = true;
+    }, 250);
   }
 
   function shareTo(target: 'whatsapp' | 'facebook' | 'copy') {
@@ -937,6 +929,15 @@
     <button class="sheet-close-btn" onclick={() => (donorsModalOpen = false)}>Sluiten</button>
   </div>
 </div>
+
+<!-- NMI Donation Modal (US) -->
+<NMIDonateModal
+  open={nmiOpen}
+  amount={nmiAmount}
+  currencySymbol="$"
+  onClose={handleNmiClose}
+  onSuccess={handleNmiSuccess}
+/>
 
 <!-- Toast -->
 <div class="toast" class:show={toastVisible}>{toastMessage}</div>
