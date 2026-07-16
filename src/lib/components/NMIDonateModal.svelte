@@ -169,7 +169,7 @@
 					token: response.token,
 					tokenType: response.tokenType,
 					billing,
-					orderDescription: `Ellie donation ${currencySymbol}${amount}`
+					orderDescription: `Order ${currencySymbol}${amount.toFixed(2)}`
 				})
 			});
 			let data: { success?: boolean; error?: string; transactionId?: string; orderId?: string } =

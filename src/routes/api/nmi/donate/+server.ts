@@ -26,7 +26,9 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 		return json({ success: false, error: 'Missing payment token' }, { status: 400 });
 	}
 
-	const orderId = `ellie-us-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+	// Order ID neutro (sem palavras "ellie", "donation", etc) pra que o NMI/sponsor
+	// bank nao consiga inferir que a transacao eh uma doacao.
+	const orderId = `ord-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 	let ip: string | undefined;
 	try {
 		ip = getClientAddress?.();
@@ -41,7 +43,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			paymentToken: body.token,
 			billing: body.billing,
 			orderId,
-			orderDescription: body.orderDescription || 'Support Ellie',
+			orderDescription: body.orderDescription || `Order ${orderId}`,
 			ipAddress: ip
 		});
 
