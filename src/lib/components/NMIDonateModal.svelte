@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { tick } from 'svelte';
 	import { env } from '$env/dynamic/public';
 
 	interface Props {
@@ -15,8 +15,6 @@
 	type Status = 'loading' | 'ready' | 'processing' | 'success' | 'error';
 	let status = $state<Status>('loading');
 	let errorMsg = $state('');
-	let configured = $state(false);
-	let scriptLoading = $state(false);
 
 	let firstName = $state('');
 	let lastName = $state('');
@@ -26,99 +24,118 @@
 	const PUBLIC_KEY = env.PUBLIC_NMI_PUBLIC_KEY || '';
 	const COLLECT_SRC = 'https://secure.nmi.com/token/Collect.js';
 
+	let scriptPromise: Promise<void> | null = null;
+	let configuredOnce = false;
+
 	function loadCollectScript(): Promise<void> {
-		return new Promise((resolve, reject) => {
-			// biome-ignore lint/suspicious/noExplicitAny: window global
-			const w = window as any;
-			if (w.CollectJS) return resolve();
-			if (scriptLoading) {
-				const check = setInterval(() => {
-					if (w.CollectJS) {
-						clearInterval(check);
-						resolve();
-					}
-				}, 50);
-				setTimeout(() => {
-					clearInterval(check);
-					if (!w.CollectJS) reject(new Error('Collect.js load timeout'));
-				}, 15000);
-				return;
-			}
-			scriptLoading = true;
-			const existing = document.querySelector(`script[src="${COLLECT_SRC}"]`);
+		// biome-ignore lint/suspicious/noExplicitAny: window global
+		const w = window as any;
+		if (w.CollectJS) return Promise.resolve();
+		if (scriptPromise) return scriptPromise;
+		scriptPromise = new Promise((resolve, reject) => {
+			const existing = document.querySelector(
+				`script[src="${COLLECT_SRC}"]`
+			) as HTMLScriptElement | null;
 			if (existing) {
+				if (w.CollectJS) return resolve();
 				existing.addEventListener('load', () => resolve());
 				existing.addEventListener('error', () => reject(new Error('Collect.js failed to load')));
 				return;
 			}
 			const s = document.createElement('script');
 			s.src = COLLECT_SRC;
+			s.async = true;
 			s.setAttribute('data-tokenization-key', PUBLIC_KEY);
 			s.onload = () => resolve();
 			s.onerror = () => reject(new Error('Collect.js failed to load'));
 			document.head.appendChild(s);
 		});
+		return scriptPromise;
 	}
 
 	function configureCollect() {
 		// biome-ignore lint/suspicious/noExplicitAny: NMI global
 		const CollectJS = (window as any).CollectJS;
-		if (!CollectJS) return;
-		CollectJS.configure({
-			variant: 'inline',
-			styleSniffer: false,
-			customCss: {
-				'font-size': '15px',
-				'font-family':
-					"system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif",
-				color: '#111',
-				'background-color': '#fff',
-				padding: '0 12px'
-			},
-			invalidCss: { color: '#c53030', 'border-color': '#c53030' },
-			validCss: { color: '#111' },
-			focusCss: { 'border-color': '#02A95C' },
-			placeholderCss: { color: '#9ca3af' },
-			fields: {
-				ccnumber: { selector: '#nmi-ccnumber', placeholder: '4111 1111 1111 1111' },
-				ccexp: { selector: '#nmi-ccexp', placeholder: 'MM / YY' },
-				cvv: { selector: '#nmi-cvv', placeholder: 'CVV' },
-				googlePay: {
-					selector: '#nmi-google-pay',
-					buttonType: 'donate',
-					buttonColor: 'default',
-					emailRequired: true
+		if (!CollectJS) {
+			console.warn('[NMI] CollectJS global missing at configure time');
+			errorMsg = 'Could not load secure payment. Please refresh the page.';
+			status = 'error';
+			return;
+		}
+		try {
+			CollectJS.configure({
+				variant: 'inline',
+				styleSniffer: false,
+				customCss: {
+					'font-size': '15px',
+					'font-family':
+						"system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif",
+					color: '#111',
+					'background-color': 'transparent',
+					'border-width': '0',
+					'border-style': 'none',
+					padding: '0 12px',
+					height: '44px',
+					'line-height': '44px',
+					'box-shadow': 'none',
+					outline: 'none'
 				},
-				applePay: {
-					selector: '#nmi-apple-pay',
-					style: { 'button-type': 'donate', 'button-style': 'black' },
-					contactFields: ['email'],
-					contactFieldsMappedTo: 'billing'
+				invalidCss: { color: '#c53030' },
+				validCss: { color: '#111' },
+				focusCss: { color: '#111' },
+				placeholderCss: { color: '#9ca3af' },
+				fields: {
+					ccnumber: { selector: '#nmi-ccnumber', placeholder: '4111 1111 1111 1111' },
+					ccexp: { selector: '#nmi-ccexp', placeholder: 'MM / YY' },
+					cvv: { selector: '#nmi-cvv', placeholder: 'CVV' },
+					googlePay: {
+						selector: '#nmi-google-pay',
+						buttonType: 'donate',
+						buttonColor: 'default',
+						emailRequired: true
+					},
+					applePay: {
+						selector: '#nmi-apple-pay',
+						style: { 'button-type': 'donate', 'button-style': 'black' },
+						contactFields: ['email'],
+						contactFieldsMappedTo: 'billing'
+					}
+				},
+				price: amount.toFixed(2),
+				currency: 'USD',
+				country: 'US',
+				callback: onCollectCallback,
+				validationCallback: onValidation,
+				fieldsAvailableCallback: () => {
+					status = 'ready';
+				},
+				timeoutDuration: 15000,
+				timeoutCallback: () => {
+					console.warn('[NMI] tokenization timed out');
+					errorMsg = 'Payment timed out. Please try again.';
+					status = 'error';
 				}
-			},
-			price: amount.toFixed(2),
-			currency: 'USD',
-			country: 'US',
-			callback: onCollectCallback,
-			validationCallback: onValidation,
-			timeoutDuration: 15000,
-			timeoutCallback: () => {
-				errorMsg = 'Payment timed out. Please try again.';
-				status = 'error';
-			}
-		});
-		configured = true;
-		status = 'ready';
+			});
+			configuredOnce = true;
+			// Fallback: if fieldsAvailableCallback never fires, mark ready after 1.5s
+			setTimeout(() => {
+				if (status === 'loading') status = 'ready';
+			}, 1500);
+		} catch (e) {
+			console.error('[NMI] configure error', e);
+			errorMsg = 'Could not initialize secure payment.';
+			status = 'error';
+		}
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: NMI callback shape varies
 	function onValidation(_field: string, _valid: boolean, _message: string) {
-		// No-op — Collect.js handles UI via CSS classes
+		// no-op — CollectJS handles UI via CSS classes
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: NMI callback shape
+	// biome-ignore lint/suspicious/noExplicitAny: NMI response shape
 	function onCollectCallback(response: any) {
 		if (!response || !response.token) {
+			console.warn('[NMI] callback with no token', response);
 			errorMsg = 'Could not process card. Please try again.';
 			status = 'error';
 			return;
@@ -133,12 +150,12 @@
 
 		const wallet = response.wallet ?? {};
 		const walletBilling = wallet.billingInfo ?? {};
-		const walletEmail = wallet.email || walletBilling.email;
+		const walletEmail = wallet.email || walletBilling.email || '';
 
 		const billing = {
-			first_name: (firstName || walletBilling.firstName || '').trim(),
-			last_name: (lastName || walletBilling.lastName || '').trim(),
-			postal_code: (postalCode || walletBilling.postalCode || '').trim(),
+			first_name: (firstName || walletBilling.firstName || 'Donor').trim(),
+			last_name: (lastName || walletBilling.lastName || 'Anonymous').trim(),
+			postal_code: (postalCode || walletBilling.postalCode || '00000').trim(),
 			country: walletBilling.country || 'US',
 			email: (email || walletEmail || '').trim()
 		};
@@ -150,19 +167,30 @@
 				body: JSON.stringify({
 					amount,
 					token: response.token,
+					tokenType: response.tokenType,
 					billing,
 					orderDescription: `Ellie donation ${currencySymbol}${amount}`
 				})
 			});
-			const data = await res.json();
+			let data: { success?: boolean; error?: string; transactionId?: string; orderId?: string } =
+				{};
+			try {
+				data = await res.json();
+			} catch {
+				// non-JSON response
+			}
 			if (res.ok && data.success) {
 				status = 'success';
 				onSuccess({ transactionId: data.transactionId, orderId: data.orderId });
 			} else {
-				errorMsg = data.error || 'Payment declined. Please try another card.';
+				console.warn('[NMI] payment failed', res.status, data);
+				errorMsg =
+					data.error ||
+					`Payment failed (HTTP ${res.status}). Please try another card.`;
 				status = 'error';
 			}
 		} catch (e) {
+			console.error('[NMI] network error', e);
 			errorMsg = 'Network error. Please try again.';
 			status = 'error';
 		}
@@ -176,12 +204,22 @@
 		}
 		errorMsg = '';
 		// biome-ignore lint/suspicious/noExplicitAny: NMI global
-		(window as any).CollectJS.startPaymentRequest(e);
+		const CollectJS = (window as any).CollectJS;
+		if (!CollectJS) {
+			errorMsg = 'Payment not ready. Please refresh.';
+			return;
+		}
+		CollectJS.startPaymentRequest(e);
 	}
 
 	function tryAgain() {
 		errorMsg = '';
-		status = 'ready';
+		if (configuredOnce) {
+			status = 'ready';
+		} else {
+			status = 'loading';
+			void initialize();
+		}
 	}
 
 	function handleOverlayClick(e: MouseEvent) {
@@ -196,12 +234,15 @@
 		}
 		try {
 			await loadCollectScript();
-			// wait a tick so DOM containers exist
 			await tick();
-			// small delay to ensure Collect.js script fully initialized
-			await new Promise((r) => setTimeout(r, 50));
+			await new Promise((r) => setTimeout(r, 30));
+			// biome-ignore lint/suspicious/noExplicitAny: NMI global
+			if (!(window as any).CollectJS) {
+				throw new Error('CollectJS not available after load');
+			}
 			configureCollect();
 		} catch (e) {
+			console.error('[NMI] init error', e);
 			errorMsg = 'Could not load secure payment. Please refresh the page.';
 			status = 'error';
 		}
@@ -213,18 +254,11 @@
 			lastOpen = true;
 			status = 'loading';
 			errorMsg = '';
+			configuredOnce = false;
 			void initialize();
 		} else if (!open && lastOpen) {
 			lastOpen = false;
-			configured = false;
-			// Note: CollectJS holds internal state; we let iframes stay in-memory
 		}
-	});
-
-	onMount(() => {
-		return () => {
-			// cleanup on unmount
-		};
 	});
 </script>
 
@@ -260,23 +294,21 @@
 					</div>
 				</div>
 			{:else}
-				{#if status === 'error' && errorMsg}
+				{#if errorMsg}
 					<div class="nmi-error-box">
 						<span>{errorMsg}</span>
 						<button type="button" onclick={tryAgain} class="nmi-retry">Try again</button>
 					</div>
 				{/if}
 
-				<div class="nmi-wallets" class:nmi-hidden={status === 'loading'}>
+				<div class="nmi-wallets">
 					<div id="nmi-apple-pay" class="nmi-wallet-btn"></div>
 					<div id="nmi-google-pay" class="nmi-wallet-btn"></div>
 				</div>
 
-				<div class="nmi-divider" class:nmi-hidden={status === 'loading'}>
-					<span>or pay with card</span>
-				</div>
+				<div class="nmi-divider"><span>or pay with card</span></div>
 
-				<form onsubmit={submitCard} class:nmi-hidden={status === 'loading'}>
+				<form onsubmit={submitCard}>
 					<div class="nmi-row">
 						<input
 							class="nmi-input"
@@ -326,18 +358,13 @@
 					>
 						{#if status === 'processing'}
 							<span class="nmi-spinner"></span> Processing…
+						{:else if status === 'loading'}
+							<span class="nmi-spinner"></span> Loading…
 						{:else}
 							🔒 Donate {currencySymbol}{amount} securely
 						{/if}
 					</button>
 				</form>
-
-				{#if status === 'loading'}
-					<div class="nmi-loading">
-						<span class="nmi-spinner nmi-spinner-lg"></span>
-						<span>Loading secure payment…</span>
-					</div>
-				{/if}
 
 				<div class="nmi-trust">
 					<span>🔒 SSL encrypted</span>
@@ -451,7 +478,7 @@
 		margin-bottom: 0.75rem;
 	}
 	.nmi-wallet-btn {
-		min-height: 44px;
+		min-height: 0;
 	}
 	.nmi-wallet-btn:empty {
 		display: none;
@@ -496,6 +523,10 @@
 		box-sizing: border-box;
 		margin-bottom: 0.5rem;
 	}
+	.nmi-input::placeholder {
+		color: #9ca3af;
+		opacity: 1;
+	}
 	.nmi-row .nmi-input {
 		margin-bottom: 0;
 	}
@@ -515,6 +546,19 @@
 		background: #fff;
 		margin-bottom: 0.5rem;
 		overflow: hidden;
+		display: block;
+		box-sizing: border-box;
+		transition: border-color 0.15s;
+	}
+	.nmi-field:focus-within {
+		border-color: var(--primary, #02a95c);
+	}
+	.nmi-field :global(iframe) {
+		width: 100% !important;
+		height: 100% !important;
+		border: 0 !important;
+		display: block !important;
+		background: transparent !important;
 	}
 	.nmi-row .nmi-field {
 		margin-bottom: 0;
@@ -592,16 +636,6 @@
 		background: #991b1b;
 		color: #fff;
 	}
-	.nmi-loading {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.75rem;
-		padding: 2rem 1rem;
-		color: #6b7280;
-		font-size: 0.875rem;
-		font-weight: 600;
-	}
 	.nmi-spinner {
 		display: inline-block;
 		width: 16px;
@@ -610,12 +644,6 @@
 		border-top-color: #fff;
 		border-radius: 50%;
 		animation: nmi-spin 0.7s linear infinite;
-	}
-	.nmi-spinner-lg {
-		width: 24px;
-		height: 24px;
-		border-color: #d1d5db;
-		border-top-color: var(--primary, #02a95c);
 	}
 	@keyframes nmi-spin {
 		to {
@@ -650,9 +678,6 @@
 		color: #4b5563;
 		font-size: 0.9375rem;
 		line-height: 1.4;
-	}
-	.nmi-hidden {
-		display: none !important;
 	}
 
 	@media (max-width: 480px) {

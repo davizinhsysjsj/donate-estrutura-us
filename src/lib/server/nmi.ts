@@ -1,6 +1,7 @@
 import { env } from '$env/dynamic/private';
 
-const NMI_API_URL = env.NMI_API_URL || 'https://api.nmi.com/api/v5';
+// NMI Payments API v5 — production base URL is secure.nmi.com (NOT api.nmi.com).
+const NMI_API_URL = env.NMI_API_URL || 'https://secure.nmi.com/api/v5';
 const NMI_SECURITY_KEY = env.NMI_SECURITY_KEY;
 
 export interface NMIBillingAddress {
@@ -60,9 +61,11 @@ export async function processSale(input: NMISaleInput): Promise<NMISaleResult> {
 	if (input.billing) body.billing_address = input.billing;
 	if (input.ipAddress) body.ip_address = input.ipAddress;
 
+	const url = `${NMI_API_URL}/payments/sale`;
+
 	let response: Response;
 	try {
-		response = await fetch(`${NMI_API_URL}/payments/sale`, {
+		response = await fetch(url, {
 			method: 'POST',
 			headers: {
 				Authorization: NMI_SECURITY_KEY,
@@ -72,10 +75,29 @@ export async function processSale(input: NMISaleInput): Promise<NMISaleResult> {
 			body: JSON.stringify(body)
 		});
 	} catch (e) {
+		console.error('[NMI processSale] network error', {
+			url,
+			message: (e as Error).message
+		});
 		return { success: false, error: `Network error: ${(e as Error).message}` };
 	}
 
-	const raw = await response.json().catch(() => ({}));
+	const text = await response.text();
+	// biome-ignore lint/suspicious/noExplicitAny: NMI response shape varies
+	let raw: any = {};
+	try {
+		raw = text ? JSON.parse(text) : {};
+	} catch {
+		console.warn('[NMI processSale] non-JSON response', {
+			status: response.status,
+			body: text.slice(0, 500)
+		});
+		return {
+			success: false,
+			error: `NMI returned non-JSON (HTTP ${response.status})`,
+			responseText: text.slice(0, 300)
+		};
+	}
 
 	const transactionId = raw?.id || raw?.transaction_id;
 	const responseCode = String(raw?.response_code ?? raw?.response ?? '');
@@ -92,6 +114,12 @@ export async function processSale(input: NMISaleInput): Promise<NMISaleResult> {
 			responseCode === '100');
 
 	if (!approved) {
+		console.warn('[NMI processSale] declined', {
+			httpStatus: response.status,
+			responseCode,
+			responseText,
+			raw
+		});
 		return {
 			success: false,
 			transactionId,

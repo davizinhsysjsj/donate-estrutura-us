@@ -5,6 +5,7 @@ import { processSale, type NMIBillingAddress } from '$lib/server/nmi';
 interface DonateBody {
 	amount?: number;
 	token?: string;
+	tokenType?: string;
 	billing?: NMIBillingAddress;
 	orderDescription?: string;
 }
@@ -26,34 +27,69 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 	}
 
 	const orderId = `ellie-us-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-	const ip = getClientAddress?.();
+	let ip: string | undefined;
+	try {
+		ip = getClientAddress?.();
+	} catch {
+		ip = undefined;
+	}
 
-	const result = await processSale({
-		amountCents: Math.round(dollars * 100),
-		currency: 'USD',
-		paymentToken: body.token,
-		billing: body.billing,
-		orderId,
-		orderDescription: body.orderDescription || 'Support Ellie',
-		ipAddress: ip
-	});
+	try {
+		const result = await processSale({
+			amountCents: Math.round(dollars * 100),
+			currency: 'USD',
+			paymentToken: body.token,
+			billing: body.billing,
+			orderId,
+			orderDescription: body.orderDescription || 'Support Ellie',
+			ipAddress: ip
+		});
 
-	if (!result.success) {
+		if (!result.success) {
+			console.warn('[NMI donate] declined', {
+				orderId,
+				amount: dollars,
+				tokenType: body.tokenType,
+				responseCode: result.responseCode,
+				responseText: result.responseText,
+				error: result.error
+			});
+			return json(
+				{
+					success: false,
+					error: result.error || result.responseText || 'Payment declined',
+					responseCode: result.responseCode,
+					responseText: result.responseText,
+					orderId
+				},
+				{ status: 200 }
+			);
+		}
+
+		console.log('[NMI donate] approved', {
+			orderId,
+			amount: dollars,
+			tokenType: body.tokenType,
+			transactionId: result.transactionId,
+			authCode: result.authCode
+		});
+
+		return json({
+			success: true,
+			transactionId: result.transactionId,
+			authCode: result.authCode,
+			orderId
+		});
+	} catch (e) {
+		const message = e instanceof Error ? e.message : String(e);
+		console.error('[NMI donate] unhandled error', { orderId, message, error: e });
 		return json(
 			{
 				success: false,
-				error: result.error || 'Payment declined',
-				responseCode: result.responseCode,
-				responseText: result.responseText
+				error: `Payment processor error: ${message}`,
+				orderId
 			},
-			{ status: 402 }
+			{ status: 200 }
 		);
 	}
-
-	return json({
-		success: true,
-		transactionId: result.transactionId,
-		authCode: result.authCode,
-		orderId
-	});
 };
