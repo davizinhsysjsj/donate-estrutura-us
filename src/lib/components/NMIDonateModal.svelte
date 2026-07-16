@@ -27,6 +27,7 @@
 	let scriptPromise: Promise<void> | null = null;
 	let lastConfiguredAmount = 0;
 	let mounted = false;
+	let configuring = false;
 
 	function loadCollectScript(): Promise<void> {
 		// biome-ignore lint/suspicious/noExplicitAny: window global
@@ -96,15 +97,24 @@
 				callback: onCollectCallback
 			});
 			lastConfiguredAmount = forAmount;
-			// mark ready after a short delay to let iframes render
-			setTimeout(() => {
-				if (status === 'loading') status = 'ready';
-			}, 800);
 			return true;
 		} catch (e) {
 			console.error('[NMI] configure error', e);
 			return false;
 		}
+	}
+
+	function iframesRendered(): boolean {
+		return !!document.querySelector('#nmi-ccnumber iframe');
+	}
+
+	async function waitForIframes(timeoutMs = 5000): Promise<boolean> {
+		const start = Date.now();
+		while (Date.now() - start < timeoutMs) {
+			if (iframesRendered()) return true;
+			await new Promise((r) => setTimeout(r, 100));
+		}
+		return iframesRendered();
 	}
 
 	// biome-ignore lint/suspicious/noExplicitAny: NMI response shape
@@ -202,34 +212,43 @@
 			status = 'error';
 			return;
 		}
+		if (configuring) return; // guard against double-invocation
+		configuring = true;
 		try {
 			await loadCollectScript();
 			// biome-ignore lint/suspicious/noExplicitAny: NMI global
 			if (!(window as any).CollectJS) {
 				throw new Error('CollectJS not available after load');
 			}
-			// wait a frame so DOM containers exist
 			await new Promise((r) => setTimeout(r, 20));
-			const ok = configureCollect(forAmount);
-			if (!ok) {
+			configureCollect(forAmount);
+			// Fonte da verdade: se o iframe do CC apareceu no DOM, o configure funcionou.
+			// Ignora throws que ocorrem quando CollectJS eh reconfigurado durante boot.
+			const ready = await waitForIframes(5000);
+			if (ready) {
+				status = 'ready';
+				errorMsg = '';
+			} else {
 				errorMsg = 'Could not initialize secure payment. Please try again.';
 				status = 'error';
 			}
 		} catch (e) {
 			console.error('[NMI] load error', e);
-			errorMsg = 'Could not load secure payment. Please refresh the page.';
-			status = 'error';
+			// Se apesar do throw os iframes carregaram, ta tudo bem
+			if (iframesRendered()) {
+				status = 'ready';
+				errorMsg = '';
+			} else {
+				errorMsg = 'Could not load secure payment. Please refresh the page.';
+				status = 'error';
+			}
+		} finally {
+			configuring = false;
 		}
 	}
 
 	onMount(() => {
 		mounted = true;
-		// preload script + configure on first amount so iframes are ready
-		if (open) {
-			status = 'loading';
-			errorMsg = '';
-			void ensureConfigured(amount);
-		}
 	});
 
 	let lastOpen = $state(false);
@@ -467,21 +486,28 @@
 		margin-bottom: 0.75rem;
 	}
 	.nmi-wallet-btn {
-		min-height: 0;
 		border-radius: 12px;
 		overflow: hidden;
+		line-height: 0;
 	}
 	.nmi-wallet-btn:empty {
 		display: none;
 	}
-	.nmi-wallet-btn :global(button),
-	.nmi-wallet-btn :global(iframe),
-	.nmi-wallet-btn :global(> div) {
+	.nmi-wallet-btn :global(iframe) {
 		border-radius: 12px !important;
-		overflow: hidden !important;
+		display: block !important;
+		width: 100% !important;
+		border: 0 !important;
+		vertical-align: top;
+	}
+	.nmi-wallet-btn :global(button) {
+		border-radius: 12px !important;
+		display: block !important;
+		width: 100% !important;
 	}
 	.nmi-wallet-btn :global(.apple-pay-button) {
 		border-radius: 12px !important;
+		display: block !important;
 	}
 	.nmi-divider {
 		display: flex;
