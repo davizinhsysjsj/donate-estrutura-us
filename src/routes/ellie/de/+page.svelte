@@ -1299,7 +1299,7 @@
   .inline-tier-value {
     font-size: 1.625rem;
     font-weight: 900;
-    color: #111;
+    color: var(--primary-darker);
     letter-spacing: -0.02em;
   }
   .inline-tier.popular .inline-tier-value { color: var(--primary-darker); }
@@ -1405,10 +1405,12 @@
   .other-amount-value {
     font-size: 1.25rem;
     font-weight: 900;
-    color: #111;
+    color: var(--primary-darker);
     min-width: 68px;
     letter-spacing: -0.01em;
   }
+  .amount-btn-value { color: var(--primary-darker); }
+  .amount-btn.selected .amount-btn-value { color: #fff; }
   .other-amount-label {
     flex: 1;
     font-size: 0.875rem;
