@@ -18,6 +18,7 @@ src="https://www.facebook.com/tr?id=1368928948472637&ev=PageView&noscript=1"/>
 </noscript>
 <!-- End Meta Pixel Code -->
 <meta charset="UTF-8">
+<base href="/teste2/">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Ayuda a Sophia contra el cáncer — Fondo de ayuda médica</title>
@@ -428,6 +429,7 @@ src="https://www.facebook.com/tr?id=1368928948472637&ev=PageView&noscript=1"/>
     <div class="modal-title" id="checkout-title">Completar donación</div>
     <div class="checkout-summary">Donación para Sophia<strong id="checkout-amount">$100.00</strong></div>
     <form id="payment-form">
+      <div id="googlepaybutton" class="google-pay-button" aria-label="Donar con Google Pay"></div>
       <div id="applepaybutton" class="apple-pay-button" aria-label="Donar con Apple Pay"></div>
       <div class="payment-divider"><span>o paga con tarjeta</span></div>
       <div class="checkout-grid">
@@ -524,6 +526,12 @@ src="https://www.facebook.com/tr?id=1368928948472637&ev=PageView&noscript=1"/>
         ccnumber: { selector: '#ccnumber', title: 'Número de tarjeta', placeholder: '0000 0000 0000 0000' },
         ccexp: { selector: '#ccexp', title: 'Vencimiento', placeholder: 'MM / AA' },
         cvv: { selector: '#cvv', title: 'CVV', placeholder: 'CVV' },
+        googlePay: {
+          selector: '#googlepaybutton',
+          buttonType: 'donate',
+          buttonColor: 'default',
+          emailRequired: true
+        },
         applePay: {
           selector: '#applepaybutton',
           requiredBillingContactFields: ['name'],
