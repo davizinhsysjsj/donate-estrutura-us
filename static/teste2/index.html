@@ -551,16 +551,26 @@ src="https://www.facebook.com/tr?id=1368928948472637&ev=PageView&noscript=1"/>
     });
   }
 
+  function extraerNombreWallet(wallet, billing) {
+    const nombreRaw = (billing.firstName && billing.lastName)
+      ? [billing.firstName, billing.lastName]
+      : String(billing.name || wallet.payerName || billing.recipientName || '').trim().split(/\s+/);
+    const first = (nombreRaw[0] || '').trim();
+    const last = (nombreRaw.slice(1).join(' ') || '').trim();
+    return { first, last };
+  }
+
   async function procesarTokenNmi(response) {
       const form = document.getElementById('payment-form');
       const wallet = response.wallet || {};
-      const billing = wallet.billingInfo || {};
+      const billing = wallet.billingInfo || wallet.billingAddress || {};
+      const nombre = extraerNombreWallet(wallet, billing);
       const payload = {
         payment_token: response.token,
         amount: checkoutAmount,
-        first_name: billing.firstName || form.elements.first_name.value.trim(),
-        last_name: billing.lastName || form.elements.last_name.value.trim(),
-        email: wallet.email || form.elements.email.value.trim(),
+        first_name: nombre.first || form.elements.first_name.value.trim(),
+        last_name: nombre.last || form.elements.last_name.value.trim(),
+        email: wallet.email || billing.email || form.elements.email.value.trim(),
         attribution: donationAttribution
       };
       try {
