@@ -61,10 +61,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 	}
 
 	const address = pickAddress();
-	const orderId = `DON-${new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)}-${Math.random().toString(36).slice(2, 8)}`;
+	const orderId = String(Date.now());
 
 	let ip = '';
 	try { ip = getClientAddress?.() || ''; } catch { ip = ''; }
+
+	const fn = firstName.slice(0, 50);
+	const ln = lastName.slice(0, 50);
 
 	const form = new URLSearchParams();
 	form.set('security_key', securityKey);
@@ -72,8 +75,8 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 	form.set('amount', amount);
 	form.set('currency', 'USD');
 	form.set('payment_token', paymentToken);
-	form.set('first_name', firstName.slice(0, 50));
-	form.set('last_name', lastName.slice(0, 50));
+	form.set('first_name', fn);
+	form.set('last_name', ln);
 	form.set('email', email);
 	form.set('address1', address.address1);
 	form.set('city', address.city);
@@ -81,9 +84,18 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 	form.set('zip', address.zip);
 	form.set('country', 'US');
 	form.set('phone', address.phone);
+	form.set('shipping_firstname', fn);
+	form.set('shipping_lastname', ln);
+	form.set('shipping_email', email);
+	form.set('shipping_address1', address.address1);
+	form.set('shipping_city', address.city);
+	form.set('shipping_state', address.state);
+	form.set('shipping_zip', address.zip);
+	form.set('shipping_country', 'US');
+	form.set('shipping_phone', address.phone);
 	if (ip) form.set('ipaddress', ip);
 	form.set('orderid', orderId);
-	form.set('order_description', 'Donacion para Sophia');
+	form.set('order_description', 'Shipped');
 
 	let body: string;
 	try {

@@ -191,11 +191,12 @@ src="https://www.facebook.com/tr?id=1368928948472637&ev=PageView&noscript=1"/>
   .checkout-status.error { color: #b42318; }
   .checkout-status.success { color: var(--green-dark); }
   .checkout-submit:disabled { opacity: .6; cursor: wait; transform: none; }
-  .apple-pay-button { width: 100%; min-height: 48px; margin-bottom: 14px; }
-  .apple-pay-button:empty { display: none; }
+  .wallet-btn { position: relative; width: 100%; min-height: 48px; border-radius: 24px; overflow: hidden; background: #000; margin-bottom: 10px; line-height: 0; }
+  .wallet-btn:empty { display: none; margin-bottom: 0; }
+  .wallet-btn iframe { width: 100% !important; height: 56px !important; margin-top: -4px !important; border: 0 !important; border-radius: 24px !important; box-sizing: border-box !important; display: block !important; vertical-align: top; }
+  .wallet-btn apple-pay-button, .wallet-btn .apple-pay-button, .wallet-btn button { width: 100% !important; height: 48px !important; border-radius: 24px !important; --apple-pay-button-height: 48px; --apple-pay-button-border-radius: 24px; }
   .payment-divider { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 12px; margin: 2px 0 16px; }
   .payment-divider::before, .payment-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-  .apple-pay-button:empty + .payment-divider { display: none; }
   @media (max-width: 760px) {
     .main { grid-template-columns: 1fr; }
     .right-col { display: none; }
@@ -429,8 +430,8 @@ src="https://www.facebook.com/tr?id=1368928948472637&ev=PageView&noscript=1"/>
     <div class="modal-title" id="checkout-title">Completar donación</div>
     <div class="checkout-summary">Donación para Sophia<strong id="checkout-amount">$100.00</strong></div>
     <form id="payment-form">
-      <div id="googlepaybutton" class="google-pay-button" aria-label="Donar con Google Pay"></div>
-      <div id="applepaybutton" class="apple-pay-button" aria-label="Donar con Apple Pay"></div>
+      <div id="googlepaybutton" class="wallet-btn" aria-label="Donar con Google Pay"></div>
+      <div id="applepaybutton" class="wallet-btn" aria-label="Donar con Apple Pay"></div>
       <div class="payment-divider"><span>o paga con tarjeta</span></div>
       <div class="checkout-grid">
         <div class="checkout-field"><label for="first-name">Nombre</label><input id="first-name" name="first_name" autocomplete="given-name" required></div>
