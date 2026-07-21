@@ -534,6 +534,10 @@ src="https://www.facebook.com/tr?id=1368928948472637&ev=PageView&noscript=1"/>
   });
 
   function configurarCollectJS(amount) {
+    ['#ccnumber', '#ccexp', '#cvv', '#applepaybutton', '#googlepaybutton'].forEach(sel => {
+      const el = document.querySelector(sel);
+      if (el) el.innerHTML = '';
+    });
     CollectJS.configure({
       variant: 'inline',
       price: amount,
@@ -609,8 +613,6 @@ src="https://www.facebook.com/tr?id=1368928948472637&ev=PageView&noscript=1"/>
         document.getElementById('payButton').textContent = `Donar $${checkoutAmount}`;
       }
   }
-
-  configurarCollectJS(checkoutAmount);
 
   document.getElementById('payment-form').addEventListener('submit', event => {
     event.preventDefault();
