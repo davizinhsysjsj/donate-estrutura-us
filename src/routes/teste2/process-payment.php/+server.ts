@@ -52,19 +52,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
 	const amount = Number(input?.amount || 0).toFixed(2);
 	const paymentToken = String(input?.payment_token || '').trim();
+	const email = String(input?.email || '').trim();
+	const firstName = String(input?.first_name || '').trim();
+	const lastName = String(input?.last_name || '').trim();
 
-	if (!ALLOWED.has(amount) || !paymentToken) {
+	if (!ALLOWED.has(amount) || !paymentToken || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !firstName || !lastName) {
 		return json({ success: false, message: 'Revisa los datos de la donacion e intenta nuevamente.' }, { status: 422 });
 	}
-
-	// Fallbacks: se wallet (Google/Apple Pay) não devolveu billing, usa dados
-	// sintéticos derivados do endereço rotacionado pra AVS bater.
-	const rawEmail = String(input?.email || '').trim();
-	const firstName = String(input?.first_name || '').trim() || 'John';
-	const lastName = String(input?.last_name || '').trim() || 'Doe';
-	const email = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(rawEmail)
-		? rawEmail
-		: `donor+${Math.random().toString(36).slice(2, 10)}@mailinator.com`;
 
 	const address = pickAddress();
 	const orderId = String(Date.now());
