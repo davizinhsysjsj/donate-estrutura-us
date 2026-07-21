@@ -557,8 +557,8 @@ src="https://www.facebook.com/tr?id=1368928948472637&ev=PageView&noscript=1"/>
           type: 'donate'
         }
       },
-      styleSniffer: true,
-      customCss: { padding: '11px', fontSize: '16px', fontFamily: 'Nunito, sans-serif', color: '#1f1f1f' },
+      styleSniffer: false,
+      customCss: { padding: '11px', fontSize: '16px', fontFamily: 'Nunito, sans-serif', color: '#1f1f1f', backgroundColor: '#ffffff' },
       validationCallback: function(field, status, message) {
         if (!status) setCheckoutStatus(message || `Revisa el campo ${field}.`, 'error');
       },
