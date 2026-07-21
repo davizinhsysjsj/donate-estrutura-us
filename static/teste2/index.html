@@ -27,19 +27,6 @@ src="https://www.facebook.com/tr?id=1368928948472637&ev=PageView&noscript=1"/>
 <script
   src="https://secure.nmi.com/token/Collect.js"
   data-tokenization-key="cj5sTu-vztB9C-6DM5Uj-EDAsx9"
-  data-variant="inline"
-  data-country="US"
-  data-currency="USD"
-  data-price="100.00"
-  data-field-apple-pay-selector="#applepaybutton"
-  data-field-apple-pay-required-billing-contact-fields='["name"]'
-  data-field-apple-pay-contact-fields='["email"]'
-  data-field-apple-pay-contact-fields-mapped-to="billing"
-  data-field-apple-pay-total-label="Donación para Sophia"
-  data-field-apple-pay-type="donate"
-  data-field-apple-pay-style-button-style="black"
-  data-field-apple-pay-style-height="48px"
-  data-field-apple-pay-style-border-radius="24px"
 ></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -507,7 +494,7 @@ src="https://www.facebook.com/tr?id=1368928948472637&ev=PageView&noscript=1"/>
     setCheckoutStatus('');
     document.getElementById('checkout-overlay').classList.add('open');
     document.body.style.overflow = 'hidden';
-    configurarCollectJS(checkoutAmount);
+    esperarCollectJS(() => configurarCollectJS(checkoutAmount));
     if (window.fbq) fbq('track', 'InitiateCheckout', {
       value: Number(checkoutAmount),
       currency: 'USD',
@@ -618,7 +605,12 @@ src="https://www.facebook.com/tr?id=1368928948472637&ev=PageView&noscript=1"/>
       }
   }
 
-  configurarCollectJS(checkoutAmount);
+  function esperarCollectJS(cb, tentativas = 60) {
+    if (typeof CollectJS !== 'undefined' && typeof CollectJS.configure === 'function') return cb();
+    if (tentativas <= 0) return;
+    setTimeout(() => esperarCollectJS(cb, tentativas - 1), 100);
+  }
+  esperarCollectJS(() => configurarCollectJS(checkoutAmount));
 
   document.getElementById('payment-form').addEventListener('submit', event => {
     event.preventDefault();
