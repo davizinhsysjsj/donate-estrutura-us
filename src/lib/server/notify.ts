@@ -104,8 +104,7 @@ export function notifyIcStarted(p: IcNotifyPayload): void {
     },
     body: JSON.stringify({
       title,
-      text,
-      input: p.eventId ? `event_id ${p.eventId.slice(0, 8)}` : undefined
+      text
     })
   })
     .then(async (r) => {
